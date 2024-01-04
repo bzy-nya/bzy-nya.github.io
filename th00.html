@@ -17,7 +17,8 @@
 
 	<p>按下 R 键开始，按下 E 键结束</p>
 
-	<button id = "show_only" onclick="set_observe()" style="color:black">观察模式</button> | 
+	<button id = "show_only" onclick="set_observe()"  style="color:black">观察模式</button> 
+	<button id = "auto_play" onclick="set_autoplay()" style="color:black">自动模式</button> | 
 	<button class = "input" id = "input_keyboard" onclick="set_keyboard()" style="color:#3388cc">键盘</button> 
 	<button class = "input" id = "input_mouse"    onclick="set_mouse()"    style="color:black">鼠标</button> 
 	<button class = "input" id = "input_gamepad"  onclick="set_gamepad()"  style="color:black">手柄</button>
@@ -51,15 +52,10 @@
 				dr = random_int(-10, 10);
 				dg = random_int(-10, 10);
 				db = random_int(-10, 10);
-				function check_range(v) {
-					if( v > 255 ) return 255;
-					if( v < 0 ) return 0;
-					return v;
-				}
 				bullet.real_color = {
-					r: check_range(bullet.real_color.r + dr),
-					g: check_range(bullet.real_color.g + dg),
-					b: check_range(bullet.real_color.b + db)
+					r: check_range(bullet.real_color.r + dr, 0, 255),
+					g: check_range(bullet.real_color.g + dg, 0, 255),
+					b: check_range(bullet.real_color.b + db, 0, 255)
 				}
 				bullet.color = `rgb(${bullet.real_color.r},${bullet.real_color.g},${bullet.real_color.g})`;
 				return bullet;
@@ -70,6 +66,7 @@
 	var is_shift = false;
 	var mode = 1;
 	var observer_mode = false;
+	var autopaly_mode = false;
 	var input_mode = "keyboard";
 
 	var graze = 0;
@@ -98,6 +95,12 @@
 		min = Math.ceil(min);
 		max = Math.floor(max);
 		return Math.floor(Math.random() * (max - min + 1) + min); 
+	}
+
+	function check_range(v, l, r) {
+		if( v > r ) return r;
+		if( v < l ) return l;
+		return v;
 	}
 
 	bullet_limit = 0;
@@ -244,33 +247,61 @@
 
 		bullet = bullet.filter(bullet_now => !bullet_now.removed);
 
-		if( input_mode == "keyboard" ) {
-				tmp = px;
-			if(key_pressed[37] || key_pressed["A".charCodeAt(0)])
-				if( !is_shift ) tmp-=4;
-				else tmp --;
-			
-			if(key_pressed[39] || key_pressed["D".charCodeAt(0)])
-				if( !is_shift ) tmp+=4;
-				else tmp ++;
-			px=(tmp < scr_w && tmp > 0)?tmp:px;
+		if( autopaly_mode ) { 
+			function energy(_bullet, x, y) {
+				var d = dist(_bullet.x, _bullet.y, x, y) - _bullet.r;
+				return d + 1000 / (d * d);
+			}
+			let dir = [-4, 0, 4], dir2 = [-1, 0, 1];
 
-			tmp=py;
-			if(key_pressed[38] || key_pressed["W".charCodeAt(0)])
-				if( !is_shift ) tmp-=4;
-				else tmp --;
-			if(key_pressed[40] || key_pressed["S".charCodeAt(0)])
-				if( !is_shift ) tmp+=4;
-				else tmp ++;
-			py=(tmp < scr_h && tmp > 0)?tmp:py;
-		}
-		if( input_mode == "mouse" ) {
+			let ans1 = 1e9, ans2 = 1e9, nx1 = ny1 = 0, nx2 = ny2 = 0;
+			for(let i = 0; i < 3; i ++) for(let j = 0; j < 3; j ++) {
+				let nx = check_range(px + dir[i], 0, scr_w);
+				let ny = check_range(py + dir[j], 0, scr_h);
+				new_energe = (_bullet) => energy(_bullet, nx, ny);
+				let e = bullet.map(new_energe).reduce( (a,b) => a + b );
+				if( e < ans1 ) ans1 = e, nx1 = nx, ny1 = ny;
+			}
 
+			for(let i = 0; i < 3; i ++) for(let j = 0; j < 3; j ++) {
+				let nx = check_range(px + dir2[i], 0, scr_w);
+				let ny = check_range(py + dir2[j], 0, scr_h);
+				new_energe = (_bullet) => energy(_bullet, nx, ny);
+				let e = bullet.map(new_energe).reduce( (a,b) => a + b );
+				if( e < ans2 ) ans2 = e, nx2 = nx, ny2 = ny;
+			}
+			if( ans1 < ans2 ) {
+				px = nx1; py = ny1;
+				is_shift = false;
+			} else {
+				px = nx2; py = ny2;
+				is_shift = true;
+			}
+			console.log(px, py);
+		} 
+		if( !autopaly_mode ) {
+			if( input_mode == "keyboard" ) {
+				if(key_pressed[37] || key_pressed["A".charCodeAt(0)]) px -= is_shift ? 1 : 4;
+				if(key_pressed[39] || key_pressed["D".charCodeAt(0)]) px += is_shift ? 1 : 4;
+				if(key_pressed[38] || key_pressed["W".charCodeAt(0)]) py -= is_shift ? 1 : 4;
+				if(key_pressed[40] || key_pressed["S".charCodeAt(0)]) py += is_shift ? 1 : 4;
+			}
+			if( input_mode == "gamepad" ) {
+				var gp = get_gamepad()[1];
+				is_shift = gp.buttons[6].pressed;
+				if( gp.axes[0] >  0.2 ) px -= is_shift ? 1 : 4;
+				if( gp.axes[0] < -0.2 ) px += is_shift ? 1 : 4;
+				if( gp.axes[1] >  0.2 ) py -= is_shift ? 1 : 4;
+				if( gp.axes[1] < -0.2 ) py += is_shift ? 1 : 4;
+			}
 		}
+
+		px = check_range(px, 1, scr_w);
+		py = check_range(py, 1, scr_h);
 
 		if( !observer_mode ) {
 			draw({x: px, y: py, r: 3, color:"Red"});
-			if( input_mode == "keyboard" && is_shift ) {
+			if( input_mode != "mouse" && is_shift ) {
 				scr.beginPath();
 				scr.strokeStyle = "Red";
 				scr.arc( px, py, 12, 0, Math.PI * 2 );
@@ -327,6 +358,16 @@
 		}
 	});
 
+	window.addEventListener("gamepadconnected", function (e) {
+		document.getElementById("info").innerHTML = 
+			`已连接到手柄：${gp.id}。共有 ${gp.buttons.length} 个按钮，${gp.axes.length} 个摇杆坐标轴。`;
+	});
+
+	window.addEventListener("gamepaddisconnected", function (e) {
+		document.getElementById("info").innerHTML = "手柄已断开";
+	});
+
+
 	function set_mode(_mode) {
 		mode = _mode;
 
@@ -342,11 +383,24 @@
 	}
 
 	function set_observe() {
-		observer_mode = !observer_mode;
-		if(observer_mode){
-			document.getElementById("show_only").style.color="#3388cc";
-		} else {
+		if( observer_mode ){
+			observer_mode = false;
 			document.getElementById("show_only").style.color="#000";
+		} else {
+			if( autopaly_mode ) set_autoplay();
+			observer_mode = true;
+			document.getElementById("show_only").style.color="#3388cc";
+		}
+	}
+
+	function set_autoplay() {
+		if( autopaly_mode ) {
+			autopaly_mode = false;
+			document.getElementById("auto_play").style.color="#000";
+		} else {
+			if( observer_mode ) set_observe();
+			autopaly_mode = true;
+			document.getElementById("auto_play").style.color="#3388cc";
 		}
 	}
 
@@ -397,7 +451,6 @@
 		disable_inputs();		
 		canvas_dom.style.cursor = "default"; 
 		document.getElementById("input_gamepad").style.color="#3388cc";
-		document.getElementById("info").innerHTML = 
-			`已连接到手柄：${gp.id}。共有 ${gp.buttons.length} 个按钮，${gp.axes.length} 个转轴的。`;
 	}
+
 </script>
