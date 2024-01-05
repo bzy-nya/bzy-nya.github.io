@@ -31,7 +31,9 @@
 	var scr     = canvas_dom.getContext("2d");
 	var grz_dom = document.getElementById("graze");
 	var fps_dom = document.getElementById("fps");
-	var scr_w = 600, scr_h = 800, px = scr_w / 2, py = scr_h * 9 / 10, cnt;
+	var scr_w = 600, scr_h = 800;
+	var px = scr_w / 2, py = scr_h * 9 / 10;
+	var mx = 0, my = 0;
 	var key_pressed = Array(256);
 
 	var detected_fps, fps_scale = 1;
@@ -44,14 +46,15 @@
 		if( detect_frame == 0 ) {
 			t_time = performance.now();
 			detected_fps = 100000 / (t_time - s_time);
-			let fpss = [30, 60, 120, 144];
-			if( detected_fps < 50 ) detected_fps = 30;
-			else if( detected_fps < 100 ) detected_fps = 60;
-			else if( detected_fps < 130 ) detected_fps = 130;
-			else detected_fps = 144;
+			let fpss = [30, 60, 120, 144, 180, 240];
+			let md = 1e9, real_fps = 0;
+			fpss.forEach( x => { 
+				let d = Math.abs(x - detected_fps);
+				if(d < md) md = d, real_fps = x;  
+			} );
+			detected_fps = real_fps;
 			fps_scale = 60 / detected_fps;
-			console.log(fps_scale);
-			document.getElementById("info").innerHTML = `探测到屏幕刷新率为 ${detected_fps}`;
+			document.getElementById("info").innerHTML = `探测到屏幕刷新率为 ${detected_fps} Hz`;
 		}
 		else requestAnimationFrame(detect_fps);
 	}
@@ -62,13 +65,19 @@
 	    {x: 0, y: 0, dx: 0, dy: 0, r: 0, color:"#ffffff", removed: false}
 	];
 
+	function bullet_move(bullet) {
+		bullet.x += bullet.dx * fps_scale;
+		bullet.y += bullet.dy * fps_scale;
+		return bullet;
+	}
+
 	var bullet_template = {
-		small:   {r: 3 , color:"Cyan"},
-		big:     {r: 15, color:"Cyan"},
+		small:   {r: 3 , color:"Cyan", transform: bullet_move},
+		big:     {r: 15, color:"Cyan", transform: bullet_move},
 		gravity: {r: 3 , color:"Cyan", 
 			transform: (bullet) => {
 				bullet.dy += 0.06;
-				return bullet;
+				return bullet_move(bullet);
 			} 
 		},
 		colorful: {r:5, real_color: {r:0, g:255, b:255},
@@ -82,7 +91,7 @@
 					b: check_range(bullet.real_color.b + db, 0, 255)
 				}
 				bullet.color = `rgb(${bullet.real_color.r},${bullet.real_color.g},${bullet.real_color.g})`;
-				return bullet;
+				return bullet_move(bullet);
 			}
 		}
 	};
@@ -243,27 +252,18 @@
 
 		var game_over = false;
 		bullet.forEach((bullet_now) => {
+			bullet_now = bullet_now.transform(bullet_now);
+
 			var x  = bullet_now.x;
 			var y  = bullet_now.y;
 			var r  = bullet_now.r;
-			var dx = bullet_now.dx;
-			var dy = bullet_now.dy;
 
-			if( bullet_now.transform != undefined ) {
-				bullet_now = bullet_now.transform(bullet_now);
-			}
+			if( x < 0 || scr_w < x || y < 0 || scr_h < y ) bullet_now.removed = true;
 
 			if( !observer_mode ) {
 				if( dist(x, y, px, py) - r <= 3  ) game_over = true;
 				if( dist(x, y, px, py) - r <= 12 ) graze ++;
 			}
-			
-			x += dx * fps_scale; y += dy * fps_scale;
-
-			if( x < 0 || scr_w < x || y < 0 || scr_h < y ) bullet_now.removed = true;
-
-			bullet_now.x = x;
-			bullet_now.y = y;
 
 			draw(bullet_now);
 		});
@@ -273,13 +273,13 @@
 
 		if( autopaly_mode ) { 
 			function energy(_bullet, x, y) {
-				var d = dist(_bullet.x, _bullet.y, x, y) - _bullet.r;
+				var d = dist(_bullet.x + _bullet.dx, _bullet.y + _bullet.dy, x, y) - _bullet.r;
 				if( d <= 3 ) return 1e9;
-				return - 50 / d + 1000 / (d * d);
+				return - 100 / d + 900 / (d * d);
 			}
 			let dir = [-4 * fps_scale, 0, 4 * fps_scale], dir2 = [-1 * fps_scale, 0, 1 * fps_scale];
 
-			let ans1 = 1e9, ans2 = 1e9, nx1 = ny1 = 0, nx2 = ny2 = 0;
+			let ans1 = 1e18, ans2 = 1e18, nx1 = ny1 = 0, nx2 = ny2 = 0;
 			for(let i = 0; i < 3; i ++) for(let j = 0; j < 3; j ++) {
 				let nx = check_range(px + dir[i], 0, scr_w);
 				let ny = check_range(py + dir[j], 0, scr_h);
@@ -302,7 +302,6 @@
 				px = nx2; py = ny2;
 				is_shift = true;
 			}
-			console.log(px, py);
 		} 
 		if( !autopaly_mode ) {
 			if( input_mode == "keyboard" ) {
@@ -310,6 +309,10 @@
 				if(key_pressed[39] || key_pressed["D".charCodeAt(0)]) px += (is_shift ? 1 : 4) * fps_scale;
 				if(key_pressed[38] || key_pressed["W".charCodeAt(0)]) py -= (is_shift ? 1 : 4) * fps_scale;
 				if(key_pressed[40] || key_pressed["S".charCodeAt(0)]) py += (is_shift ? 1 : 4) * fps_scale;
+			}
+			if( input_mode == "mouse" ) {
+				px = mx;
+				py = my;
 			}
 			if( input_mode == "gamepad" ) {
 				var gp = get_gamepad()[1];
@@ -378,8 +381,8 @@
 	canvas_dom.addEventListener("mousemove", (e) =>
 	{
 		if( input_mode == "mouse") {
-			px = e.clientX - canvas_dom.offsetLeft;
-			py = e.clientY - canvas_dom.offsetTop;
+			mx = e.clientX - canvas_dom.offsetLeft;
+			my = e.clientY - canvas_dom.offsetTop;
 		}
 	});
 
