@@ -26,6 +26,13 @@
 	<p id="info"><p>
 </div>
 
+<div style="position: absolute; bottom: 10px; right:10px" align="right">
+	<script async defer src="https://buttons.github.io/buttons.js"></script>	
+	<a class="github-button" href="https://github.com/bzy-nya/bzy-nya.github.io" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star bzy-nya/bzy-nya.github.io on GitHub">Star</a><br/>
+	<a class="github-button" href="https://github.com/bzy-nya/bzy-nya.github.io/issues" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-issue-opened" data-size="large" aria-label="Issue bzy-nya/bzy-nya.github.io on GitHub">Bug Report</a>
+</div>
+
+
 <script>
 	var canvas_dom = document.getElementById("canvas");
 	var scr     = canvas_dom.getContext("2d");
@@ -80,7 +87,7 @@
 				return bullet_move(bullet);
 			} 
 		},
-		colorful: {r:5, real_color: {r:0, g:255, b:255},
+		colorful: {r:5, color:"Cyan", real_color: {r:0, g:255, b:255},
 			transform: (bullet) => {
 				dr = random_int(-10, 10);
 				dg = random_int(-10, 10);
@@ -103,7 +110,7 @@
 	var input_mode = "keyboard";
 
 	var graze = 0;
-	var starttime = 0;
+	var start_time = 0;
 	var timeall = 0;
 	var frameall = 0;
 
@@ -214,7 +221,7 @@
 		return bullet;
 	}
 
-	mode_meta = [
+	var	mode_meta = [
 		{},
 		{bullet_limit: 80    , bullet_per_frame: 1,  generator: generate_bullet_1, bullet_templates: [bullet_template.small]},
 		{bullet_limit: 200   , bullet_per_frame: 4,  generator: generate_bullet_2, bullet_templates: [bullet_template.small, bullet_template.big] },
@@ -230,11 +237,11 @@
 	{	
 	    cls();
 		
-		if( frameall == 0 ) starttime = current_time;
+		if( frameall == 0 ) start_time = current_time;
 		if( frameall == 400 ) 
-		  { frameall = 200; starttime = (current_time + starttime) / 2; }
+		  { frameall = 200; start_time = (current_time + start_time) / 2; }
 		
-		var fps = ( frameall == 1 ? 60 : 1000 * frameall / (current_time - starttime) + 0.053 );
+		var fps = ( frameall == 1 ? 60 : 1000 * frameall / (current_time - start_time) + 0.053 );
 		
 		var limits    = mode_meta[mode].bullet_limit;
 		var cnt       = mode_meta[mode].bullet_per_frame;
@@ -363,6 +370,7 @@
 
 	document.addEventListener("keydown", (e) =>
 	{
+		e.preventDefault();
 		if(e.keyCode == "R".charCodeAt(0))
 		{
 			bullet.length=0
