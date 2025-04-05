@@ -1,504 +1,80 @@
 <!DOCTYPE html>
-<div aligned="midlle">
-<canvas id="canvas" width="600" height="800" style="background: Black" cursor: "none"></canvas>
-
-</div>
-
-    <span id = "graze">| graze : 0 |</span>
-    <span id = "fps"> | fps : 0 | </span>
-
-    <button class = "mode" id = "mode1" onclick="set_mode(1)" style="color:#3388cc">自机狙+随机弹</button>
-    <button class = "mode" id = "mode2" onclick="set_mode(2)" style="color:black">随机弹</button>
-    <button class = "mode" id = "mode3" onclick="set_mode(3)" style="color:black">泛狙</button>
-    <button class = "mode" id = "mode4" onclick="set_mode(4)" style="color:black">雨弹幕</button>
-	<button class = "mode" id = "mode5" onclick="set_mode(5)" style="color:black">波粒</button>
-	<button class = "mode" id = "mode6" onclick="set_mode(6)" style="color:black">重力</button>
-	<button class = "mode" id = "mode7" onclick="set_mode(7)" style="color:black">彩色</button>
-
-	<p>按下 R 键开始，按下 E 键结束</p>
-
-	<button id = "show_only" onclick="set_observe()"  style="color:black">观察模式</button> 
-	<button id = "auto_play" onclick="set_autoplay()" style="color:black">自动模式</button> | 
-	<button class = "input" id = "input_keyboard" onclick="set_keyboard()" style="color:#3388cc">键盘</button> 
-	<button class = "input" id = "input_mouse"    onclick="set_mouse()"    style="color:black">鼠标</button> 
-	<button class = "input" id = "input_gamepad"  onclick="set_gamepad()"  style="color:black">手柄</button>
-
-	<p id="info"><p>
-</div>
-
-<div style="position: absolute; bottom: 10px; right:10px" align="right">
-	<script async defer src="https://buttons.github.io/buttons.js"></script>	
-	<a class="github-button" href="https://github.com/bzy-nya/bzy-nya.github.io" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star bzy-nya/bzy-nya.github.io on GitHub">Star</a><br/>
-	<a class="github-button" href="https://github.com/bzy-nya/bzy-nya.github.io/issues" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-issue-opened" data-size="large" aria-label="Issue bzy-nya/bzy-nya.github.io on GitHub">Bug Report</a>
-</div>
-
-
-<script>
-	var canvas_dom = document.getElementById("canvas");
-	var scr     = canvas_dom.getContext("2d");
-	var grz_dom = document.getElementById("graze");
-	var fps_dom = document.getElementById("fps");
-	var scr_w = 600, scr_h = 800;
-	var px = scr_w / 2, py = scr_h * 9 / 10;
-	var mx = 0, my = 0;
-	var key_pressed = Array(256);
-
-	var detected_fps, fps_scale = 1;
-	let s_time = 0;
-	let t_time = 0;
-	let detect_frame = 100;
-
-	function detect_fps() {
-		if(detect_frame == 100) {
-			document.getElementById("info").innerHTML = 
-				`计算中...`;
-			s_time = performance.now();
-		}
-		detect_frame --;
-		if( detect_frame == 0 ) {
-			detect_frame = 100;
-			t_time = performance.now();
-			detected_fps = 100000 / (t_time - s_time);
-			let fpss = [30, 60, 120, 144, 180, 240];
-			let md = 1e9, real_fps = 0;
-			fpss.forEach( x => { 
-				let d = Math.abs(x - detected_fps);
-				if(d < md) md = d, real_fps = x;  
-			} );
-			detected_fps = real_fps;
-			fps_scale = 60 / detected_fps;
-			document.getElementById("info").innerHTML = 
-				`探测到屏幕刷新率为 ${detected_fps} Hz 
-				<button onclick="detect_fps()">重新测量</button>`;
-		}
-		else requestAnimationFrame(detect_fps);
-	}
-	detect_fps();
-
-	var bullet=[
-	    {x: 0, y: 0, dx: 0, dy: 0, r: 0, color:"#ffffff", removed: false}
-	];
-
-	function bullet_move(bullet) {
-		bullet.x += bullet.dx * fps_scale;
-		bullet.y += bullet.dy * fps_scale;
-		return bullet;
-	}
-
-	var bullet_template = {
-		small:   {r: 3 , color:"Cyan", transform: bullet_move},
-		big:     {r: 15, color:"Cyan", transform: bullet_move},
-		gravity: {r: 3 , color:"Cyan", 
-			transform: (bullet) => {
-				bullet.dy += 0.06 * fps_scale;
-				return bullet_move(bullet);
-			} 
-		},
-		colorful: {r:5, color:"Cyan", real_color: {r:0, g:255, b:255},
-			transform: (bullet) => {
-				dr = random_int(-10, 10);
-				dg = random_int(-10, 10);
-				db = random_int(-10, 10);
-				bullet.real_color = {
-					r: check_range(bullet.real_color.r + dr, 0, 255),
-					g: check_range(bullet.real_color.g + dg, 0, 255),
-					b: check_range(bullet.real_color.b + db, 0, 255)
-				}
-				bullet.color = `rgb(${bullet.real_color.r},${bullet.real_color.g},${bullet.real_color.g})`;
-				return bullet_move(bullet);
-			}
-		}
-	};
-	
-	var is_shift = false;
-	var mode = 1;
-	var observer_mode = false;
-	var autopaly_mode = false;
-	var input_mode = "keyboard";
-
-	var graze = 0;
-	var start_time = 0;
-	var timeall = 0;
-	var frameall = 0;
-
-	function draw(bullet) {  
-		scr.beginPath();
-		scr.fillStyle = bullet.color;
-		scr.arc( bullet.x, bullet.y, bullet.r, 0, Math.PI * 2 );
-		scr.fill();
-	} 
-	
-	function cls() {
-		scr.clearRect(0,0,scr_w,scr_h);
-	}
-
-	function sqr(x){return x * x;}
-	
-	function dist(x1,y1,x2,y2) {
-	    return Math.sqrt(sqr(Math.abs(x1-x2))+sqr(Math.abs(y1-y2)));
-	}
-
-	function random_int(min, max) {
-		min = Math.ceil(min);
-		max = Math.floor(max);
-		return Math.floor(Math.random() * (max - min + 1) + min); 
-	}
-
-	function check_range(v, l, r) {
-		if( v > r ) return r;
-		if( v < l ) return l;
-		return v;
-	}
-
-	bullet_limit = 0;
-
-	function generate_random_location(bullet) {
-		bullet.x = Math.random() * 600;
-		bullet.y = Math.random() * 10;
-		return bullet;
-	}
-
-	function generate_bullet_1(bullet, cnt) {
-		bullet = generate_random_location(bullet);
-
-		if( Math.random() > 0.6 ) {
-			bullet.dx = (px - bullet.x) * 0.012;
-			bullet.dy = (py - bullet.y) * 0.012;
-		} else {
-			bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8;
-			bullet.dy = Math.random() * 5.6;
-		}
-
-		return bullet;
-	}
-	
-	function generate_bullet_2(bullet, cnt) {
-		bullet = generate_random_location(bullet);
-
-		bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8 ;
-		bullet.dy = Math.random() * 5.6;
-
-		return bullet;
-	}
-
-	function generate_bullet_3(bullet, cnt) {
-		bullet = generate_random_location(bullet);
-
-		var qx = px + ( Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 55.5;
-		var qy = py + ( Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 55.5;
-		bullet.dx = (qx - bullet.x) * 0.009;
-		bullet.dy = (qy - bullet.y) * 0.009;
-
-		return bullet;
-	}
-
-	function generate_bullet_4(bullet, cnt) {
-		bullet = generate_random_location(bullet);
-
-		bullet.dx = 0;
-		bullet.dy = Math.random() * 7.2;
-
-		return bullet;
-	}
-
-	function generate_bullet_5(bullet, cnt) {
-		bullet.x = 300;
-		bullet.y = 300;
-		bullet.dx = 3 * Math.cos( Math.PI / 400 * frameall * frameall / 4 + Math.PI / 4 * cnt );
-		bullet.dy = 3 * Math.sin( Math.PI / 400 * frameall * frameall / 4 + Math.PI / 4 * cnt );
-
-		return bullet;
-	}
-
-	function generate_bullet_6(bullet, cnt) {
-		bullet.x = 300;
-		bullet.y = 200;
-		bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8;
-		bullet.dy = -Math.random() * 5.6;
-
-		return bullet;
-	}
-
-	function generate_bullet_7(bullet, cnt) {
-		bullet = generate_random_location(bullet);
-
-		bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8 ;
-		bullet.dy = Math.random() * 5.6;
-
-		return bullet;
-	}
-
-	var	mode_meta = [
-		{},
-		{bullet_limit: 80    , bullet_per_frame: 1,  generator: generate_bullet_1, bullet_templates: [bullet_template.small]},
-		{bullet_limit: 200   , bullet_per_frame: 4,  generator: generate_bullet_2, bullet_templates: [bullet_template.small, bullet_template.big] },
-		{bullet_limit: 100   , bullet_per_frame: 1,  generator: generate_bullet_3, bullet_templates: [bullet_template.small] },
-		{bullet_limit: 200   , bullet_per_frame: 4,  generator: generate_bullet_4, bullet_templates: [bullet_template.small] },
-		{bullet_limit: 10000 , bullet_per_frame: 8,  generator: generate_bullet_5, bullet_templates: [bullet_template.small] },
-		{bullet_limit: 500   , bullet_per_frame: 4,  generator: generate_bullet_6, bullet_templates: [bullet_template.gravity] },
-		{bullet_limit: 200   , bullet_per_frame: 2,  generator: generate_bullet_7, bullet_templates: [bullet_template.colorful] },
-	]
-	
-	var request_id = 0;
-	function main_loop(current_time)
-	{	
-	    cls();
-		
-		if( frameall == 0 ) start_time = current_time;
-		if( frameall == 400 ) 
-		  { frameall = 200; start_time = (current_time + start_time) / 2; }
-		
-		var fps = ( frameall == 1 ? 60 : 1000 * frameall / (current_time - start_time) + 0.053 );
-		
-		var limits    = mode_meta[mode].bullet_limit;
-		var cnt       = mode_meta[mode].bullet_per_frame;
-		var templates = mode_meta[mode].bullet_templates;
-		var generator = mode_meta[mode].generator;
-
-		while( bullet.length < limits && cnt > 0 )
-		{
-			var new_bullet = { ...templates[random_int(0, templates.length - 1)] };
-
-			bullet.push( generator(new_bullet, cnt) );
-
-			cnt --;
-		}
-
-		var game_over = false;
-		bullet.forEach((bullet_now) => {
-			bullet_now = bullet_now.transform(bullet_now);
-
-			var x  = bullet_now.x;
-			var y  = bullet_now.y;
-			var r  = bullet_now.r;
-
-			if( x < 0 || scr_w < x || y < 0 || scr_h < y ) bullet_now.removed = true;
-
-			if( !observer_mode ) {
-				if( dist(x, y, px, py) - r <= 3  ) game_over = true;
-				if( dist(x, y, px, py) - r <= 12 ) graze ++;
-			}
-
-			draw(bullet_now);
-		});
-		if( game_over ) return;
-
-		bullet = bullet.filter(bullet_now => !bullet_now.removed);
-
-		if( autopaly_mode ) { 
-			function energy(_bullet, x, y) {
-				let bullet_copy = {..._bullet};
-				bullet_copy = bullet_copy.transform(bullet_copy);
-				let d = dist(bullet_copy.x, bullet_copy.y, x, y) - _bullet.r;
-				if( d <= 3 ) return 1e9;
-				return - 100 / d + 900 / (d * d);
-			}
-			let dir = [-4 * fps_scale, 0, 4 * fps_scale], dir2 = [-1 * fps_scale, 0, 1 * fps_scale];
-
-			let ans1 = 1e18, ans2 = 1e18, nx1 = ny1 = 0, nx2 = ny2 = 0;
-			for(let i = 0; i < 3; i ++) for(let j = 0; j < 3; j ++) {
-				let nx = check_range(px + dir[i], 0, scr_w);
-				let ny = check_range(py + dir[j], 0, scr_h);
-				new_energe = (_bullet) => energy(_bullet, nx, ny);
-				let e = bullet.map(new_energe).reduce( (a,b) => a + b );
-				if( e < ans1 ) ans1 = e, nx1 = nx, ny1 = ny;
-			}
-
-			for(let i = 0; i < 3; i ++) for(let j = 0; j < 3; j ++) {
-				let nx = check_range(px + dir2[i], 0, scr_w);
-				let ny = check_range(py + dir2[j], 0, scr_h);
-				new_energe = (_bullet) => energy(_bullet, nx, ny);
-				let e = bullet.map(new_energe).reduce( (a,b) => a + b );
-				if( e < ans2 ) ans2 = e, nx2 = nx, ny2 = ny;
-			}
-			if( ans1 < ans2 ) {
-				px = nx1; py = ny1;
-				is_shift = false;
-			} else {
-				px = nx2; py = ny2;
-				is_shift = true;
-			}
-		} 
-		if( !autopaly_mode ) {
-			if( input_mode == "keyboard" ) {
-				if(key_pressed[37] || key_pressed["A".charCodeAt(0)]) px -= (is_shift ? 1 : 4) * fps_scale;
-				if(key_pressed[39] || key_pressed["D".charCodeAt(0)]) px += (is_shift ? 1 : 4) * fps_scale;
-				if(key_pressed[38] || key_pressed["W".charCodeAt(0)]) py -= (is_shift ? 1 : 4) * fps_scale;
-				if(key_pressed[40] || key_pressed["S".charCodeAt(0)]) py += (is_shift ? 1 : 4) * fps_scale;
-			}
-			if( input_mode == "mouse" ) {
-				px = mx;
-				py = my;
-			}
-			if( input_mode == "gamepad" ) {
-				var gp = get_gamepad()[1];
-				is_shift = gp.buttons[6].pressed;
-				if( gp.axes[0] >  0.2 ) px -= (is_shift ? 1 : 4) * fps_scale;
-				if( gp.axes[0] < -0.2 ) px += (is_shift ? 1 : 4) * fps_scale;
-				if( gp.axes[1] >  0.2 ) py -= (is_shift ? 1 : 4) * fps_scale;
-				if( gp.axes[1] < -0.2 ) py += (is_shift ? 1 : 4) * fps_scale;
-			}
-		}
-
-		px = check_range(px, 1, scr_w);
-		py = check_range(py, 1, scr_h);
-
-		if( !observer_mode ) {
-			draw({x: px, y: py, r: 3, color:"Red"});
-			if( input_mode != "mouse" && is_shift ) {
-				scr.beginPath();
-				scr.strokeStyle = "Red";
-				scr.arc( px, py, 12, 0, Math.PI * 2 );
-				scr.stroke();
-			}
-		}
-
-		frameall ++;
-		
-		grz_dom.innerHTML = "| graze : " + graze + " |";
-		if( frameall % 10 == 0 )
-			fps_dom.innerHTML = "| fps : " + fps.toFixed(2) + " | ";
-		
-		t_time = performance.now();
-		request_id = requestAnimationFrame( (t) => main_loop(t) );  
-	};  
-	
-	document.addEventListener("keyup", (e) =>
-	{
-		key_pressed[e.keyCode]=false;
-		if( !e.shiftKey ) is_shift = false;
-		else is_shift = true;
-	});
-
-	document.addEventListener("keydown", (e) =>
-	{
-		if(37 <= e.keyCode && e.keyCode <= 40){
-			e.preventDefault();
-		}
-		key_pressed[e.keyCode]=true;
-		if( e.shiftKey ) is_shift = true;
-		else is_shift = false;
-	});
-
-	document.addEventListener("keydown", (e) =>
-	{	
-		if(e.keyCode == "R".charCodeAt(0))
-		{
-			bullet.length=0
-			px = scr_w / 2;
-			py = scr_h * 9 / 10;
-			graze = 0;
-			frameall = 0;
-			request_id = requestAnimationFrame( (t) => main_loop(t) );
-		}
-		if(e.keyCode == "E".charCodeAt(0))
-		{
-			cancelAnimationFrame(request_id);
-		}
-	});
-
-	canvas_dom.addEventListener("mousemove", (e) =>
-	{
-		if( input_mode == "mouse") {
-			mx = e.clientX - canvas_dom.offsetLeft;
-			my = e.clientY - canvas_dom.offsetTop;
-		}
-	});
-
-	window.addEventListener("gamepadconnected", function (e) {
-		document.getElementById("info").innerHTML = 
-			`已连接到手柄：${gp.id}。共有 ${gp.buttons.length} 个按钮，${gp.axes.length} 个摇杆坐标轴。`;
-	});
-
-	window.addEventListener("gamepaddisconnected", function (e) {
-		document.getElementById("info").innerHTML = "手柄已断开";
-	});
-
-
-	function set_mode(_mode) {
-		mode = _mode;
-
-		var list = Array.prototype.slice.call(document.getElementsByClassName('mode'))
-	
-		list.forEach(
-			(element) => {
-				element.style.color = "black";
-			}
-		)
-
-		document.getElementById(`mode${mode}`).style.color="#3388cc";
-	}
-
-	function set_observe() {
-		if( observer_mode ){
-			observer_mode = false;
-			document.getElementById("show_only").style.color="#000";
-		} else {
-			if( autopaly_mode ) set_autoplay();
-			observer_mode = true;
-			document.getElementById("show_only").style.color="#3388cc";
-		}
-	}
-
-	function set_autoplay() {
-		if( autopaly_mode ) {
-			autopaly_mode = false;
-			document.getElementById("auto_play").style.color="#000";
-		} else {
-			if( observer_mode ) set_observe();
-			autopaly_mode = true;
-			document.getElementById("auto_play").style.color="#3388cc";
-		}
-	}
-
-	function disable_inputs(){
-		var list = Array.prototype.slice.call(document.getElementsByClassName('input'))
-	
-		list.forEach(
-			(element) => {
-				element.style.color = "black";
-			}
-		)
-	}
-
-	function set_keyboard(){
-		input_mode = "keyboard";
-		disable_inputs();
-		canvas_dom.style.cursor = "default"; 
-		document.getElementById(`input_keyboard`).style.color="#3388cc";
-	}
-
-	function set_mouse(){
-		input_mode = "mouse";
-		disable_inputs();
-		canvas_dom.style.cursor = "none"; 
-		document.getElementById(`input_mouse`).style.color="#3388cc";
-
-	}
-
-	function get_gamepad() {
-		var gamepads = navigator.getGamepads
-			? navigator.getGamepads()
-			: navigator.webkitGetGamepads
-			? navigator.webkitGetGamepads
-			: [];
-		if (!gamepads || gamepads.length == 0 ) {
-			return undefined;
-		}
-		return gamepads;
-	}
-
-	function set_gamepad(){
-		var gp = get_gamepad();
-		if( gp == undefined ) {
-			document.getElementById("info").innerHTML = "未探测到手柄";
-			return ;
-		}
-		input_mode = "gamepad";
-		disable_inputs();		
-		canvas_dom.style.cursor = "default"; 
-		document.getElementById("input_gamepad").style.color="#3388cc";
-	}
-
-</script>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>touhou00</title>
+    <link rel="stylesheet" href="th00/styles.css">
+</head>
+<body>
+    <div class="theme-toggle">
+        <button id="theme-toggle-btn" title="切换主题" aria-label="Toggle dark/light theme">
+            <!-- SVG icons will be inserted by themeManager.js -->
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="game-container">
+            <canvas id="canvas" width="600" height="800"></canvas>
+            
+            <div class="stats">
+                <span id="graze">Graze: 0</span>
+                <span id="fps">FPS: 0</span>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <div class="control-section">
+                <div class="section-title">弹幕模式</div>
+                <div class="button-group">
+                    <button class="mode active" id="mode1" onclick="set_mode(1)">自机狙+随机弹</button>
+                    <button class="mode" id="mode2" onclick="set_mode(2)">随机弹</button>
+                    <button class="mode" id="mode3" onclick="set_mode(3)">泛狙</button>
+                    <button class="mode" id="mode4" onclick="set_mode(4)">雨弹幕</button>
+                    <button class="mode" id="mode5" onclick="set_mode(5)">波粒</button>
+                    <button class="mode" id="mode6" onclick="set_mode(6)">重力</button>
+                    <button class="mode" id="mode7" onclick="set_mode(7)">彩色</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">游戏控制</div>
+                <div class="instructions">
+                    按下 <kbd>R</kbd> 键开始游戏，按下 <kbd>E</kbd> 键结束游戏
+                </div>
+                
+                <div class="button-group">
+                    <button id="show_only" onclick="set_observe()">观察模式</button> 
+                    <button id="auto_play" onclick="set_autoplay()">自动模式</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">输入方式</div>
+                <div class="button-group">
+                    <button class="input active" id="input_keyboard" onclick="set_keyboard()">键盘</button> 
+                    <button class="input" id="input_mouse" onclick="set_mouse()">鼠标</button> 
+                    <button class="input" id="input_gamepad" onclick="set_gamepad()">手柄</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">系统信息</div>
+                <div id="info"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub buttons container that will be fully replaced by the script -->
+    <div class="github-buttons">
+        <!-- Buttons will be dynamically added by themeManager.js -->
+    </div>
+
+    <!-- Script for GitHub buttons, will be dynamically reloaded -->
+    <script src="th00/themeManager.js"></script>
+    <script src="th00/game.js"></script>
+    <script src="th00/ui.js"></script>
+    <script src="th00/main.js"></script>
+</body>
+</html>
 
