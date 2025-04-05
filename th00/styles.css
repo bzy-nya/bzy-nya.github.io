@@ -1,0 +1,395 @@
+:root {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --panel-bg: #222222;
+    --button-bg: #333333;
+    --button-text: #cccccc;
+    --button-border: #444444;
+    --button-active: #3388cc;
+    --button-active-border: #4499dd;
+    --separator-color: #555555;
+    --accent-color: rgba(0, 100, 255, 0.3);
+    --stats-bg: rgba(50, 50, 50, 0.7);
+    --stats-item-bg: rgba(0, 0, 0, 0.5);
+    --canvas-border: #333333;
+    --stats-text: rgba(255, 255, 255, 0.7);
+    --game-over-effect-bg:rgba(0, 0, 0, 0.7)
+}
+
+.light-theme {
+    --bg-color: #f0f0f0;
+    --text-color: #333333;
+    --panel-bg: #ffffff;
+    --button-bg: #e0e0e0;
+    --button-text: #444444;
+    --button-border: #cccccc;
+    --button-active: #3388cc;
+    --button-active-border: #2277bb;
+    --separator-color: #dddddd;
+    --accent-color: rgba(0, 100, 255, 0.15);
+    --stats-bg: rgba(240, 240, 240, 0.8);
+    --stats-item-bg: rgba(180, 180, 180, 0.7);
+    --canvas-border: #cccccc;
+    --stats-text: rgba(255, 255, 255, 0.9);
+    --game-over-effect-bg:rgba(0, 0, 0, 0.3)
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    max-height: 100%;
+    width: 100%;
+    justify-content: center;
+}
+
+.game-container {
+    position: relative;
+}
+
+.controls-container {
+    display: flex;
+    flex-direction: column;
+    min-width: 250px;
+    max-width: 300px;
+    height: calc(800px - 30px); /* Subtract padding to match canvas height exactly */
+    background-color: var(--panel-bg);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    transition: background-color 0.3s;
+    box-sizing: border-box; /* Include padding in height calculation */
+}
+
+canvas {
+    border: 2px solid var(--canvas-border);
+    border-radius: 5px;
+    box-shadow: 0 0 20px var(--accent-color);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.stats {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.stats:hover {
+    opacity: 1;
+}
+
+.stats span {
+    padding: 3px 8px;
+    border-radius: 5px;
+    background-color: var(--stats-item-bg);
+    color: var(--stats-text);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.control-section {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--separator-color);
+    padding-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+.control-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: var(--button-active);
+    font-weight: bold;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.separator {
+    margin: 0 10px;
+    font-size: 20px;
+    color: var(--separator-color);
+    transition: color 0.3s;
+}
+
+button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    border: 1px solid var(--button-border);
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    flex-grow: 1;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+button.active {
+    background-color: var(--button-active);
+    color: white;
+    border-color: var(--button-active-border);
+}
+
+.instructions {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: var(--stats-bg);
+    border-radius: 5px;
+    text-align: center;
+    transition: background-color 0.3s;
+}
+
+kbd {
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-size: 0.9em;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+#info {
+    min-height: 30px;
+    margin: 10px 0;
+    padding: 10px;
+    text-align: center;
+    color: var(--button-text);
+    transition: color 0.3s;
+}
+
+.theme-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.theme-toggle button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 18px;
+    padding: 0;
+    color: var(--button-text);
+    overflow: hidden;
+}
+
+.theme-toggle button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle button:hover svg {
+    transform: rotate(15deg);
+}
+
+.github-buttons {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-end; /* Right align buttons */
+    transition: opacity 0.3s ease; /* Match with body transition timing */
+}
+
+.github-button-wrapper {
+    display: flex;
+    justify-content: flex-end; /* Ensure right alignment within wrapper */
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+#active-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+#active-buttons iframe {
+    margin: 0 !important; /* Override GitHub's default margins */
+}
+
+@media (max-width: 1000px) {
+    .container {
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+    }
+    
+    .controls-container {
+        max-width: 600px;
+        width: 100%;
+        max-height: none;
+        height: auto;
+    }
+
+    body {
+        height: auto;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .game-container {
+        margin-bottom: 20px;
+    }
+}
+
+/* Effects container */
+.effects-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Enhanced graze effect styling */
+.graze-effect {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    animation: graze-pulse 0.5s ease-out forwards;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes graze-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Game over effect styling */
+.game-over-effect {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,50,50,0.9) 0%, rgba(255,150,0,0.6) 40%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    animation: explosion 0.8s ease-out forwards;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes explosion {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(15);
+        opacity: 0;
+    }
+}
+
+.game-over-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 803px;
+    background-color: var(--game-over-effect-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    animation: fade-in 0.5s ease-in forwards;
+    z-index: 20;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.game-over-overlay span {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ff3333;
+    text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    margin-bottom: 20px;
+    animation: game-over-text 2s ease-in-out infinite;
+    letter-spacing: 5px;
+}
+
+@keyframes game-over-text {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes blink {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* Graze effect styling */
+.graze-effect {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    animation: graze-pulse 0.5s ease-out forwards;
+    z-index: 10;
+}
+
+@keyframes graze-pulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
