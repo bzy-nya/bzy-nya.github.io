@@ -9,6 +9,18 @@ let s_time = 0;
 let t_time = 0;
 let detect_frame = 100;
 
+// Sound management variables
+const soundThrottles = {
+    graze: {
+        lastPlayed: 0,
+        minDelay: 80, // Minimum 80ms between graze sounds
+        maxConcurrent: 10 // Maximum 10 concurrent graze sounds
+    }
+};
+const activeSounds = {
+    graze: []
+};
+
 // Initialize UI
 function initUI() {
     // Get DOM references
@@ -267,7 +279,7 @@ function showGrazeEffect(x, y, color = 'rgba(255,255,255,0.8)') {
         }
     }, 500);
 
-    // Add sound effect if available
+    // Add sound effect if available - now throttled
     if (typeof playSound === 'function') {
         playSound('graze');
     }
@@ -314,15 +326,83 @@ function onGameOver(x, y) {
     }
 }
 
-// Add sound effects (optional)
+// Updated sound effects with better management
 const sounds = {    
     graze: new Audio('th00/se_graze.wav'),
     gameOver: new Audio('th00/Touhou_Death_Sound.ogg')
 };
 
+// Create a pool of audio elements for frequently used sounds
+function createSoundPool(soundName, poolSize = 5) {
+    const pool = [];
+    
+    // Original sound to clone from
+    const originalSound = sounds[soundName];
+    if (!originalSound) return pool;
+    
+    // Create pool of clones
+    for (let i = 0; i < poolSize; i++) {
+        const clone = originalSound.cloneNode(true);
+        clone.volume = originalSound.volume;
+        pool.push({
+            element: clone,
+            inUse: false
+        });
+    }
+    
+    return pool;
+}
+
+// Initialize pools for sounds that need them
+const soundPools = {
+    graze: createSoundPool('graze', 5)
+};
+
+// Improved sound playing function with throttling and pooling
 function playSound(soundName) {
+    const now = performance.now();
+    
+    // Special handling for graze sounds to prevent audio spam
+    if (soundName === 'graze') {
+        const throttleInfo = soundThrottles.graze;
+        
+        // Check if we need to throttle
+        if (now - throttleInfo.lastPlayed < throttleInfo.minDelay) {
+            return; // Skip this sound, it's too soon
+        }
+        
+        // Update last played time
+        throttleInfo.lastPlayed = now;
+        
+        // Find an available sound from the pool
+        const soundPool = soundPools.graze;
+        
+        // Try to find a sound that's not in use
+        const availableSound = soundPool.find(sound => !sound.inUse);
+        
+        if (availableSound) {
+            availableSound.inUse = true;
+            
+            // Play the sound
+            availableSound.element.play()
+                .then(() => {
+                    // Mark as available when finished
+                    availableSound.element.onended = () => {
+                        availableSound.inUse = false;
+                    };
+                })
+                .catch(e => {
+                    // Handle errors and still mark as available
+                    console.log("Sound couldn't play: ", e.message);
+                    availableSound.inUse = false;
+                });
+        }
+        // If no sound available in the pool, we just skip this one
+        return;
+    }
+    
+    // Standard handling for other sounds
     if (sounds[soundName]) {
-        // Clone the audio to allow overlapping sounds
         sounds[soundName].cloneNode(true).play().catch(e => {
             // Silence errors for browsers that block autoplay
             console.log("Sound couldn't play: ", e.message);
