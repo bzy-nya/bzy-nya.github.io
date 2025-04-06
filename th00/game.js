@@ -1,11 +1,16 @@
-// Game constants
-const SCREEN_WIDTH = 600;
-const SCREEN_HEIGHT = 800;
-// Add graze cooldown constant (in milliseconds)
-const GRAZE_COOLDOWN = 1000; // 1 second cooldown between grazes
-
 // Game mechanics constants
 const GAME_CONSTANTS = {
+  // Screen dimensions
+  SCREEN: {
+    WIDTH: 600,
+    HEIGHT: 800
+  },
+  
+  TICK_RATE: 30,
+  
+  // Graze system
+  GRAZE_COOLDOWN: 1000,
+  
   // Player constants
   PLAYER: {
     NORMAL_SPEED: 4,
@@ -33,12 +38,19 @@ const game = {
   // Game state
   bullets: [{x: 0, y: 0, dx: 0, dy: 0, r: 0, color:"#ffffff", removed: false}],
   player: {
-    x: SCREEN_WIDTH / 2,
-    y: SCREEN_HEIGHT * 9 / 10,
+    x: GAME_CONSTANTS.SCREEN.WIDTH / 2,
+    y: GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10,
     isShift: false
   },
   mode: 1,
   graze: 0,
+  
+  // Tick system for bullet generation
+  tickSystem: {
+    lastTickTime: 0,
+    tickInterval: 1000 / GAME_CONSTANTS.TICK_RATE, // milliseconds per tick
+    bulletsPerTick: 0 // Will be calculated based on mode
+  },
   
   // Settings
   settings: {
@@ -69,11 +81,15 @@ const game = {
     
     // Reset game state
     this.bullets = [];
-    this.player.x = SCREEN_WIDTH / 2;
-    this.player.y = SCREEN_HEIGHT * 9 / 10;
+    this.player.x = GAME_CONSTANTS.SCREEN.WIDTH / 2;
+    this.player.y = GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10;
     this.player.isShift = false;
     this.graze = 0;
-    this.bulletAccumulator = 0; // Reset bullet accumulator
+    
+    // Initialize tick system
+    this.tickSystem.lastTickTime = 0;
+    const { bullet_per_second } = mode_meta[this.mode];
+    this.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
     
     // Reset performance metrics
     this.performance.frameCount = 0;
@@ -147,7 +163,7 @@ const bullet_template = {
 };
 
 function generate_random_location(bullet) {
-    bullet.x = Math.random() * SCREEN_WIDTH;
+    bullet.x = Math.random() * GAME_CONSTANTS.SCREEN.WIDTH;
     bullet.y = Math.random() * 10;
     return bullet;
 }
@@ -245,7 +261,7 @@ function draw(bullet) {
 } 
 
 function cls() {
-    game.context.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    game.context.clearRect(0, 0, GAME_CONSTANTS.SCREEN.WIDTH, GAME_CONSTANTS.SCREEN.HEIGHT);
 }
 
 // Game Loop Functions
@@ -306,26 +322,33 @@ function updateGameState(current_time) {
 
 function generateBullets() {
     const { bullet_limit, bullet_per_second, generator, bullet_templates } = mode_meta[game.mode];
+    const currentTime = game.performance.gameTime;
     
-    // Calculate how many bullets to generate based on time elapsed
-    // deltaTime is in milliseconds, so we divide by 1000 to get seconds
-    const bulletsToGenerate = bullet_per_second * game.performance.deltaTime / 1000;
+    // If we haven't initialized the tick system yet
+    if (game.tickSystem.lastTickTime === 0) {
+        game.tickSystem.lastTickTime = currentTime;
+        game.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
+    }
     
-    // Use a fractional accumulator to handle partial bullets
-    game.bulletAccumulator = (game.bulletAccumulator || 0) + bulletsToGenerate;
-    
-    // Generate whole bullets and keep track of the fractional part
-    let count = Math.floor(game.bulletAccumulator);
-    game.bulletAccumulator -= count;
-    
-    // Limit bullet generation in case of lag spikes (max 3x normal rate)
-    count = Math.min(count, Math.ceil(bullet_per_second / 20));
-    
-    while(game.bullets.length < bullet_limit && count > 0) {
-        const template_index = random_int(0, bullet_templates.length - 1);
-        const new_bullet = { ...bullet_templates[template_index] };
-        game.bullets.push(generator(new_bullet, count));
-        count--;
+    // Check if it's time for a new tick
+    if (currentTime - game.tickSystem.lastTickTime >= game.tickSystem.tickInterval) {
+        // Calculate how many ticks have passed (normally just 1, but handles frame drops)
+        const ticksPassed = Math.floor((currentTime - game.tickSystem.lastTickTime) / game.tickSystem.tickInterval);
+        game.tickSystem.lastTickTime += ticksPassed * game.tickSystem.tickInterval;
+        
+        // Generate bullets for each tick (capped to avoid massive bullet spawns after lag)
+        const maxTicksToProcess = Math.min(ticksPassed, 3); // Process at most 3 ticks at once
+        
+        for (let i = 0; i < maxTicksToProcess; i++) {
+            let bulletsToGenerate = game.tickSystem.bulletsPerTick;
+            
+            while (game.bullets.length < bullet_limit && bulletsToGenerate > 0) {
+                const template_index = random_int(0, bullet_templates.length - 1);
+                const new_bullet = { ...bullet_templates[template_index] };
+                game.bullets.push(generator(new_bullet, bulletsToGenerate));
+                bulletsToGenerate--;
+            }
+        }
     }
 }
 
@@ -341,7 +364,7 @@ function updateBullets() {
         const { x, y, r } = bullet_now;
         
         // Remove bullets that go off-screen
-        if(x < 0 || x > SCREEN_WIDTH || y < 0 || y > SCREEN_HEIGHT) {
+        if(x < 0 || x > GAME_CONSTANTS.SCREEN.WIDTH || y < 0 || y > GAME_CONSTANTS.SCREEN.HEIGHT) {
             bullet_now.removed = true;
         }
         
@@ -361,7 +384,7 @@ function updateBullets() {
                 }
                 
                 // Check if this bullet can register a new graze
-                if (currentTime - bullet_now.lastGrazed >= GRAZE_COOLDOWN) {
+                if (currentTime - bullet_now.lastGrazed >= GAME_CONSTANTS.GRAZE_COOLDOWN) {
                     game.graze++;
                     bullet_now.lastGrazed = currentTime;
                     
@@ -380,89 +403,6 @@ function updateBullets() {
     game.bullets = game.bullets.filter(bullet_now => !bullet_now.removed);
     
     return { game_over, position: gameOverPosition };
-}
-
-// Calculate "energy" from a bullet at a position (for AI)
-function calculateEnergy(bullet, x, y) {
-    // Create a deep copy of the bullet to avoid modifying the original
-    const bullet_copy = { ...bullet };
-    bullet_copy.transform(bullet_copy);
-    
-    const d = dist(bullet_copy.x, bullet_copy.y, x, y) - bullet_copy.r;
-    
-    // Avoid division by zero or negative values
-    if (d <= GAME_CONSTANTS.PLAYER.COLLISION_RADIUS) {
-        return GAME_CONSTANTS.AI.COLLISION_ENERGY;
-    }
-    
-    // Enhanced energy calculation with better distance weighting
-    return GAME_CONSTANTS.AI.ENERGY_FACTOR_LINEAR / d + Math.exp(GAME_CONSTANTS.AI.ENERFG_EXP / d) / 30;
-}
-
-// Update player position using AI in autoplay mode
-function updatePlayerAI() {
-    const timeScale = game.performance.deltaTime / (1000 / 60);
-    // Use two movement patterns (normal and precise) with correct constant names
-    const normal_move = [
-        -GAME_CONSTANTS.PLAYER.NORMAL_SPEED * timeScale, 
-        0, 
-        GAME_CONSTANTS.PLAYER.NORMAL_SPEED * timeScale
-    ];
-    const precise_move = [
-        -GAME_CONSTANTS.PLAYER.PRECISE_SPEED * timeScale, 
-        0, 
-        GAME_CONSTANTS.PLAYER.PRECISE_SPEED * timeScale
-    ];
-    
-    let best_move = { x: game.player.x, y: game.player.y, energy: Infinity, precise: false };
-    
-    // Try normal movement first
-    for(let dx of normal_move) {
-        for(let dy of normal_move) {
-            const nx = check_range(game.player.x + dx, 0, SCREEN_WIDTH);
-            const ny = check_range(game.player.y + dy, 0, SCREEN_HEIGHT);
-            
-            // Calculate energy with safeguards against NaN
-            let total_energy = 0;
-            
-            // Check each bullet and calculate its contribution to total energy
-            for (const b of game.bullets) {
-                const bulletEnergy = calculateEnergy(b, nx, ny);
-                total_energy += bulletEnergy;
-            }
-            
-            if(total_energy < best_move.energy) {
-                best_move = { x: nx, y: ny, energy: total_energy, precise: false };
-            }
-        }
-    }
-    
-    // Then try precise movement
-    for(let dx of precise_move) {
-        for(let dy of precise_move) {
-            const nx = check_range(game.player.x + dx, 0, SCREEN_WIDTH);
-            const ny = check_range(game.player.y + dy, 0, SCREEN_HEIGHT);
-            
-            // Calculate energy with better lookahead for precise movement
-            let total_energy = 0;
-            
-            for (const b of game.bullets) {
-                const bulletEnergy = calculateEnergy(b, nx, ny);
-                total_energy += bulletEnergy;
-            }
-            
-            if(total_energy < best_move.energy) {
-                best_move = { x: nx, y: ny, energy: total_energy, precise: true };
-            }
-        }
-    }
-    
-    // Better debugging information
-    console.log("Best move:", best_move);
-    
-    game.player.x = best_move.x;
-    game.player.y = best_move.y;
-    game.player.isShift = best_move.precise;
 }
 
 // Update player position based on input
@@ -506,8 +446,8 @@ function updatePlayerPosition(mx, my, key_pressed) {
     }
     
     // Keep player within bounds
-    game.player.x = check_range(game.player.x, 1, SCREEN_WIDTH);
-    game.player.y = check_range(game.player.y, 1, SCREEN_HEIGHT);
+    game.player.x = check_range(game.player.x, 1, GAME_CONSTANTS.SCREEN.WIDTH);
+    game.player.y = check_range(game.player.y, 1, GAME_CONSTANTS.SCREEN.HEIGHT);
 }
 
 // Render player
@@ -559,9 +499,17 @@ function main_loop(current_time) {
     game.performance.requestId = requestAnimationFrame(t => main_loop(t));
 }
 
+// Update mode switching to recalculate bullets per tick
+function setGameMode(modeNumber) {
+    game.mode = modeNumber;
+    const { bullet_per_second } = mode_meta[game.mode];
+    game.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
+}
+
 // Make objects globally available instead of exporting
 window.game = game;
-window.SCREEN_WIDTH = SCREEN_WIDTH;
-window.SCREEN_HEIGHT = SCREEN_HEIGHT;
+window.SCREEN_WIDTH = GAME_CONSTANTS.SCREEN.WIDTH;
+window.SCREEN_HEIGHT = GAME_CONSTANTS.SCREEN.HEIGHT;
 
 window.main_loop = main_loop;
+window.setGameMode = setGameMode; // Export the mode switching function
