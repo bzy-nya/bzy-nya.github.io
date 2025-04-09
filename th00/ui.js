@@ -13,8 +13,8 @@ let detect_frame = 100;
 const soundThrottles = {
     graze: {
         lastPlayed: 0,
-        minDelay: 80, // Minimum 80ms between graze sounds
-        maxConcurrent: 10 // Maximum 10 concurrent graze sounds
+        minDelay: 100, // Minimum 100ms between graze sounds
+        maxConcurrent: 10 // Maximum 5 concurrent graze sounds
     }
 };
 const activeSounds = {
@@ -60,7 +60,7 @@ function setupEventListeners() {
 // Keyboard event handlers
 function handleKeyUp(e) {
     key_pressed[e.keyCode] = false;
-    game.player.isShift = e.shiftKey;
+    game.scene.player.precisionMode = e.shiftKey;
 }
 
 function handleKeyDown(e) {
@@ -68,7 +68,7 @@ function handleKeyDown(e) {
         e.preventDefault();
     }
     key_pressed[e.keyCode] = true;
-    game.player.isShift = e.shiftKey;
+    game.scene.player.precisionMode = e.shiftKey;
 }
 
 function handleGameControls(e) {
@@ -155,6 +155,7 @@ function detect_fps() {
             `探测到屏幕刷新率为 ${detected_fps} Hz 
             <button id="fps-detect-btn">重新测量</button>`;
         
+            game.detected_fps = detected_fps;
         // Add event listener to the button
         document.getElementById("fps-detect-btn").addEventListener("click", () => {
             detect_frame = 100;
@@ -166,16 +167,28 @@ function detect_fps() {
 }
 
 // Game mode and settings functions
-function set_mode(_mode) {
-    game.mode = _mode;
-
-    const list = document.getElementsByClassName('mode');
+function set_mode(modeNumber) {
+    // Map mode numbers to generator names
+    const modeMap = {
+        1: 'AimedRandomMix',
+        2: 'Random',
+        3: 'WideAngleAim',
+        4: 'Rain',
+        5: 'Wave',
+        6: 'Gravity',
+        7: 'Snowy'
+    };
     
-    for(let element of list) {
-        element.classList.remove('active');
+    const generatorName = modeMap[modeNumber];
+    if (generatorName) {
+        setBulletGenerator(generatorName);
+        
+        // Update UI to show active mode
+        document.querySelectorAll('.mode').forEach(el => {
+            el.classList.remove('active');
+        });
+        document.getElementById(`mode${modeNumber}`).classList.add('active');
     }
-
-    document.getElementById(`mode${game.mode}`).classList.add('active');
 }
 
 function set_observe() {
@@ -332,8 +345,11 @@ const sounds = {
     gameOver: new Audio('th00/Touhou_Death_Sound.ogg')
 };
 
+// Set lower volume for graze sound
+sounds.graze.volume = 0.3; // Reduce volume to 30% of the original
+
 // Create a pool of audio elements for frequently used sounds
-function createSoundPool(soundName, poolSize = 5) {
+function createSoundPool(soundName, poolSize = 3) {
     const pool = [];
     
     // Original sound to clone from
@@ -343,7 +359,7 @@ function createSoundPool(soundName, poolSize = 5) {
     // Create pool of clones
     for (let i = 0; i < poolSize; i++) {
         const clone = originalSound.cloneNode(true);
-        clone.volume = originalSound.volume;
+        clone.volume = originalSound.volume; // Maintain the reduced volume setting
         pool.push({
             element: clone,
             inUse: false
@@ -355,7 +371,7 @@ function createSoundPool(soundName, poolSize = 5) {
 
 // Initialize pools for sounds that need them
 const soundPools = {
-    graze: createSoundPool('graze', 5)
+    graze: createSoundPool('graze', 3)
 };
 
 // Improved sound playing function with throttling and pooling
