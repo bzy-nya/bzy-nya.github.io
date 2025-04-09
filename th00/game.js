@@ -1,258 +1,126 @@
 // Game mechanics constants
 const GAME_CONSTANTS = {
-  // Screen dimensions
-  SCREEN: {
-    WIDTH: 600,
-    HEIGHT: 800
-  },
-  
-  TICK_RATE: 30,
-  
-  // Graze system
-  GRAZE_COOLDOWN: 1000,
-  
-  // Player constants
-  PLAYER: {
-    NORMAL_SPEED: 4,
-    PRECISE_SPEED: 1,
-    HITBOX_RADIUS: 3,
-    GRAZE_RADIUS: 12,
-    COLLISION_RADIUS: 3,
-  },
-  
-  // AI constants
-  AI: {
-    COLLISION_ENERGY: 1e18,
-    ENERGY_FACTOR_LINEAR: -16,
-    ENERFG_EXP: 32
-  },
-  
-  // Input constants
-  INPUT: {
-    GAMEPAD_DEADZONE: 0.2
-  },
+    // Screen dimensions
+    SCREEN: {
+		WIDTH: 600,
+		HEIGHT: 800
+    },
+    
+    TICK_RATE: 30,
+    
+    // Graze system
+    GRAZE_COOLDOWN: 1000,
+    
+	BULLET_LIMIT: 1000,
+
+    // Player constants
+    PLAYER: {
+		NORMAL_SPEED: 4,
+		PRECISE_SPEED: 1,
+		HITBOX_RADIUS: 3,
+		GRAZE_RADIUS: 12,
+		COLLISION_RADIUS: 3,
+    },
+    
+    // AI constants
+    AI: {
+		COLLISION_ENERGY: 1e18,
+		ENERGY_FACTOR_LINEAR: -16,
+		ENERFG_EXP: 32
+    },
+    
+    // Input constants
+    INPUT: {
+      	GAMEPAD_DEADZONE: 0.2
+    },
 };
 
 // Core game object that encapsulates all game state
 const game = {
-  // Game state
-  bullets: [{x: 0, y: 0, dx: 0, dy: 0, r: 0, color:"#ffffff", removed: false}],
-  player: {
-    x: GAME_CONSTANTS.SCREEN.WIDTH / 2,
-    y: GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10,
-    isShift: false
-  },
-  mode: 1,
-  graze: 0,
-  
-  // Tick system for bullet generation
-  tickSystem: {
-    lastTickTime: 0,
-    tickInterval: 1000 / GAME_CONSTANTS.TICK_RATE, // milliseconds per tick
-    bulletsPerTick: 0 // Will be calculated based on mode
-  },
-  
-  // Settings
-  settings: {
-    observer: false,
-    autoplay: false,
-    inputMode: "keyboard",
-    visualGrazeFeedback: true // Enable visual feedback for grazes
-  },
-  
-  // Performance
-  performance: {
-    fps: 0,
-    frameCount: 0,
-    startTime: 0,
-    requestId: 0,
-    lastFrameTime: 0,
-    deltaTime: 0, // Time in ms since last frame
-    gameTime: 0,  // Total elapsed game time in ms
-    fpsHistory: [], // Array to store frame times for moving average
-    fpsUpdateInterval: 500, // Update FPS display every 500ms
-    lastFpsUpdateTime: 0
-  },
-  
-  // Initialize/reset game
-  init: function(context) {
-    // Store canvas context
-    this.context = context;
-    
-    // Reset game state
-    this.bullets = [];
-    this.player.x = GAME_CONSTANTS.SCREEN.WIDTH / 2;
-    this.player.y = GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10;
-    this.player.isShift = false;
-    this.graze = 0;
-    
-    // Initialize tick system
-    this.tickSystem.lastTickTime = 0;
-    const { bullet_per_second } = mode_meta[this.mode];
-    this.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
-    
-    // Reset performance metrics
-    this.performance.frameCount = 0;
-    this.performance.gameTime = 0;
-    this.performance.lastFrameTime = performance.now();
-    this.performance.deltaTime = 0;
-    this.performance.startTime = performance.now();
-    
-    // Start game loop
-    this.performance.requestId = requestAnimationFrame(t => main_loop(t));
-  },
+	detected_fps: 60, // Default FPS
+	context: null, // Canvas context for rendering
 
-  // Stop the game
-  stop: function() {
-    cancelAnimationFrame(this.performance.requestId);
-  }
-};
-
-// Helper functions
-function bullet_move(bullet) {
-    const timeScale = game.performance.deltaTime / (1000 / 60); // Normalize to 60fps
-    bullet.x += bullet.dx * timeScale; 
-    bullet.y += bullet.dy * timeScale;
-    return bullet;
-}
-
-function sqr(x) { return x * x; }
-
-function dist(x1, y1, x2, y2) {
-    return Math.sqrt(sqr(Math.abs(x1-x2)) + sqr(Math.abs(y1-y2)));
-}
-
-function random_int(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1) + min); 
-}
-
-function check_range(v, l, r) {
-    if (v > r) return r;
-    if (v < l) return l;
-    return v;
-}
-
-// Bullet templates and generators
-const bullet_template = {
-    small:   {r: 3 , color:"Cyan", transform: bullet_move, lastGrazed: 0},
-    big:     {r: 15, color:"Cyan", transform: bullet_move, lastGrazed: 0},
-    gravity: {r: 3 , color:"Cyan", lastGrazed: 0,
-        transform: (bullet) => {
-            // Gravity acceleration is now from constants
-            const timeScale = game.performance.deltaTime / (1000 / 60);
-            bullet.dy += 0.06 * timeScale;
-            return bullet_move(bullet);
-        } 
+    // Game scene containing all game entities
+    scene: {
+		bullets: [{x: 0, y: 0, dx: 0, dy: 0, r: 0, color:"#ffffff", removed: false}],
+		player: {
+			x: GAME_CONSTANTS.SCREEN.WIDTH / 2,
+			y: GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10,
+			precisionMode: false  // Renamed from isShift
+		},
+		bulletGenerator: null  // Moved from tickSystem.currentGenerator
     },
-    colorful: {r:5, color:"Cyan", real_color: {r:0, g:255, b:255}, lastGrazed: 0,
-        transform: (bullet) => {
-            const dr = random_int(-10, 10);
-            const dg = random_int(-10, 10);
-            const db = random_int(-10, 10);
-            bullet.real_color = {
-                r: check_range(bullet.real_color.r + dr, 0, 255),
-                g: check_range(bullet.real_color.g + dg, 0, 255),
-                b: check_range(bullet.real_color.b + db, 0, 255)
-            }
-            bullet.color = `rgb(${bullet.real_color.r},${bullet.real_color.g},${bullet.real_color.g})`;
-            return bullet_move(bullet);
-        }
+    
+    graze: 0,
+    
+    // Tick system
+    tickSystem: {
+		lastTickTime: 0,
+		frame_per_tick: 0,
+		tick_alert: 0,
+    },
+    
+    // Settings
+	settings: {
+		observer: false,
+		autoplay: false,
+		inputMode: "keyboard",
+		visualGrazeFeedback: true // Enable visual feedback for grazes
+    },
+    
+    // Performance
+    performance: {
+		fps: 0,
+		frameCount: 0,
+		startTime: 0,
+		requestId: 0,
+		lastFrameTime: 0,
+		deltaTime: 0, // Time in ms since last frame
+		gameTime: 0,  // Total elapsed game time in ms
+		fpsHistory: [], // Array to store frame times for moving average
+		fpsUpdateInterval: 500, // Update FPS display every 500ms
+		lastFpsUpdateTime: 0
+    },
+    
+    // Initialize/reset game
+    init: function(context) {
+		// Store canvas context
+		this.context = context;
+		
+		// Reset game state
+		this.scene.bullets = [];
+		this.scene.player.x = GAME_CONSTANTS.SCREEN.WIDTH / 2;
+		this.scene.player.y = GAME_CONSTANTS.SCREEN.HEIGHT * 9 / 10;
+		this.scene.player.precisionMode = false;
+		this.graze = 0;
+		
+		// Initialize tick system
+		this.tickSystem.lastTickTime = performance.now();
+		this.tickSystem.frame_per_tick = this.detected_fps / GAME_CONSTANTS.TICK_RATE;
+		this.tickSystem.tick_alert = 0;
+
+		// Use default generator (AimedRandomMix) if none set
+		if (!this.scene.bulletGenerator) {
+			this.scene.bulletGenerator = bullet_generator_template['AimedRandomMix'];
+		}
+		
+		// Reset performance metrics
+		this.performance.frameCount = 0;
+		this.performance.gameTime = 0;
+		this.performance.lastFrameTime = performance.now();
+		this.performance.deltaTime = 0;
+		this.performance.startTime = performance.now();
+		
+		// Start game loop
+		this.performance.requestId = requestAnimationFrame(t => main_loop(t));
+    },
+
+    // Stop the game
+    stop: function() {
+    	cancelAnimationFrame(this.performance.requestId);
     }
 };
 
-function generate_random_location(bullet) {
-    bullet.x = Math.random() * GAME_CONSTANTS.SCREEN.WIDTH;
-    bullet.y = Math.random() * 10;
-    return bullet;
-}
-
-function generate_bullet_1(bullet, cnt) {
-    bullet = generate_random_location(bullet);
-
-    if(Math.random() > 0.6) {
-        bullet.dx = (game.player.x - bullet.x) * 0.012;
-        bullet.dy = (game.player.y - bullet.y) * 0.012;
-    } else {
-        bullet.dx = (Math.random() > 0.5 ? 1 : -1) * Math.random() * 2.8;
-        bullet.dy = Math.random() * 5.6;
-    }
-
-    return bullet;
-}
-
-function generate_bullet_2(bullet, cnt) {
-    bullet = generate_random_location(bullet);
-
-    bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8;
-    bullet.dy = Math.random() * 5.6;
-
-    return bullet;
-}
-
-function generate_bullet_3(bullet, cnt) {
-    bullet = generate_random_location(bullet);
-
-    const qx = game.player.x + (Math.random() > 0.5 ? 1 : -1) * Math.random() * 55.5;
-    const qy = game.player.y + (Math.random() > 0.5 ? 1 : -1) * Math.random() * 55.5;
-    bullet.dx = (qx - bullet.x) * 0.009;
-    bullet.dy = (qy - bullet.y) * 0.009;
-
-    return bullet;
-}
-
-function generate_bullet_4(bullet, cnt) {
-    bullet = generate_random_location(bullet);
-
-    bullet.dx = 0;
-    bullet.dy = Math.random() * 7.2;
-
-    return bullet;
-}
-
-function generate_bullet_5(bullet, cnt) {
-    bullet.x = 300;
-    bullet.y = 300;
-    // Use gameTime (in ms) instead of frameCount for consistent experience across refresh rates
-    const angle = Math.PI / 24000 * game.performance.gameTime * game.performance.gameTime / 400 + Math.PI / 4 * cnt;
-    bullet.dx = 3 * Math.cos(angle);
-    bullet.dy = 3 * Math.sin(angle);
-
-    return bullet;
-}
-
-function generate_bullet_6(bullet, cnt) {
-    bullet.x = 300;
-    bullet.y = 200;
-    bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8;
-    bullet.dy = -Math.random() * 5.6;
-
-    return bullet;
-}
-
-function generate_bullet_7(bullet, cnt) {
-    bullet = generate_random_location(bullet);
-
-    bullet.dx = (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8;
-    bullet.dy = Math.random() * 5.6;
-
-    return bullet;
-}
-
-// Game modes configuration
-const mode_meta = [
-    {},
-    {bullet_limit: 80    , bullet_per_second: 60,  generator: generate_bullet_1, bullet_templates: [bullet_template.small]},
-    {bullet_limit: 200   , bullet_per_second: 240, generator: generate_bullet_2, bullet_templates: [bullet_template.small, bullet_template.big] },
-    {bullet_limit: 120   , bullet_per_second: 60,  generator: generate_bullet_3, bullet_templates: [bullet_template.small] },
-    {bullet_limit: 200   , bullet_per_second: 240, generator: generate_bullet_4, bullet_templates: [bullet_template.small] },
-    {bullet_limit: 10000 , bullet_per_second: 480, generator: generate_bullet_5, bullet_templates: [bullet_template.small] },
-    {bullet_limit: 500   , bullet_per_second: 240, generator: generate_bullet_6, bullet_templates: [bullet_template.gravity] },
-    {bullet_limit: 200   , bullet_per_second: 120, generator: generate_bullet_7, bullet_templates: [bullet_template.colorful] },
-];
-
-// Drawing functions
 function draw(bullet) {  
     game.context.beginPath();
     game.context.fillStyle = bullet.color;
@@ -320,36 +188,17 @@ function updateGameState(current_time) {
     return game.performance.fps;
 }
 
-function generateBullets() {
-    const { bullet_limit, bullet_per_second, generator, bullet_templates } = mode_meta[game.mode];
-    const currentTime = game.performance.gameTime;
-    
-    // If we haven't initialized the tick system yet
-    if (game.tickSystem.lastTickTime === 0) {
-        game.tickSystem.lastTickTime = currentTime;
-        game.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
-    }
-    
-    // Check if it's time for a new tick
-    if (currentTime - game.tickSystem.lastTickTime >= game.tickSystem.tickInterval) {
-        // Calculate how many ticks have passed (normally just 1, but handles frame drops)
-        const ticksPassed = Math.floor((currentTime - game.tickSystem.lastTickTime) / game.tickSystem.tickInterval);
-        game.tickSystem.lastTickTime += ticksPassed * game.tickSystem.tickInterval;
-        
-        // Generate bullets for each tick (capped to avoid massive bullet spawns after lag)
-        const maxTicksToProcess = Math.min(ticksPassed, 3); // Process at most 3 ticks at once
-        
-        for (let i = 0; i < maxTicksToProcess; i++) {
-            let bulletsToGenerate = game.tickSystem.bulletsPerTick;
+function generateBullets(deltaTime) {
+    const currentGenerator = game.scene.bulletGenerator;
+    const newBullets = currentGenerator.tick(game.scene, deltaTime);
             
-            while (game.bullets.length < bullet_limit && bulletsToGenerate > 0) {
-                const template_index = random_int(0, bullet_templates.length - 1);
-                const new_bullet = { ...bullet_templates[template_index] };
-                game.bullets.push(generator(new_bullet, bulletsToGenerate));
-                bulletsToGenerate--;
-            }
-        }
-    }
+    // Add bullets to the game's bullet array
+    game.scene.bullets.push(...newBullets);
+            
+    // Enforce bullet limit
+	if(game.scene.bullets.length > GAME_CONSTANTS.BULLET_LIMIT) {
+		game.scene.bullets.splice(0, game.scene.bullets.length - GAME_CONSTANTS.BULLET_LIMIT);
+	}
 }
 
 // Process bullet movement and collision detection with graze cooldown
@@ -357,9 +206,10 @@ function updateBullets() {
     let game_over = false;
     let gameOverPosition = { x: 0, y: 0 };  // Store position for game over effect
     const currentTime = performance.now();
-    
-    game.bullets.forEach(bullet_now => {
-        bullet_now = bullet_now.transform(bullet_now);
+    const deltaTime = game.performance.deltaTime / 1000.0;
+
+    game.scene.bullets.forEach(bullet_now => {
+        bullet_now = bullet_now.transform(bullet_now, deltaTime);
         
         const { x, y, r } = bullet_now;
         
@@ -370,10 +220,11 @@ function updateBullets() {
         
         // Check collisions with player
         if(!game.settings.observer) {
-            const playerDist = dist(x, y, game.player.x, game.player.y) - r;
+            const player = game.scene.player;
+            const playerDist = dist(x, y, player.x, player.y) - r;
             if(playerDist <= GAME_CONSTANTS.PLAYER.COLLISION_RADIUS) {
                 game_over = true;
-                gameOverPosition = { x: game.player.x, y: game.player.y };
+                gameOverPosition = { x: player.x, y: player.y };
             }
             
             // Enhanced graze detection with cooldown
@@ -400,7 +251,7 @@ function updateBullets() {
     });
     
     // Remove bullets marked for deletion
-    game.bullets = game.bullets.filter(bullet_now => !bullet_now.removed);
+    game.scene.bullets = game.scene.bullets.filter(bullet_now => !bullet_now.removed);
     
     return { game_over, position: gameOverPosition };
 }
@@ -411,69 +262,70 @@ function updatePlayerPosition(mx, my, key_pressed) {
         updatePlayerAI();
     } else {
         // Calculate movement speed based on deltaTime
-        const baseSpeed = game.player.isShift ? 
+        const baseSpeed = game.scene.player.precisionMode ? 
             GAME_CONSTANTS.PLAYER.PRECISE_SPEED : 
             GAME_CONSTANTS.PLAYER.NORMAL_SPEED;
         const timeScale = game.performance.deltaTime / (1000 / 60); // Normalize to 60fps
         const move_speed = baseSpeed * timeScale;
         
         if(game.settings.inputMode === "keyboard") {
-            if(key_pressed[37] || key_pressed["A".charCodeAt(0)]) game.player.x -= move_speed;
-            if(key_pressed[39] || key_pressed["D".charCodeAt(0)]) game.player.x += move_speed;
-            if(key_pressed[38] || key_pressed["W".charCodeAt(0)]) game.player.y -= move_speed;
-            if(key_pressed[40] || key_pressed["S".charCodeAt(0)]) game.player.y += move_speed;
+            if(key_pressed[37] || key_pressed["A".charCodeAt(0)]) game.scene.player.x -= move_speed;
+            if(key_pressed[39] || key_pressed["D".charCodeAt(0)]) game.scene.player.x += move_speed;
+            if(key_pressed[38] || key_pressed["W".charCodeAt(0)]) game.scene.player.y -= move_speed;
+            if(key_pressed[40] || key_pressed["S".charCodeAt(0)]) game.scene.player.y += move_speed;
         } 
         else if(game.settings.inputMode === "mouse") {
-            game.player.x = mx;
-            game.player.y = my;
+            game.scene.player.x = mx;
+            game.scene.player.y = my;
         }
         else if(game.settings.inputMode === "gamepad") {
             // Handle gamepad input with time scaling
             const gp = window.get_gamepad ? window.get_gamepad()[0] : null;
             if(gp) {
-                game.player.isShift = gp.buttons[6].pressed;
-                const gamepad_speed = (game.player.isShift ? 
+                game.scene.player.precisionMode = gp.buttons[6].pressed;
+                const gamepad_speed = (game.scene.player.precisionMode ? 
                     GAME_CONSTANTS.PLAYER.PRECISE_SPEED : 
                     GAME_CONSTANTS.PLAYER.NORMAL_SPEED) * timeScale;
                 
                 const deadzone = GAME_CONSTANTS.INPUT.GAMEPAD_DEADZONE;
-                if(gp.axes[0] < -deadzone) game.player.x -= gamepad_speed;
-                if(gp.axes[0] > deadzone) game.player.x += gamepad_speed;
-                if(gp.axes[1] < -deadzone) game.player.y -= gamepad_speed;
-                if(gp.axes[1] > deadzone) game.player.y += gamepad_speed;
+                if(gp.axes[0] < -deadzone) game.scene.player.x -= gamepad_speed;
+                if(gp.axes[0] > deadzone) game.scene.player.x += gamepad_speed;
+                if(gp.axes[1] < -deadzone) game.scene.player.y -= gamepad_speed;
+                if(gp.axes[1] > deadzone) game.scene.player.y += gamepad_speed;
             }
         }
     }
     
     // Keep player within bounds
-    game.player.x = check_range(game.player.x, 1, GAME_CONSTANTS.SCREEN.WIDTH);
-    game.player.y = check_range(game.player.y, 1, GAME_CONSTANTS.SCREEN.HEIGHT);
+    game.scene.player.x = check_range(game.scene.player.x, 1, GAME_CONSTANTS.SCREEN.WIDTH);
+    game.scene.player.y = check_range(game.scene.player.y, 1, GAME_CONSTANTS.SCREEN.HEIGHT);
 }
 
 // Render player
 function renderPlayer() {
     if(!game.settings.observer) {
-        draw({x: game.player.x, y: game.player.y, r: GAME_CONSTANTS.PLAYER.HITBOX_RADIUS, color:"Red"});
+        draw({x: game.scene.player.x, y: game.scene.player.y, r: GAME_CONSTANTS.PLAYER.HITBOX_RADIUS, color:"Red"});
         
-        if(game.settings.inputMode !== "mouse" && game.player.isShift) {
+        if(game.settings.inputMode !== "mouse" && game.scene.player.precisionMode) {
             game.context.beginPath();
             game.context.strokeStyle = "Red";
-            game.context.arc(game.player.x, game.player.y, GAME_CONSTANTS.PLAYER.GRAZE_RADIUS, 0, Math.PI * 2);
+            game.context.arc(game.scene.player.x, game.scene.player.y, GAME_CONSTANTS.PLAYER.GRAZE_RADIUS, 0, Math.PI * 2);
             game.context.stroke();
         }
     }
 }
 
+function tick(deltaTime) {
+	// Update the game state based on the current tick
+	generateBullets(deltaTime);
+}
+
 // Main game loop
 function main_loop(current_time) {
-    cls();
-    
     // Update game state and get current FPS
     const fps = updateGameState(current_time);
-    
-    // Generate new bullets
-    generateBullets();
-    
+
+	cls();
     // Update bullets and check for game over
     const result = updateBullets();
     if(result.game_over) {
@@ -489,6 +341,13 @@ function main_loop(current_time) {
     
     // Render player
     renderPlayer();
+
+    // Generate new bullets
+	if( ++ game.tickSystem.tick_alert > game.tickSystem.frame_per_tick ) {
+		game.tickSystem.tick_alert -= game.tickSystem.frame_per_tick;
+		tick( (current_time - game.tickSystem.lastTickTime) / 1000.0);
+		game.tickSystem.lastTickTime = current_time;
+	}
     
     // Notify UI about updates
     if (typeof onGameStatUpdate === 'function') {
@@ -499,11 +358,23 @@ function main_loop(current_time) {
     game.performance.requestId = requestAnimationFrame(t => main_loop(t));
 }
 
-// Update mode switching to recalculate bullets per tick
-function setGameMode(modeNumber) {
-    game.mode = modeNumber;
-    const { bullet_per_second } = mode_meta[game.mode];
-    game.tickSystem.bulletsPerTick = Math.ceil(bullet_per_second / GAME_CONSTANTS.TICK_RATE);
+// Update setBulletGenerator function to work with new template naming
+function setBulletGenerator(generatorName) {
+    // Check if the generator exists
+    if (bullet_generator_template[generatorName]) {
+        game.scene.bulletGenerator = bullet_generator_template[generatorName];
+        
+        // Reset generator state if needed
+        if (game.scene.bulletGenerator.reset) {
+            game.scene.bulletGenerator.reset();
+        }
+        
+        // Return success
+        return true;
+    }
+    
+    // Return false if generator not found
+    return false;
 }
 
 // Make objects globally available instead of exporting
@@ -512,4 +383,4 @@ window.SCREEN_WIDTH = GAME_CONSTANTS.SCREEN.WIDTH;
 window.SCREEN_HEIGHT = GAME_CONSTANTS.SCREEN.HEIGHT;
 
 window.main_loop = main_loop;
-window.setGameMode = setGameMode; // Export the mode switching function
+window.setBulletGenerator = setBulletGenerator; // Export the generator switching function
