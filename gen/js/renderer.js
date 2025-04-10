@@ -53,7 +53,7 @@ export class Renderer {
         
         this.cellSize = 0;
         this.baseZoom = 1; // Base zoom level
-        this.zoomFactor = 1; // Current zoom factor
+        this.zoomFactor = 1.2; // Increased initial zoom factor for larger map view
         this.offsetX = 0;
         this.offsetY = 0;
         this.dragging = false;
@@ -130,11 +130,6 @@ export class Renderer {
         
         // Draw grid lines
         this.renderGridLines(game);
-        
-        // If game is over, render victory screen
-        if (game.isGameOver && game.isGameOver()) {
-            this.renderGameOver(game);
-        }
     }
     
     setupInteractions() {

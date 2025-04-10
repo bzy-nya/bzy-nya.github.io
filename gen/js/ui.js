@@ -105,16 +105,51 @@ export class UI {
         this.gameState = state;
         const gameExists = state !== "preview";
         const isRunning = state === "running";
+        const isGameOver = state === "gameover";
         
         // Update button states
         if (isRunning) {
             this.startBtn.classList.add('active');
             this.pauseBtn.classList.remove('active');
+            this.startBtn.disabled = false;
+            this.pauseBtn.disabled = false;
             
             // Make bottom controls more transparent during active gameplay
             this.bottomControls.classList.add('game-active');
+            
+            // Ensure reset button is not highlighted
+            document.getElementById('resetBtn').classList.remove('highlight');
+        } else if (isGameOver) {
+            // Disable start and pause buttons, highlight reset
+            this.startBtn.classList.remove('active');
+            this.pauseBtn.classList.remove('active');
+            this.startBtn.disabled = true;
+            this.pauseBtn.disabled = true;
+            
+            // Highlight reset button
+            document.getElementById('resetBtn').classList.add('highlight');
+            
+            // Restore bottom controls opacity when game is over
+            this.bottomControls.classList.remove('game-active');
+            
+            // If we have a winner, add winner announcement to the stats area
+            if (data.winner) {
+                // Create a winner announcement element
+                const winnerAnnouncement = document.createElement('div');
+                winnerAnnouncement.className = 'winner-announcement';
+                winnerAnnouncement.innerHTML = `游戏结束! 胜者: <span style="color:${this.getPlayerColorCSS(data.winner.id)}">${data.winner.aiName}</span>`;
+                
+                // Insert at the top of the stats container
+                if (this.statsContainer.firstChild) {
+                    this.statsContainer.insertBefore(winnerAnnouncement, this.statsContainer.firstChild);
+                } else {
+                    this.statsContainer.appendChild(winnerAnnouncement);
+                }
+            }
         } else {
             this.startBtn.classList.remove('active');
+            this.startBtn.disabled = false;
+            this.pauseBtn.disabled = false;
             
             // Only make pause button active if game exists but is paused
             if (gameExists && state === "pause") {
@@ -123,29 +158,11 @@ export class UI {
                 this.pauseBtn.classList.remove('active');
             }
             
-            // Restore bottom controls opacity when game is paused or over
+            // Remove highlight from reset button
+            document.getElementById('resetBtn').classList.remove('highlight');
+            
+            // Restore bottom controls opacity when game is paused
             this.bottomControls.classList.remove('game-active');
-        }
-        
-        // Handle game over state
-        const gameOverUI = document.getElementById('gameOverUI');
-        if (state === "gameover" && data.winner) {
-            const winnerNameElement = document.getElementById('winnerName');
-            
-            // Update winner display
-            winnerNameElement.textContent = data.winner.aiName;
-            winnerNameElement.style.color = this.getPlayerColorCSS(data.winner.id);
-            
-            // Show the game over UI with a fade-in effect
-            gameOverUI.classList.remove('hidden');
-            
-            // Setup click handler to dismiss and reset
-            gameOverUI.onclick = data.onContinue || (() => {
-                gameOverUI.classList.add('hidden');
-            });
-        } else {
-            // Hide game over UI for other states
-            gameOverUI.classList.add('hidden');
         }
     }
     

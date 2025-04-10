@@ -145,10 +145,6 @@ class GameSimulator {
         this.game = null;
         this.aiPlayers = [];
         this.generateMapPreview();
-        
-        // Hide game over UI if visible
-        const gameOverUI = document.getElementById('gameOverUI');
-        gameOverUI.classList.add('hidden');
     }
     
     gameLoop(timestamp) {
@@ -190,13 +186,10 @@ class GameSimulator {
                 
                 // Update UI to game over state with winner data
                 this.ui.updateGameStatus("gameover", {
-                    winner: winner,
-                    onContinue: () => {
-                        document.getElementById('gameOverUI').classList.add('hidden');
-                        this.resetSimulation();
-                    }
+                    winner: winner
                 });
                 
+                // Return early to stop the game loop
                 return;
             }
         }
@@ -206,26 +199,6 @@ class GameSimulator {
         
         // Continue the game loop
         requestAnimationFrame((ts) => this.gameLoop(ts));
-    }
-    
-    showGameOver(game) {
-        const gameOverUI = document.getElementById('gameOverUI');
-        const winnerNameElement = document.getElementById('winnerName');
-        
-        // Find the winner
-        const winner = game.players.find(p => p.isAlive);
-        
-        winnerNameElement.textContent = winner.aiName;
-        winnerNameElement.style.color = this.ui.getPlayerColorCSS(winner.id);
-        
-        // Show the UI with fade-in effect
-        gameOverUI.classList.remove('hidden');
-        
-        // Make the game over UI close when clicked
-        gameOverUI.onclick = () => {
-            gameOverUI.classList.add('hidden');
-            this.resetSimulation();
-        };
     }
 }
 

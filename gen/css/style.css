@@ -100,6 +100,17 @@ button:hover {
     background-color: rgba(70, 80, 90, 0.9);
 }
 
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+button.active {
+    background-color: rgba(70, 130, 180, 0.8);
+    color: white;
+    box-shadow: 0 0 8px rgba(70, 130, 180, 0.5);
+}
+
 label {
     display: block;
     margin-bottom: 5px;
@@ -445,6 +456,32 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: rgba(70, 130, 180, 0.8);
     color: white;
     box-shadow: 0 0 8px rgba(70, 130, 180, 0.5);
+}
+
+/* Highlight style for reset button */
+#resetBtn.highlight {
+    background-color: #f93;
+    box-shadow: 0 0 10px rgba(255, 153, 51, 0.7);
+    transform: scale(1.1);
+    transition: all 0.3s;
+}
+
+/* Winner announcement styles */
+.winner-announcement {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { background-color: rgba(0, 0, 0, 0.7); }
+    50% { background-color: rgba(50, 50, 50, 0.9); }
+    100% { background-color: rgba(0, 0, 0, 0.7); }
 }
 
 /* Buttons and inputs */
