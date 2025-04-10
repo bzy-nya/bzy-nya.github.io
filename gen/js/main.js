@@ -18,7 +18,6 @@ class GameSimulator {
         this.previewMap = null; // For map preview before starting
         this.aiPlayers = [];
         
-        this.isRunning = false;
         this.speed = 1; // Default speed set to 1x
         this.lastUpdate = 0;
         this.tickInterval = 500; // 500ms per tick at 1x speed (2 ticks/second)
@@ -26,6 +25,7 @@ class GameSimulator {
         this.initEventListeners();
         
         // Generate an initial preview map
+        this.gameState = "preview";
         this.generateMapPreview();
     }
     
@@ -53,16 +53,10 @@ class GameSimulator {
         const settings = this.ui.getMapSettings();
         
         // Create a new game for preview purposes
-        this.previewMap = new Game(
-            settings.width, 
-            settings.height, 
-            settings.aiCount, 
-            settings.mountainDensity,
-            settings.cityDensity
-        );
+        this.previewMap = new Game(settings);
         
         // Safety check for undefined generalPosition
-        for (let i = 0; i < settings.aiCount; i++) {
+        for (let i = 0; i < settings.playerCount; i++) {
             if (!this.previewMap.players[i] || !this.previewMap.players[i].generalPosition) {
                 console.warn("General position not properly initialized for player", i);
                 // Set a default position if missing
@@ -74,7 +68,7 @@ class GameSimulator {
         
         // Create preview AI players for UI display
         const previewPlayers = [];
-        for (let i = 0; i < settings.aiCount; i++) {
+        for (let i = 0; i < settings.playerCount; i++) {
             previewPlayers.push({
                 id: i,
                 isAlive: true,
@@ -86,19 +80,22 @@ class GameSimulator {
         // Initialize UI with preview players
         this.ui.initializePlayerStats(previewPlayers);
         
+        // Update UI to preview state
+        this.gameState = "preview";
+        this.ui.updateGameStatus("preview");
+        
         // Render the preview map
         this.renderer.render(this.previewMap);
     }
     
     startSimulation() {
-        if (this.game && this.isRunning) {
+        if (this.game && this.gameState !== "running") {
             return;
         }
         
         if (this.game) {
-            this.isRunning = true;
-            this.ui.setGameExists(true); // Track that game exists
-            this.ui.updateGameControls(this.isRunning);
+            this.gameState = "running";
+            this.ui.updateGameStatus("running");
             this.lastUpdate = performance.now();
             requestAnimationFrame((ts) => this.gameLoop(ts));
             return;
@@ -108,19 +105,13 @@ class GameSimulator {
         const settings = this.ui.getMapSettings();
         
         // Initialize new game (use preview map if available)
-        this.game = this.previewMap || new Game(
-            settings.width, 
-            settings.height, 
-            settings.aiCount, 
-            settings.mountainDensity,
-            settings.cityDensity
-        );
+        this.game = this.previewMap || new Game(settings);
         
         this.previewMap = null; // Clear preview map
         
         // Create AI players with deliberate pattern of AI types
         this.aiPlayers = [];
-        for (let i = 0; i < settings.aiCount; i++) {
+        for (let i = 0; i < settings.playerCount; i++) {
             // Distribute AI types in a pattern: aggressive, expansion, defensive, random, repeat
             const aiType = i % 4; 
             this.aiPlayers.push(createAI(aiType, i, this.game));
@@ -130,29 +121,27 @@ class GameSimulator {
         this.ui.initializePlayerStats(this.game.players);
         
         // Start game loop
-        this.isRunning = true;
-        this.ui.setGameExists(true); // Track that game exists
-        this.ui.updateGameControls(this.isRunning);
+        this.gameState = "running";
+        this.ui.updateGameStatus("running");
         this.lastUpdate = performance.now();
         requestAnimationFrame((ts) => this.gameLoop(ts));
     }
     
     togglePause() {
-        if (!this.game) return; // Can't pause if no game exists
+        if (this.gameState === "preview" || this.gameState === "gameover") return;
+
+        this.gameState = this.gameState === "pause" ? "running" : "pause";
+        this.ui.updateGameStatus(this.gameState);
         
-        this.isRunning = !this.isRunning;
-        this.ui.updateGameControls(this.isRunning);
-        
-        if (this.isRunning) {
+        if (this.gameState === "running") {
             this.lastUpdate = performance.now();
             requestAnimationFrame((ts) => this.gameLoop(ts));
         }
     }
     
     resetSimulation() {
-        this.isRunning = false;
-        this.ui.setGameExists(false); // Track that no game exists
-        this.ui.updateGameControls(this.isRunning);
+        this.gameState = "preview";
+        this.ui.updateGameStatus("preview");
         this.game = null;
         this.aiPlayers = [];
         this.generateMapPreview();
@@ -160,29 +149,10 @@ class GameSimulator {
         // Hide game over UI if visible
         const gameOverUI = document.getElementById('gameOverUI');
         gameOverUI.classList.add('hidden');
-        
-        // Ensure all players have valid general positions
-        if (this.game) {
-            for (let i = 0; i < this.game.players.length; i++) {
-                if (!this.game.players[i].generalPosition) {
-                    console.warn("Missing general position for player", i);
-                    // Find an owned cell for this player
-                    for (let y = 0; y < this.game.height; y++) {
-                        for (let x = 0; x < this.game.width; x++) {
-                            if (this.game.grid[y][x].owner === i && this.game.grid[y][x].type === 'general') {
-                                this.game.players[i].generalPosition = { x, y };
-                                break;
-                            }
-                        }
-                        if (this.game.players[i].generalPosition) break;
-                    }
-                }
-            }
-        }
     }
     
     gameLoop(timestamp) {
-        if (!this.isRunning || !this.game) return;
+        if (this.gameState !== "running") return;
         
         // Control tick rate based on speed
         const currentTickInterval = this.tickInterval / this.speed;
@@ -198,8 +168,7 @@ class GameSimulator {
                 this.game.update();
                 
                 // Update turn counter - now based on ticks directly
-                // since units are added every 2 ticks = 1 second
-                this.ui.updateTurnCounter(Math.floor(this.game.tick / 2));
+                this.ui.updateTurnCounter(this.game.tick);
                 
                 // Let AIs make moves
                 this.aiPlayers.forEach(ai => {
@@ -214,9 +183,20 @@ class GameSimulator {
                 // Update UI with current stats
                 this.ui.updatePlayerStats(this.game.players);
             } else {
-                this.isRunning = false;
-                this.ui.updateGameControls(this.isRunning);
-                this.showGameOver(this.game);
+                this.gameState = "gameover";
+                
+                // Find the winner
+                const winner = this.game.players.find(p => p.isAlive);
+                
+                // Update UI to game over state with winner data
+                this.ui.updateGameStatus("gameover", {
+                    winner: winner,
+                    onContinue: () => {
+                        document.getElementById('gameOverUI').classList.add('hidden');
+                        this.resetSimulation();
+                    }
+                });
+                
                 return;
             }
         }
@@ -231,25 +211,18 @@ class GameSimulator {
     showGameOver(game) {
         const gameOverUI = document.getElementById('gameOverUI');
         const winnerNameElement = document.getElementById('winnerName');
-        const newGameBtn = document.getElementById('newGameBtn');
         
         // Find the winner
         const winner = game.players.find(p => p.isAlive);
         
-        if (winner) {
-            // Set winner name with their color
-            winnerNameElement.textContent = winner.aiName;
-            winnerNameElement.style.color = this.ui.getPlayerColorCSS(winner.id);
-        } else {
-            winnerNameElement.textContent = "平局";
-            winnerNameElement.style.color = "#FFFFFF";
-        }
+        winnerNameElement.textContent = winner.aiName;
+        winnerNameElement.style.color = this.ui.getPlayerColorCSS(winner.id);
         
-        // Show the UI
+        // Show the UI with fade-in effect
         gameOverUI.classList.remove('hidden');
         
-        // Handle new game button
-        newGameBtn.onclick = () => {
+        // Make the game over UI close when clicked
+        gameOverUI.onclick = () => {
             gameOverUI.classList.add('hidden');
             this.resetSimulation();
         };
@@ -258,8 +231,5 @@ class GameSimulator {
 
 // Initialize the simulator when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    const simulator = new GameSimulator();
-    // Make sure UI reflects initial state correctly
-    simulator.ui.setGameExists(false); 
-    simulator.ui.updateGameControls(false);
+    window.simulator = new GameSimulator();
 });

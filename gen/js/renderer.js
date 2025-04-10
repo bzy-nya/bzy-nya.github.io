@@ -4,14 +4,14 @@ import { SVGIcons } from './svgIcons.js';
 const COLORS = {
     // Player colors (from generals.io)
     PLAYERS: [
-        'rgba(255,0,0,0.7)',        // P1 - Red
-        'rgba(39,146,255,0.7)',     // P2 - Blue
-        'rgba(0,128,0,0.7)',        // P3 - Green
-        'rgba(0,128,128,0.7)',      // P4 - Teal
-        'rgba(250,140,1,0.7)',      // P5 - Orange
-        'rgba(240,50,230,0.7)',     // P6 - Pink
-        'rgba(128,0,128,0.7)',      // P7 - Purple
-        'rgba(155,1,1,0.7)',        // P8 - Dark Red
+        'rgba(255,0,0,0.9)',        // P1 - Red
+        'rgba(39,146,255,0.9)',     // P2 - Blue
+        'rgba(0,128,0,0.9)',        // P3 - Green
+        'rgba(0,128,128,0.9)',      // P4 - Teal
+        'rgba(250,140,1,0.9)',      // P5 - Orange
+        'rgba(240,50,230,0.9)',     // P6 - Pink
+        'rgba(128,0,128,0.9)',      // P7 - Purple
+        'rgba(155,1,1,0.9)',        // P8 - Dark Red
         'rgba(179,172,50,0.7)',     // P9 - Yellow
         'rgba(154,94,36,0.7)',      // P10 - Brown
         'rgba(16,49,255,0.7)',      // P11 - Dark Blue
@@ -58,6 +58,9 @@ export class Renderer {
         this.offsetY = 0;
         this.dragging = false;
         this.lastMousePosition = { x: 0, y: 0 };
+        
+        // Explicitly initialize offsetInitialized to false to ensure initial centering
+        this.offsetInitialized = false;
         
         // Initialize SVG icons
         this.svgIcons = {};
@@ -317,9 +320,13 @@ export class Renderer {
     }
     
     calculateDimensions(game) {
+        // Get the display dimensions (accounting for pixel ratio)
+        const displayWidth = this.canvas.width / this.pixelRatio;
+        const displayHeight = this.canvas.height / this.pixelRatio;
+        
         // Calculate ideal cell size to fit the grid on screen with some padding
-        const maxCellWidth = (this.canvas.width * 0.8) / game.width;
-        const maxCellHeight = (this.canvas.height * 0.8) / game.height;
+        const maxCellWidth = (displayWidth * 0.8) / game.width;
+        const maxCellHeight = (displayHeight * 0.8) / game.height;
         this.baseZoom = Math.floor(Math.min(maxCellWidth, maxCellHeight));
         
         // Apply zoom factor to cell size
@@ -327,8 +334,9 @@ export class Renderer {
         
         // Calculate offsets to center the grid only on first render or reset
         if (!this.offsetInitialized) {
-            this.offsetX = Math.floor((this.canvas.width - (game.width * this.cellSize)) / 2);
-            this.offsetY = Math.floor((this.canvas.height - (game.height * this.cellSize)) / 2);
+            // Center the grid on the screen
+            this.offsetX = Math.floor((displayWidth - (game.width * this.cellSize)) / 2);
+            this.offsetY = Math.floor((displayHeight - (game.height * this.cellSize)) / 2);
             this.offsetInitialized = true;
         }
     }

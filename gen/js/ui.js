@@ -1,3 +1,5 @@
+import { MapSettings } from './map.js';
+
 export class UI {
     constructor() {
         this.statsContainer = document.getElementById('aiStats');
@@ -66,16 +68,23 @@ export class UI {
             });
         });
 
-        // Add an initialization for the panels position
-        this.positionTurnCounter();
-        
-        // Add window resize event to reposition the turn counter
-        window.addEventListener('resize', () => {
-            this.positionTurnCounter();
-        });
-
         // Add reference to bottom controls
         this.bottomControls = document.querySelector('.bottom-controls');
+
+        // Track current game state
+        this.gameState = "preview";
+
+        // Fix MutationObserver initialization - proper separation of callback and options
+        this.observer = new MutationObserver(() => this.positionTurnCounter());
+        
+        // Ensure we're observing an existing element with proper options
+        const infoPanel = document.querySelector('.game-info-panel');
+        this.observer.observe(infoPanel, { 
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
+        this.positionTurnCounter();
     }
     
     toggleMapSettings() {
@@ -87,8 +96,17 @@ export class UI {
         this.onSpeedChange = callback;
     }
     
-    // Fixed method - only make pause button active when game is paused
-    updateGameControls(isRunning) {
+    /**
+     * Unified method to update UI based on game state
+     * @param {string} state - One of: "preview", "running", "pause", "gameover"
+     * @param {Object} data - Additional data required for the state (e.g., winner for gameover)
+     */
+    updateGameStatus(state, data = {}) {
+        this.gameState = state;
+        const gameExists = state !== "preview";
+        const isRunning = state === "running";
+        
+        // Update button states
         if (isRunning) {
             this.startBtn.classList.add('active');
             this.pauseBtn.classList.remove('active');
@@ -97,21 +115,38 @@ export class UI {
             this.bottomControls.classList.add('game-active');
         } else {
             this.startBtn.classList.remove('active');
+            
             // Only make pause button active if game exists but is paused
-            if (this.gameExists) {
+            if (gameExists && state === "pause") {
                 this.pauseBtn.classList.add('active');
             } else {
                 this.pauseBtn.classList.remove('active');
             }
             
-            // Restore bottom controls opacity when game is paused
+            // Restore bottom controls opacity when game is paused or over
             this.bottomControls.classList.remove('game-active');
         }
-    }
-    
-    // Add this method to track if a game exists
-    setGameExists(exists) {
-        this.gameExists = exists;
+        
+        // Handle game over state
+        const gameOverUI = document.getElementById('gameOverUI');
+        if (state === "gameover" && data.winner) {
+            const winnerNameElement = document.getElementById('winnerName');
+            
+            // Update winner display
+            winnerNameElement.textContent = data.winner.aiName;
+            winnerNameElement.style.color = this.getPlayerColorCSS(data.winner.id);
+            
+            // Show the game over UI with a fade-in effect
+            gameOverUI.classList.remove('hidden');
+            
+            // Setup click handler to dismiss and reset
+            gameOverUI.onclick = data.onContinue || (() => {
+                gameOverUI.classList.add('hidden');
+            });
+        } else {
+            // Hide game over UI for other states
+            gameOverUI.classList.add('hidden');
+        }
     }
     
     initializePlayerStats(players) {
@@ -142,9 +177,6 @@ export class UI {
         
         // Sort players by unit count initially
         this.sortPlayerStats(players);
-
-        // After updating player stats, reposition turn counter
-        this.positionTurnCounter();
     }
     
     getAIName(index) {
@@ -194,11 +226,7 @@ export class UI {
         
         // Sort remaining players by unit count
         this.sortPlayerStats(players.filter(p => p.isAlive));
-        
-        // Reposition turn counter after player stats are updated
-        // Use a short timeout to ensure the browser has updated the DOM layout
-        setTimeout(() => this.positionTurnCounter(), 50);
-    }
+}
     
     sortPlayerStats(players) {
         // Create a sorted array of player divs based on unit count
@@ -232,35 +260,11 @@ export class UI {
         const mountainDensity = parseInt(document.getElementById('mountainDensity').value) / 100;
         const cityDensity = parseInt(document.getElementById('cityDensity').value) / 100;
         
-        // Map size presets
-        let width, height;
-        switch (mapSizeSelect) {
-            case 'small':
-                width = height = 15;
-                break;
-            case 'large':
-                width = height = 35;
-                break;
-            case 'huge':
-                width = height = 50;
-                break;
-            case 'medium':
-            default:
-                width = height = 25;
-                break;
-        }
-        
-        return {
-            aiCount,
-            width,
-            height,
-            mountainDensity,
-            cityDensity
-        };
+        // Create a MapSettings object using the static factory method
+        return MapSettings.fromSizePreset(aiCount, mapSizeSelect, mountainDensity, cityDensity);
     }
     
     getPlayerColorCSS(playerId) {
-        // Use the generals.io color scheme
         return `var(--map-color-p${(playerId % 16) + 1})`;
     }
 

@@ -1,20 +1,20 @@
 import { GameMap } from './map.js';
 
 export class Game {
-    constructor(width, height, playerCount, mountainDensity = 0.2, cityDensity = 0.1) {
-        this.width = width;
-        this.height = height;
-        this.playerCount = playerCount;
-        this.mountainDensity = mountainDensity;
-        this.cityDensity = cityDensity;
+    constructor(mapSettings) {
+        this.width = mapSettings.width;
+        this.height = mapSettings.height;
+        this.playerCount = mapSettings.playerCount;
+        this.mountainDensity = mapSettings.mountainDensity;
+        this.cityDensity = mapSettings.cityDensity;
         this.tick = 0;
         
         // Define constants for special owner types
         this.OWNER_EMPTY = -1;
         this.OWNER_NEUTRAL = -2;
         
-        // Create map using the new GameMap class
-        const mapGenerator = new GameMap(width, height, playerCount, mountainDensity, cityDensity);
+        // Create map using the GameMap class with MapSettings
+        const mapGenerator = new GameMap(mapSettings);
         const { grid, generalPositions } = mapGenerator.createGrid();
         
         // Initialize grid

@@ -1,10 +1,54 @@
-export class GameMap {
+export class MapSettings {
     constructor(width, height, playerCount, mountainDensity = 0.2, cityDensity = 0.1) {
         this.width = width;
         this.height = height;
         this.playerCount = playerCount;
         this.mountainDensity = mountainDensity;
         this.cityDensity = cityDensity;
+    }
+    
+    // Convenience method to create settings from map size name
+    static fromSizePreset(playerCount, sizeName, mountainDensity = 0.2, cityDensity = 0.1) {
+        let width, height;
+        
+        switch (sizeName) {
+            case 'small':
+                width = height = 15;
+                break;
+            case 'large':
+                width = height = 35;
+                break;
+            case 'huge':
+                width = height = 50;
+                break;
+            case 'medium':
+            default:
+                width = height = 25;
+                break;
+        }
+        
+        return new MapSettings(width, height, playerCount, mountainDensity, cityDensity);
+    }
+    
+    // Clone method for creating copies
+    clone() {
+        return new MapSettings(
+            this.width, 
+            this.height, 
+            this.playerCount, 
+            this.mountainDensity, 
+            this.cityDensity
+        );
+    }
+}
+
+export class GameMap {
+    constructor(mapSettings) {
+        this.width = mapSettings.width;
+        this.height = mapSettings.height;
+        this.playerCount = mapSettings.playerCount;
+        this.mountainDensity = mapSettings.mountainDensity;
+        this.cityDensity = mapSettings.cityDensity;
         
         // Define constants for special owner types
         this.OWNER_EMPTY = -1;
