@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generals.io Simulator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Game Over UI (centered overlay) -->
+    <div id="gameOverUI" class="game-over-ui hidden">
+        <div class="game-over-content">
+            <h2>游戏结束</h2>
+            <div id="winnerInfo" class="winner-info">胜者: <span id="winnerName"></span></div>
+            <button id="newGameBtn">新游戏</button>
+        </div>
+    </div>
+    
+    <!-- Game info panel (top right) -->
+    <div class="game-info-panel">
+        <div class="leaderboard-header">
+            <div class="player-name">AI 玩家</div>
+            <div class="player-stats">
+                <div class="stat">地块</div>
+                <div class="stat">兵力</div>
+            </div>
+        </div>
+        <div id="aiStats" class="ai-stats">
+            <!-- AI stats will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <!-- Turn counter panel (below game info panel) -->
+    <div class="turn-counter-panel">
+        <div class="turn-label">回合数</div>
+        <div class="turn-value" id="turnCounter">0</div>
+    </div>
+    
+    <!-- Bottom control panel -->
+    <div class="bottom-controls">
+        <div class="control-section game-controls">
+            <button id="startBtn">开始</button>
+            <button id="pauseBtn">暂停</button>
+            <button id="resetBtn">重置</button>
+            
+            <div class="speed-controls">
+                <span>速度:</span>
+                <div class="speed-buttons">
+                    <button id="speed1x" class="speed-btn active">1x</button>
+                    <button id="speed2x" class="speed-btn">2x</button>
+                    <button id="speed5x" class="speed-btn">5x</button>
+                    <button id="speed10x" class="speed-btn">10x</button>
+                </div>
+            </div>
+            
+            <button id="editMapBtn" class="map-settings-btn">地图设置</button>
+        </div>
+        
+        <div class="control-section map-controls" id="mapSettingsPanel">
+            <div class="control-row">
+                <label>AI数量:
+                    <select id="aiCount">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="6">6</option>
+                        <option value="8">8</option>
+                    </select>
+                </label>
+                
+                <label>地图大小:
+                    <select id="mapSize">
+                        <option value="small">小 (15x15)</option>
+                        <option value="medium" selected>中 (25x25)</option>
+                        <option value="large">大 (35x35)</option>
+                    </select>
+                </label>
+            </div>
+            
+            <div class="control-row">
+                <label>山脉密度:
+                    <input type="range" id="mountainDensity" min="0" max="40" value="20">
+                    <span id="mountainDensityValue">20%</span>
+                </label>
+                
+                <label>城市密度:
+                    <input type="range" id="cityDensity" min="0" max="20" value="10">
+                    <span id="cityDensityValue">10%</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div id="errorMessage" style="display:none; position:fixed; top:0; left:0; right:0; background-color:rgba(255,0,0,0.8); color:white; padding:10px; text-align:center; z-index:1000;">
+        CORS Error: Cannot load modules from file:// URLs. Please run the simulator using a web server.<br>
+        Run <code>python3 ../serve.py</code> in your terminal and then visit <a href="http://localhost:8000/gen/" style="color:white; text-decoration:underline;">http://localhost:8000/gen/</a>
+    </div>
+
+    <!-- Script loading with fallback -->
+    <script>
+        // Try to detect if we're running from file:// protocol
+        if (window.location.protocol === 'file:') {
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    </script>
+    <script type="module" src="js/main.js"></script>
+    <script nomodule>
+        // This will only run in browsers that don't support ES modules
+        console.error("Your browser doesn't support ES modules or we're running from file:// URL.");
+        document.getElementById('errorMessage').style.display = 'block';
+    </script>
+</body>
+</html>
