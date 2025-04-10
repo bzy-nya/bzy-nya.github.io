@@ -1,0 +1,565 @@
+:root {
+    --ai-color-1: rgba(200, 90, 90, 0.6);    /* Softer Red */
+    --ai-color-2: rgba(100, 180, 100, 0.6);  /* Softer Green */
+    --ai-color-3: rgba(90, 130, 200, 0.6);   /* Softer Blue */
+    --ai-color-4: rgba(200, 180, 80, 0.6);   /* Softer Yellow */
+    --ai-color-5: rgba(180, 100, 180, 0.6);  /* Softer Purple */
+    --ai-color-6: rgba(90, 180, 190, 0.6);   /* Softer Teal */
+    --ai-color-7: rgba(200, 140, 80, 0.6);   /* Softer Orange */
+    --ai-color-8: rgba(140, 90, 200, 0.6);   /* Softer Violet */
+    --ai-color-9: rgba(90, 160, 130, 0.6);   /* Softer Mint */
+    --ai-color-10: rgba(180, 130, 120, 0.6); /* Softer Salmon */
+    --ai-color-11: rgba(130, 180, 170, 0.6); /* Softer Seafoam */
+    --ai-color-12: rgba(170, 150, 90, 0.6);  /* Softer Olive */
+
+    /* Player colors matching generals.io */
+    --map-color-p1: rgba(255,0,0,0.7);
+    --map-color-p2: rgba(39,146,255,0.7);
+    --map-color-p3: rgba(0,128,0,0.7);
+    --map-color-p4: rgba(0,128,128,0.7);
+    --map-color-p5: rgba(250,140,1,0.7);
+    --map-color-p6: rgba(240,50,230,0.7);
+    --map-color-p7: rgba(128,0,128,0.7);
+    --map-color-p8: rgba(155,1,1,0.7);
+    --map-color-p9: rgba(179,172,50,0.7);
+    --map-color-p10: rgba(154,94,36,0.7);
+    --map-color-p11: rgba(16,49,255,0.7);
+    --map-color-p12: rgba(89,76,165,0.7);
+    --map-color-p13: rgba(133,169,28,0.7);
+    --map-color-p14: rgba(255,102,104,0.7);
+    --map-color-p15: rgba(180,127,202,0.7);
+    --map-color-p16: rgba(180,153,113,0.7);
+    
+    /* Terrain colors with proper grayscale hierarchy */
+    --terrain-city: #222;      /* Darkest */
+    --terrain-mountain: #333;
+    --terrain-empty: #444;     /* Lighter than mountain */
+    
+    /* Other colors */
+    --cell-border: #555;
+    --ui-bg: rgba(30, 30, 40, 0.75);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #111;
+    color: #eee;
+}
+
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.ui-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    padding: 20px;
+    pointer-events: none; /* Allow click-through by default */
+}
+
+.control-panel {
+    background-color: rgba(30, 30, 30, 0.7);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    width: 300px;
+    pointer-events: auto; /* Ensure controls are clickable */
+}
+
+.control-group {
+    margin-bottom: 15px;
+}
+
+button {
+    background-color: rgba(55, 65, 75, 0.8);
+    color: #eee;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+button:hover {
+    background-color: rgba(70, 80, 90, 0.9);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="range"], select {
+    background-color: rgba(50, 50, 60, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    min-width: 100px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+input[type="range"] {
+    flex: 1;
+    height: 5px;
+    appearance: none;
+    border-radius: 10px;
+    outline: none;
+    background: linear-gradient(to right, rgba(70, 130, 180, 0.8), rgba(70, 130, 180, 0.3));
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+}
+
+.ai-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* AI player styling updates */
+.ai-player {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: rgba(20, 20, 30, 0.5); /* Semi-transparent background */
+    margin-bottom: 3px;
+    transition: all 0.2s;
+}
+
+.ai-player:hover {
+    background-color: rgba(40, 40, 50, 0.7);
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 2;
+}
+
+.color-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.ai-player .name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 5px;
+}
+
+.ai-player .stats {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+}
+
+.ai-player .stats-item {
+    flex: 1;
+    text-align: center;
+    padding: 2px 4px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.ai-player.eliminated {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.ai-player .stats span {
+    display: flex;
+    align-items: center;
+}
+
+.ai-player .stats .icon {
+    margin-right: 3px;
+    opacity: 0.7;
+}
+
+/* Game info panel (top right) modifications */
+.game-info-panel {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    background-color: rgba(30, 30, 40, 0.6); /* Increase transparency */
+    border-radius: 8px;
+    padding: 12px;
+    min-width: 220px;
+    backdrop-filter: blur(3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Turn counter panel styling - simplified positioning */
+.turn-counter-panel {
+    position: fixed; /* Use fixed instead of absolute for now */
+    right: 15px;
+    z-index: 10;
+    background-color: rgba(30, 30, 40, 0.6);
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 80px;
+    text-align: center;
+    backdrop-filter: blur(3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.turn-label {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.turn-value {
+    padding: 8px;
+    font-size: 18px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+/* Leaderboard styling */
+.leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    color: #aaa;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.player-name {
+    flex: 2;
+    padding-left: 4px;
+}
+
+.player-stats {
+    flex: 1;
+    display: flex;
+}
+
+.stat {
+    flex: 1;
+    text-align: center;
+}
+
+/* Bottom control panel */
+.bottom-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 90%;
+    max-width: 800px;
+    transition: opacity 0.3s ease; /* Add transition for smooth opacity changes */
+}
+
+/* Active game state - more transparent controls */
+.bottom-controls.game-active {
+    opacity: 0.4;
+}
+
+/* Hover effect to restore opacity */
+.bottom-controls.game-active:hover {
+    opacity: 1;
+}
+
+.control-section {
+    background-color: rgba(30, 30, 40, 0.75);
+    border-radius: 10px;
+    padding: 15px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease; /* Add transition for background color */
+}
+
+/* Active game state - more transparent background */
+.game-active .control-section {
+    background-color: rgba(30, 30, 40, 0.6); 
+}
+
+/* Hover effect to restore background */
+.game-active .control-section:hover {
+    background-color: rgba(30, 30, 40, 0.75);
+}
+
+.game-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    position: relative;  /* Add this to allow positioning of child elements */
+}
+
+.speed-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 15px;
+}
+
+.speed-buttons {
+    display: flex;
+    gap: 2px;
+}
+
+.speed-btn {
+    padding: 5px 10px;
+    background-color: rgba(60, 60, 70, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.speed-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.speed-btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+.speed-btn.active {
+    background-color: rgba(70, 130, 180, 0.6);
+    color: white;
+    box-shadow: 0 0 5px rgba(70, 130, 180, 0.5);
+}
+
+.map-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 200px; /* Set to approximate height of content */
+    opacity: 1;
+    padding: 15px;
+    overflow: hidden;
+}
+
+.map-controls.hidden {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+}
+
+.map-controls h3 {
+    text-align: center;
+    margin-bottom: 5px;
+    color: #ddd;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.control-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: top center;
+}
+
+.control-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+    white-space: nowrap;
+}
+
+.map-controls.hidden .control-row {
+    transform: translateY(-10px);
+    opacity: 0;
+}
+
+/* Add this style for the map settings button */
+.map-settings-btn {
+    background-color: rgba(55, 65, 75, 0.8);
+    color: #eee;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-left: auto;  /* This pushes the button to the right */
+}
+
+.map-settings-btn:hover {
+    background-color: rgba(70, 80, 90, 0.9);
+}
+
+.map-settings-btn.active {
+    background-color: rgba(70, 130, 180, 0.8);
+    color: white;
+    box-shadow: 0 0 8px rgba(70, 130, 180, 0.5);
+}
+
+/* Buttons and inputs */
+button {
+    background-color: rgba(55, 65, 75, 0.8);
+    color: #eee;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+button:hover {
+    background-color: rgba(70, 80, 90, 0.9);
+}
+
+button.active {
+    background-color: rgba(70, 130, 180, 0.8);
+    color: white;
+    box-shadow: 0 0 8px rgba(70, 130, 180, 0.5);
+}
+
+select, input[type="range"] {
+    background-color: rgba(50, 50, 60, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    min-width: 100px;
+}
+
+input[type="range"] {
+    flex: 1;
+    height: 5px;
+    appearance: none;
+    border-radius: 10px;
+    outline: none;
+    background: linear-gradient(to right, rgba(70, 130, 180, 0.8), rgba(70, 130, 180, 0.3));
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+}
+
+/* Game over UI */
+.game-over-ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(10, 10, 15, 0.8);
+    z-index: 100;
+    transition: opacity 0.5s ease;
+}
+
+.game-over-ui.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.game-over-content {
+    background-color: rgba(30, 30, 40, 0.9);
+    padding: 30px 50px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 90%;
+}
+
+.game-over-content h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.winner-info {
+    font-size: 24px;
+    margin-bottom: 30px;
+    color: #eee;
+}
+
+.winner-info span {
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.game-over-ui button {
+    padding: 12px 30px;
+    font-size: 18px;
+    background-color: rgba(70, 130, 180, 0.8);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.game-over-ui button:hover {
+    background-color: rgba(70, 130, 180, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
