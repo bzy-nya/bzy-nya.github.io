@@ -210,15 +210,29 @@ function updateStatsDisplay() {
         ((geneticStats.populationSize - stats.aliveCount) / geneticStats.populationSize * 100) : 0;
     document.getElementById('generationProgress').style.width = progress + '%';
     
-    // 最佳个体
-    if (stats.bestIndividual) {
-        // 显示最佳个体外观和神经网络
-        const bestDino = game.dinos && game.dinos.length > 0 ? 
-            game.dinos.reduce((best, current) => current.score > best.score ? current : best) : null;
+    // 最佳个体 - 只在AI模式下显示  
+    if (game.gameMode === 'AI' && game && game.dinos && game.dinos.length > 0) {
+        // 找到当前适应度最高的恐龙，优先选择活着的
+        let bestDino = null;
+        
+        // 首先尝试从活着的恐龙中选择
+        const aliveDinos = game.dinos.filter(dino => !dino.isDead);
+        if (aliveDinos.length > 0) {
+            bestDino = aliveDinos.reduce((best, current) => {
+                return current.fitness > best.fitness ? current : best;
+            });
+        } else {
+            // 如果没有活着的，从所有恐龙中选择
+            bestDino = game.dinos.reduce((best, current) => {
+                return current.fitness > best.fitness ? current : best;
+            });
+        }
         
         if (bestDino) {
             // 绘制合并的最佳个体预览（恐龙+神经网络）
-            drawBestIndividualPreview(bestDino);
+            const gameSpeed = game.gameSpeed || 8;
+            const obstacles = game.obstacleManager ? game.obstacleManager.getObstacles() : [];
+            drawBestIndividualPreview(bestDino, gameSpeed, obstacles);
         }
     }
     
@@ -246,7 +260,7 @@ function ensureCanvasCSSSize(canvas, defaultW, defaultH) {
 }
 
 // 绘制最佳个体预览（恐龙+神经网络合并）
-function drawBestIndividualPreview(bestDino) {
+function drawBestIndividualPreview(bestDino, gameSpeed, obstacles) {
     const canvas = document.getElementById('bestIndividualCanvas');
     if (!canvas || !bestDino) return;
 
@@ -284,25 +298,35 @@ function drawBestIndividualPreview(bestDino) {
     ctx.save();
     ctx.translate(0.5, 0.5);
     ctx.scale(dinoSize, dinoSize);
-    drawPreviewDinoBody(ctx, dinoX / dinoSize, dinoY / dinoSize, bestDino.color, false);
+    
+    // 绘制恐龙，显示当前动作状态
+    drawPreviewDinoBody(ctx, dinoX / dinoSize, dinoY / dinoSize, bestDino.color, bestDino.isJumping, bestDino.isCrouching, bestDino.isDead);
     ctx.restore();
 
     // 神经网络在整个画布高度内垂直居中（而不是子区域），更容易和恐龙对齐
     if (bestDino.brain) {
         const networkPaddingX = 6;
+        
+        // 获取当前神经网络的激活值
+        let networkActivations = null;
+        if (gameSpeed && obstacles) {
+            networkActivations = getBestDinoNetworkActivations(bestDino, gameSpeed, obstacles);
+        }
+        
         drawDinoStyleNetwork(
             ctx,
             bestDino.brain,
             dinoWidth + networkPaddingX,
             0, // 从顶部开始
             Math.max(0, networkWidth - networkPaddingX * 2),
-            displayHeight // 使用全高以保证垂直居中
+            displayHeight, // 使用全高以保证垂直居中
+            networkActivations // 传递激活值
         );
     }
 }
 
 // 绘制Dino风格的像素化神经网络
-function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height) {
+function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activations = null) {
     if (!brain) return;
 
     ctx.save();
@@ -318,9 +342,9 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height) {
     const hiddenNodes = [];
     const outputNodes = [];
 
-    // 输入层（5个）- 更大的垂直间距
-    const inputCount = 5;
-    const inputSpacing = Math.floor(height / 5); // 比之前更稀疏
+    // 输入层（7个）- 高度、速度、距离、障碍物高度、障碍物宽度、障碍物下边缘、游戏速度
+    const inputCount = 7;
+    const inputSpacing = Math.floor(height / 7.5); // 调整间距
     const inputStartY = Math.floor((height - inputSpacing * (inputCount - 1)) / 2);
     for (let i = 0; i < inputCount; i++) {
         inputNodes.push({
@@ -329,9 +353,9 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height) {
         });
     }
 
-    // 隐藏层（8个）- 更大的垂直间距
-    const hiddenCount = 8;
-    const hiddenSpacing = Math.floor(height / 7.5);
+    // 隐藏层（12个）- 更新为新架构
+    const hiddenCount = 12;
+    const hiddenSpacing = Math.floor(height / 13);
     const hiddenStartY = Math.floor((height - hiddenSpacing * (hiddenCount - 1)) / 2);
     for (let i = 0; i < hiddenCount; i++) {
         hiddenNodes.push({
@@ -340,11 +364,16 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height) {
         });
     }
 
-    // 输出层（1个）
-    outputNodes.push({
-        x: Math.floor(startX + layerSpacing * 2),
-        y: Math.floor(startY + height / 2)
-    });
+    // 输出层（3个）- 跳跃、不动、蹲下
+    const outputCount = 3;
+    const outputSpacing = Math.floor(height / 4);
+    const outputStartY = Math.floor((height - outputSpacing * (outputCount - 1)) / 2);
+    for (let i = 0; i < outputCount; i++) {
+        outputNodes.push({
+            x: Math.floor(startX + layerSpacing * 2),
+            y: Math.floor(startY + outputStartY + outputSpacing * i)
+        });
+    }
 
     // 输入->隐藏 连接（跳过极弱权重）
     for (let i = 0; i < inputNodes.length; i++) {
@@ -364,62 +393,163 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height) {
 
     // 隐藏->输出 连接
     for (let i = 0; i < hiddenNodes.length; i++) {
-        const weight = brain.weightsHiddenOutput[0][i];
-        const absWeight = Math.abs(weight);
-        if (absWeight < weightThreshold) continue;
-        const grayValue = Math.floor(absWeight * 128 + 96);
-        ctx.strokeStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
-        ctx.lineWidth = absWeight > 0.6 ? 2 : 1;
-        ctx.beginPath();
-        ctx.moveTo(hiddenNodes[i].x + nodeSize, hiddenNodes[i].y + nodeSize / 2);
-        ctx.lineTo(outputNodes[0].x, outputNodes[0].y + nodeSize / 2);
-        ctx.stroke();
+        for (let j = 0; j < outputNodes.length; j++) {
+            const weight = brain.weightsHiddenOutput[j][i];
+            const absWeight = Math.abs(weight);
+            if (absWeight < weightThreshold) continue;
+            const grayValue = Math.floor(absWeight * 128 + 96);
+            ctx.strokeStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+            ctx.lineWidth = absWeight > 0.6 ? 2 : 1;
+            ctx.beginPath();
+            ctx.moveTo(hiddenNodes[i].x + nodeSize, hiddenNodes[i].y + nodeSize / 2);
+            ctx.lineTo(outputNodes[j].x, outputNodes[j].y + nodeSize / 2);
+            ctx.stroke();
+        }
     }
 
-    // 节点
-    ctx.fillStyle = '#535353';
-    for (let node of inputNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
-    ctx.fillStyle = '#757575';
-    for (let node of hiddenNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
-    ctx.fillStyle = '#999999';
-    for (let node of outputNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
+    // 节点 - 根据激活度着色
+    if (activations) {
+        // 输入节点
+        for (let i = 0; i < inputNodes.length; i++) {
+            const activation = activations.inputs[i] || 0;
+            const intensity = Math.floor(activation * 255);
+            ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+            ctx.fillRect(inputNodes[i].x, inputNodes[i].y, nodeSize, nodeSize);
+        }
+        
+        // 隐藏层节点
+        for (let i = 0; i < hiddenNodes.length; i++) {
+            const activation = activations.hidden[i] || 0;
+            const intensity = Math.floor(activation * 255);
+            ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+            ctx.fillRect(hiddenNodes[i].x, hiddenNodes[i].y, nodeSize, nodeSize);
+        }
+        
+        // 输出节点 - 最大值为粉色渐变，其他为天蓝色
+        const actions = ['jump', 'idle', 'crouch'];
+        
+        // 找到最大值的索引
+        let maxIndex = 0;
+        let maxValue = activations.outputs[0] || 0;
+        for (let i = 1; i < outputNodes.length; i++) {
+            const value = activations.outputs[i] || 0;
+            if (value > maxValue) {
+                maxValue = value;
+                maxIndex = i;
+            }
+        }
+        
+        for (let i = 0; i < outputNodes.length; i++) {
+            const activation = activations.outputs[i] || 0;
+            
+            if (i === maxIndex) {
+                // 最大值输出节点：从 #f5abb9 到 #ffffff 的插值
+                const baseR = 0xf5; // 245
+                const baseG = 0xab; // 171  
+                const baseB = 0xb9; // 185
+
+                const r = Math.floor(baseR + (255 - baseR) * (1 - activation));
+                const g = Math.floor(baseG + (255 - baseG) * (1 - activation));
+                const b = Math.floor(baseB + (255 - baseB) * (1 - activation));
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            } else {
+                const baseR = 0x5b; // 91
+                const baseG = 0xcf; // 207
+                const baseB = 0xfa; // 250
+                
+                const r = Math.floor(baseR + (255 - baseR) * (1 - activation));
+                const g = Math.floor(baseG + (255 - baseG) * (1 - activation));
+                const b = Math.floor(baseB + (255 - baseB) * (1 - activation));
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            }
+            
+            ctx.globalAlpha = 1.0;
+            ctx.fillRect(outputNodes[i].x, outputNodes[i].y, nodeSize, nodeSize);
+        }
+        ctx.globalAlpha = 1.0; // 重置透明度
+        
+    } else {
+        // 默认颜色
+        ctx.fillStyle = '#535353';
+        for (let node of inputNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
+        ctx.fillStyle = '#757575';
+        for (let node of hiddenNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
+        ctx.fillStyle = '#999999';
+        for (let node of outputNodes) ctx.fillRect(node.x, node.y, nodeSize, nodeSize);
+    }
 
     ctx.restore();
 }
 
 // 绘制预览恐龙身体
-function drawPreviewDinoBody(ctx, x, y, color, isDead = false) {
+function drawPreviewDinoBody(ctx, x, y, color, isJumping = false, isCrouching = false, isDead = false) {
     // 恐龙的基本形状（类似Google Dino）
     ctx.fillStyle = color;
     
-    // 头部
-    ctx.fillRect(x + 22, y, 22, 22);
-    
-    // 眼睛
-    if (!isDead) {
+    if (isCrouching) {
+        // 蹲下状态 - 更扁平的形状
+        // 头部（向前伸）
+        ctx.fillRect(x + 25, y + 5, 22, 15);
+        
+        // 眼睛
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x + 33, y + 8, 6, 4);
+        ctx.fillStyle = 'black';
+        ctx.fillRect(x + 35, y + 9, 2, 2);
+        
+        // 嘴部
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 47, y + 12, 2, 3);
+        
+        // 身体（压扁）
+        ctx.fillRect(x + 6, y + 15, 35, 10);
+        
+        // 腿部（贴地）
+        ctx.fillRect(x + 10, y + 20, 8, 5);
+        ctx.fillRect(x + 25, y + 20, 8, 5);
+        
+        // 手臂（向前）
+        ctx.fillRect(x + 5, y + 17, 6, 4);
+        ctx.fillRect(x + 35, y + 17, 6, 4);
+        
+    } else {
+        // 正常状态
+        // 头部
+        ctx.fillRect(x + 22, y, 22, 22);
+        
+        // 眼睛
         ctx.fillStyle = 'white';
         ctx.fillRect(x + 30, y + 6, 6, 6);
         ctx.fillStyle = 'black';
         ctx.fillRect(x + 32, y + 8, 2, 2);
+        
+        // 嘴部
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 44, y + 10, 2, 4);
+        
+        // 身体
+        ctx.fillRect(x + 6, y + 22, 30, 25);
+        
+        // 尾巴
+        ctx.fillRect(x, y + 25, 8, 8);
+        
+        // 腿部（静态）
+        ctx.fillRect(x + 14, y + 40, 6, 7);
+        ctx.fillRect(x + 26, y + 40, 6, 7);
+        
+        // 手臂
+        if (isJumping) {
+            // 跳跃时手臂向上
+            ctx.fillRect(x + 8, y + 26, 4, 8);
+            ctx.fillRect(x + 32, y + 26, 4, 8);
+        } else {
+            // 正常手臂
+            ctx.fillRect(x + 8, y + 30, 4, 6);
+            ctx.fillRect(x + 32, y + 30, 4, 6);
+        }
     }
-    
-    // 嘴部
-    ctx.fillStyle = color;
-    ctx.fillRect(x + 44, y + 10, 2, 4);
-    
-    // 身体
-    ctx.fillRect(x + 6, y + 22, 30, 25);
-    
-    // 尾巴
-    ctx.fillRect(x, y + 25, 8, 8);
-    
-    // 腿部（静态）
-    ctx.fillRect(x + 14, y + 40, 6, 7);
-    ctx.fillRect(x + 26, y + 40, 6, 7);
-    
-    // 手臂
-    ctx.fillRect(x + 8, y + 30, 4, 6);
-    ctx.fillRect(x + 32, y + 30, 4, 6);
     
     // 如果是死亡状态，绘制X眼睛
     if (isDead) {
@@ -660,12 +790,84 @@ function exportEvolutionData() {
             elitismCount: stats.elitismCount
         }
     };
+}
+
+// 获取最佳恐龙的神经网络激活值
+function getBestDinoNetworkActivations(bestDino, gameSpeed, obstacles) {
+    if (!bestDino.brain) return null;
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dino_evolution_gen${stats.generation}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // 复制恐龙的makeDecision逻辑来获取输入
+    let nearestObstacle = null;
+    let minDistance = Infinity;
+    
+    for (let obstacle of obstacles) {
+        const frontDistance = (obstacle.x) - (bestDino.x + bestDino.width);
+        if (frontDistance > 0 && frontDistance < minDistance) {
+            minDistance = frontDistance;
+            nearestObstacle = obstacle;
+        }
+    }
+    
+    // 准备神经网络输入
+    const inputs = [];
+    
+    // 输入1: 恐龙当前高度
+    const maxJumpHeight = 120;
+    const heightAboveGround = Math.max(0, bestDino.groundY - (bestDino.y + bestDino.height));
+    const normalizedY = Math.max(0, Math.min(1, heightAboveGround / maxJumpHeight));
+    inputs.push(normalizedY);
+    
+    // 输入2: 垂直速度
+    const normalizedVelocity = Math.max(0, Math.min(1, (bestDino.velocityY + 15) / 30));
+    inputs.push(normalizedVelocity);
+    
+    // 输入3: 到最近障碍物的水平距离
+    if (nearestObstacle) {
+        const normalizedDistance = Math.max(0, Math.min(1, minDistance / 600));
+        inputs.push(normalizedDistance);
+    } else {
+        inputs.push(1);
+    }
+    
+    // 输入4: 最近障碍物高度
+    if (nearestObstacle) {
+        const normalizedHeight = Math.max(0, Math.min(1, nearestObstacle.height / 80));
+        inputs.push(normalizedHeight);
+    } else {
+        inputs.push(0);
+    }
+    
+    // 输入5: 最近障碍物宽度
+    if (nearestObstacle) {
+        const normalizedWidth = Math.max(0, Math.min(1, nearestObstacle.width / 100));
+        inputs.push(normalizedWidth);
+    } else {
+        inputs.push(0);
+    }
+    
+    // 输入6: 最近障碍物下边缘高度（与恐龙逻辑一致）
+    if (nearestObstacle) {
+        if (nearestObstacle.isFlying) {
+            // 飞行障碍物：计算下边缘距地面的高度
+            const obstacleBottom = nearestObstacle.y + nearestObstacle.height;
+            const groundLevel = bestDino.groundY;
+            const bottomHeightAboveGround = Math.max(0, groundLevel - obstacleBottom);
+            const normalizedBottomHeight = Math.max(0, Math.min(1, bottomHeightAboveGround / 80));
+            inputs.push(normalizedBottomHeight);
+        } else {
+            // 地面障碍物：使用障碍物高度作为特征
+            const normalizedObstacleHeight = Math.max(0, Math.min(1, nearestObstacle.height / 50));
+            inputs.push(normalizedObstacleHeight);
+        }
+    } else {
+        inputs.push(0);
+    }
+    
+    // 输入7: 游戏速度
+    const normalizedSpeed = Math.max(0, Math.min(1, (gameSpeed - 6) / 7));
+    inputs.push(normalizedSpeed);
+    
+    // 计算神经网络的所有层激活值
+    const activations = bestDino.brain.getDetailedActivations(inputs);
+    return activations;
 }

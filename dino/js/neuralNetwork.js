@@ -10,7 +10,9 @@ class NeuralNetwork {
         
         // 偏置
         this.biasHidden = this.randomMatrix(this.hiddenNodes, 1);
-        this.biasOutput = this.randomMatrix(this.outputNodes, 1);
+        
+        // 输出层偏置特殊初始化 - 避免动作偏向
+        this.biasOutput = this.createOutputBias(this.outputNodes);
     }
     
     // 创建随机矩阵
@@ -19,9 +21,31 @@ class NeuralNetwork {
         for (let i = 0; i < rows; i++) {
             matrix[i] = [];
             for (let j = 0; j < cols; j++) {
-                // 使用Xavier初始化，提供更好的权重分布
+                // 修正的Xavier初始化：考虑输入和输出节点数
                 const limit = Math.sqrt(6 / (rows + cols));
                 matrix[i][j] = (Math.random() * 2 - 1) * limit;
+            }
+        }
+        return matrix;
+    }
+    
+    // 创建输出层偏置 - 防止动作偏向
+    createOutputBias(outputNodes) {
+        const matrix = [];
+        for (let i = 0; i < outputNodes; i++) {
+            matrix[i] = [];
+            if (outputNodes === 3) {
+                // 对于三动作输出：jump, idle, crouch
+                if (i === 1) {
+                    // idle 动作稍微偏向（因为是默认安全动作）
+                    matrix[i][0] = 0.1 + (Math.random() * 2 - 1) * 0.05;
+                } else {
+                    // jump 和 crouch 保持中性
+                    matrix[i][0] = (Math.random() * 2 - 1) * 0.05;
+                }
+            } else {
+                // 其他输出数量的情况，使用小随机值
+                matrix[i][0] = (Math.random() * 2 - 1) * 0.05;
             }
         }
         return matrix;
@@ -90,7 +114,17 @@ class NeuralNetwork {
         output = this.matrixAdd(output, this.biasOutput);
         output = this.applyActivation(output);
         
-        return output[0][0]; // 返回单个输出值
+        // 如果只有一个输出，返回单个值（向后兼容）
+        if (this.outputNodes === 1) {
+            return output[0][0];
+        }
+        
+        // 多个输出时，返回数组
+        const result = [];
+        for (let i = 0; i < this.outputNodes; i++) {
+            result.push(output[i][0]);
+        }
+        return result;
     }
     
     // 复制神经网络
@@ -130,19 +164,20 @@ class NeuralNetwork {
                 if (Math.random() < mutationRate) {
                     const mutationType = Math.random();
                     
-                    if (mutationType < 0.7) {
-                        // 70% 概率：小幅调整
-                        matrix[i][j] += (Math.random() * 2 - 1) * 0.1;
-                    } else if (mutationType < 0.9) {
-                        // 20% 概率：中等调整
-                        matrix[i][j] += (Math.random() * 2 - 1) * 0.3;
+                    if (mutationType < 0.8) {
+                        // 80% 概率：小幅调整（更保守）
+                        matrix[i][j] += (Math.random() * 2 - 1) * 0.05;
+                    } else if (mutationType < 0.95) {
+                        // 15% 概率：中等调整
+                        matrix[i][j] += (Math.random() * 2 - 1) * 0.15;
                     } else {
-                        // 10% 概率：重新随机化
-                        matrix[i][j] = (Math.random() * 2 - 1) * 0.5;
+                        // 5% 概率：重新随机化
+                        const limit = Math.sqrt(6 / (matrix.length + matrix[0].length));
+                        matrix[i][j] = (Math.random() * 2 - 1) * limit;
                     }
                     
-                    // 限制权重范围
-                    matrix[i][j] = Math.max(-2, Math.min(2, matrix[i][j]));
+                    // 限制权重范围，防止梯度爆炸
+                    matrix[i][j] = Math.max(-1.5, Math.min(1.5, matrix[i][j]));
                 }
             }
         }
@@ -164,15 +199,41 @@ class NeuralNetwork {
     // 矩阵交叉
     crossoverMatrix(matrix1, matrix2) {
         const result = [];
-        const crossoverPoint = Math.random();
         
         for (let i = 0; i < matrix1.length; i++) {
             result[i] = [];
             for (let j = 0; j < matrix1[0].length; j++) {
-                // 随机选择父母之一的基因
-                result[i][j] = Math.random() < crossoverPoint ? matrix1[i][j] : matrix2[i][j];
+                // 每个权重位置独立随机选择父母之一
+                result[i][j] = Math.random() < 0.5 ? matrix1[i][j] : matrix2[i][j];
             }
         }
+        return result;
+    }
+    
+    // 获取详细的激活值（用于可视化）
+    getDetailedActivations(inputs) {
+        // 输入层
+        const inputMatrix = [];
+        for (let i = 0; i < this.inputNodes; i++) {
+            inputMatrix.push([inputs[i] || 0]);
+        }
+        
+        // 隐藏层
+        let hidden = this.matrixMultiply(this.weightsInputHidden, inputMatrix);
+        hidden = this.matrixAdd(hidden, this.biasHidden);
+        hidden = this.applyActivation(hidden);
+        
+        // 输出层
+        let output = this.matrixMultiply(this.weightsHiddenOutput, hidden);
+        output = this.matrixAdd(output, this.biasOutput);
+        output = this.applyActivation(output);
+        
+        const result = {
+            inputs: inputs,
+            hidden: hidden.map(row => row[0]), // 转换为一维数组
+            outputs: output.map(row => row[0])  // 转换为一维数组
+        };
+        
         return result;
     }
 }
