@@ -48,11 +48,23 @@ class DinoGame {
     
     // 初始化云朵
     initClouds() {
+        this.clouds = [];
+        const sizes = ['small', 'medium', 'large'];
         for (let i = 0; i < 6; i++) {
+            const size = sizes[Math.floor(Math.random() * sizes.length)];
+            const speed = (
+                size === 'small' ? 0.7 : size === 'medium' ? 0.5 : 0.35
+            ) + Math.random() * 0.2;
+            // Dino 风格统一的浅灰色
+            const shade = '#cfcfcf';
+            const scale = (size === 'large' && Math.random() < 0.5) ? 2 : 1;
             this.clouds.push({
                 x: Math.random() * this.canvas.width * 2,
                 y: 20 + Math.random() * 80,
-                speed: 0.5 + Math.random() * 0.5
+                speed,
+                size,
+                shade,
+                scale
             });
         }
     }
@@ -74,7 +86,7 @@ class DinoGame {
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (this.gameMode === 'MANUAL' && this.manualDino && !this.manualDino.isDead) {
-                    this.manualDino.jump();
+                    this.manualDino.jump(this.obstacleManager.getObstacles());
                 }
             }
         });
@@ -82,7 +94,7 @@ class DinoGame {
         // 鼠标点击事件
         this.canvas.addEventListener('click', () => {
             if (this.gameMode === 'MANUAL' && this.manualDino && !this.manualDino.isDead) {
-                this.manualDino.jump();
+                this.manualDino.jump(this.obstacleManager.getObstacles());
             }
         });
     }
@@ -174,9 +186,9 @@ class DinoGame {
     
     // 更新游戏速度
     updateGameSpeed() {
-        // 随时间逐渐增加游戏速度
+        // 随时间逐渐增加游戏速度 - 加快增长速度
         const baseSpeed = 6;
-        const speedIncrease = Math.floor(this.frame / 600) * 0.5; // 每10秒增加0.5
+        const speedIncrease = Math.floor(this.frame / 300) * 0.3; // 每5秒增加0.3（原来10秒0.5）
         this.gameSpeed = Math.min(baseSpeed + speedIncrease, 13); // 最大速度13
     }
     
@@ -210,9 +222,16 @@ class DinoGame {
     updateClouds() {
         for (let cloud of this.clouds) {
             cloud.x -= cloud.speed * this.speedMultiplier;
-            if (cloud.x < -50) {
-                cloud.x = this.canvas.width + Math.random() * 100;
+            if (cloud.x < -80) {
+                cloud.x = this.canvas.width + 40 + Math.random() * 120;
                 cloud.y = 20 + Math.random() * 80;
+                // 随机更新风格，保持多样性
+                const sizes = ['small', 'medium', 'large'];
+                cloud.size = sizes[Math.floor(Math.random() * sizes.length)];
+                cloud.scale = (cloud.size === 'large' && Math.random() < 0.5) ? 2 : 1;
+                // Dino 风格统一的浅灰色
+                cloud.shade = '#cfcfcf';
+                cloud.speed = (cloud.size === 'small' ? 0.7 : cloud.size === 'medium' ? 0.5 : 0.35) + Math.random() * 0.2;
             }
         }
     }
@@ -241,12 +260,15 @@ class DinoGame {
     // 创建下一代
     createNextGeneration() {
         // 收集适应度数据
-        const scores = this.dinos.map(dino => dino.score);
-        const times = this.dinos.map(dino => dino.aliveTime);
-        const jumps = this.dinos.map(dino => dino.jumpCount);
+        const scores = this.dinos.map(dino => dino.score || 0);
+        const times = this.dinos.map(dino => dino.aliveTime || 0);
+        const jumps = this.dinos.map(dino => dino.jumpCount || 0);
+        const obstaclesPassed = this.dinos.map(dino => dino.obstaclesPassed || 0);
+        const invalidJumps = this.dinos.map(dino => dino.invalidJumps || 0);
+        const crouchCounts = this.dinos.map(dino => dino.crouchCount || 0);
         
         // 计算适应度
-        this.geneticAlgorithm.calculateFitness(scores, times, jumps);
+        this.geneticAlgorithm.calculateFitness(scores, times, jumps, obstaclesPassed, invalidJumps, crouchCounts);
         
         // 自适应参数调整
         this.geneticAlgorithm.adaptParameters();
@@ -367,18 +389,62 @@ class DinoGame {
     drawClouds() {
         this.ctx.fillStyle = '#d3d3d3';
         for (let cloud of this.clouds) {
-            this.drawCloud(cloud.x, cloud.y);
+            this.drawCloud(cloud);
         }
     }
     
     // 绘制单个云朵
-    drawCloud(x, y) {
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, 15, 0, Math.PI * 2);
-        this.ctx.arc(x + 15, y, 20, 0, Math.PI * 2);
-        this.ctx.arc(x + 35, y, 15, 0, Math.PI * 2);
-        this.ctx.arc(x + 25, y - 10, 12, 0, Math.PI * 2);
-        this.ctx.fill();
+    drawCloud(cloud) {
+        const { x, y, size, shade, scale = 1 } = cloud;
+        const ctx = this.ctx;
+        ctx.fillStyle = shade;
+        
+        // 更加 Dino 风的像素云模板（2px 高的台阶形）
+        let rects;
+        if (size === 'small') {
+            // 紧凑的小云
+            rects = [
+                [2, 0, 8, 2],
+                [0, 2, 12, 2],
+                [0, 4, 14, 2],
+                [2, 6, 10, 2],
+                [4, 8, 6, 2]
+            ];
+        } else if (size === 'medium') {
+            // 经典 Dino 风中云
+            rects = [
+                [6, 0, 10, 2],
+                [2, 2, 18, 2],
+                [0, 4, 24, 2],
+                [2, 6, 20, 2],
+                [6, 8, 12, 2],
+                [16, 10, 4, 2]
+            ];
+        } else { // large
+            // 更宽、更分层的大云
+            rects = [
+                [8, 0, 12, 2],
+                [4, 2, 22, 2],
+                [0, 4, 30, 2],
+                [2, 6, 26, 2],
+                [6, 8, 18, 2],
+                [10, 10, 10, 2]
+            ];
+        }
+        
+        // 计算高度以便使用 y 作为垂直居中的参考
+        const height = rects.reduce((h, r) => Math.max(h, r[1] + r[3]), 0) * scale;
+        const yTop = y - height / 2;
+        
+        // 绘制像素块
+        for (const [dx, dy, w, h] of rects) {
+            ctx.fillRect(
+                Math.round(x + dx * scale),
+                Math.round(yTop + dy * scale),
+                Math.round(w * scale),
+                Math.round(h * scale)
+            );
+        }
     }
     
     // 绘制地面
