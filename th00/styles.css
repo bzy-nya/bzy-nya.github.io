@@ -2,40 +2,43 @@
     --bg-color: #1a1a1a;
     --text-color: #ffffff;
     --panel-bg: #222222;
-    --button-bg: #333333;
-    --button-text: #cccccc;
-    --button-border: #444444;
-    --button-active: #3388cc;
-    --button-active-border: #4499dd;
-    --separator-color: #555555;
-    --accent-color: rgba(0, 100, 255, 0.3);
-    --stats-bg: rgba(50, 50, 50, 0.7);
-    --stats-item-bg: rgba(0, 0, 0, 0.5);
-    --canvas-border: #333333;
-    --stats-text: rgba(255, 255, 255, 0.7);
-    --game-over-effect-bg:rgba(0, 0, 0, 0.7)
+    --button-bg: #2a2630; /* 深灰紫，偏可爱 */
+    --button-text: #e9e0e6;
+    --button-border: #3a3340;
+    --button-active: #ff78a5; /* 粉色主色 */
+    --button-active-border: #ff95b7;
+    --separator-color: #4b3f49;
+    --accent-color: rgba(255, 120, 165, 0.25); /* 粉色光晕 */
+    --stats-bg: rgba(255, 120, 165, 0.12);
+    --stats-item-bg: rgba(0, 0, 0, 0.45);
+    --canvas-border: #3b2f38;
+    --stats-text: rgba(255, 240, 245, 0.9);
+    --game-over-effect-bg: rgba(0, 0, 0, 0.7);
+    --pixel-shadow: drop-shadow(0 2px 0 rgba(0,0,0,.35)) drop-shadow(0 4px 0 rgba(0,0,0,.25));
+    --pink:#ff78a5;
 }
 
 .light-theme {
-    --bg-color: #f0f0f0;
-    --text-color: #333333;
+    --bg-color: #fff6f8; /* 很浅的粉白 */
+    --text-color: #3a2a31;
     --panel-bg: #ffffff;
-    --button-bg: #e0e0e0;
-    --button-text: #444444;
-    --button-border: #cccccc;
-    --button-active: #3388cc;
-    --button-active-border: #2277bb;
-    --separator-color: #dddddd;
-    --accent-color: rgba(0, 100, 255, 0.15);
-    --stats-bg: rgba(240, 240, 240, 0.8);
-    --stats-item-bg: rgba(180, 180, 180, 0.7);
-    --canvas-border: #cccccc;
-    --stats-text: rgba(255, 255, 255, 0.9);
-    --game-over-effect-bg:rgba(0, 0, 0, 0.3)
+    --button-bg: #ffe6ef; /* 浅粉 */
+    --button-text: #5a3f4b;
+    --button-border: #ffd1e1;
+    --button-active: #ff5f98;
+    --button-active-border: #ff78a5;
+    --separator-color: #ffd7e5;
+    --accent-color: rgba(255, 120, 165, 0.18);
+    --stats-bg: rgba(255, 120, 165, 0.08);
+    --stats-item-bg: rgba(255, 214, 229, 0.7);
+    --canvas-border: #ffd7e5;
+    --stats-text: rgba(58, 42, 49, 0.9);
+    --game-over-effect-bg: rgba(0, 0, 0, 0.3);
 }
 
+/* 全局字体：像素风优先 */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Press Start 2P', 'VT323', 'Arial', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     margin: 0;
@@ -46,350 +49,93 @@ body {
     overflow: hidden;
     box-sizing: border-box;
     transition: background-color 0.3s, color 0.3s;
+    background-image:
+      radial-gradient(1000px 400px at -10% -20%, rgba(255, 120, 165, 0.2), transparent 60%),
+      radial-gradient(800px 300px at 110% -10%, rgba(255, 120, 165, 0.18), transparent 60%);
 }
 
-.container {
-    display: flex;
-    gap: 20px;
-    max-height: 100%;
-    width: 100%;
-    justify-content: center;
-}
+.container { display: flex; gap: 20px; max-height: 100%; width: 100%; justify-content: center; }
 
-.game-container {
-    position: relative;
-}
+.game-container { position: relative; filter: var(--pixel-shadow); }
 
 .controls-container {
-    display: flex;
-    flex-direction: column;
-    min-width: 250px;
-    max-width: 300px;
-    height: calc(800px - 30px); /* Subtract padding to match canvas height exactly */
-    background-color: var(--panel-bg);
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
-    transition: background-color 0.3s;
-    box-sizing: border-box; /* Include padding in height calculation */
+    display: flex; flex-direction: column; min-width: 250px; max-width: 300px;
+    height: calc(800px - 30px); background-color: var(--panel-bg); padding: 15px; border-radius: 8px;
+    box-shadow: 0 0 0 2px var(--button-border), 0 8px 24px rgba(0,0,0,.15);
+    overflow-y: auto; transition: background-color 0.3s; box-sizing: border-box;
 }
 
 canvas {
-    border: 2px solid var(--canvas-border);
-    border-radius: 5px;
-    box-shadow: 0 0 20px var(--accent-color);
+    border: 3px solid var(--canvas-border);
+    border-radius: 6px;
+    box-shadow: 0 0 24px var(--accent-color), inset 0 0 0 2px rgba(255,255,255,0.04);
     transition: border-color 0.3s, box-shadow 0.3s;
+    image-rendering: pixelated; /* 像素化 */
 }
 
-.stats {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
-    font-size: 14px;
-    opacity: 0.6;
-    transition: opacity 0.3s;
+/* 顶角猫猫贴纸 */
+.cat-mascot{
+    position:absolute; left:-22px; top:-18px; transform: rotate(-8deg);
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.85));
+    color:#3a2a31; border:2px solid var(--canvas-border); border-radius:10px;
+    padding:6px 10px; font-size:14px; letter-spacing:.5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 6px 16px rgba(0,0,0,.15);
+    text-shadow: 0 1px 0 #fff;
 }
 
-.stats:hover {
-    opacity: 1;
-}
+.stats { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 10px; font-size: 12px; opacity: 0.85; transition: opacity 0.3s; }
+.stats:hover { opacity: 1; }
+.stats span { padding: 4px 8px; border-radius: 6px; background-color: var(--stats-item-bg); color: var(--stats-text); border:1px solid var(--button-border); }
 
-.stats span {
-    padding: 3px 8px;
-    border-radius: 5px;
-    background-color: var(--stats-item-bg);
-    color: var(--stats-text);
-    transition: background-color 0.3s, color 0.3s;
-}
+.control-section { margin-bottom: 20px; border-bottom: 2px dashed var(--separator-color); padding-bottom: 15px; }
+.control-section:last-child { border-bottom: none; margin-bottom: 0; }
 
-.control-section {
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--separator-color);
-    padding-bottom: 15px;
-    transition: border-color 0.3s;
-}
+.section-title { font-size: 14px; margin-bottom: 10px; color: var(--button-active); font-weight: bold; text-shadow: 0 1px 0 rgba(255,255,255,.2); }
 
-.control-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.section-title {
-    font-size: 16px;
-    margin-bottom: 10px;
-    color: var(--button-active);
-    font-weight: bold;
-}
-
-.button-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.separator {
-    margin: 0 10px;
-    font-size: 20px;
-    color: var(--separator-color);
-    transition: color 0.3s;
-}
+.button-group { display: flex; flex-wrap: wrap; gap: 8px; }
 
 button {
-    background-color: var(--button-bg);
-    color: var(--button-text);
-    border: 1px solid var(--button-border);
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 14px;
-    flex-grow: 1;
+    background-color: var(--button-bg); color: var(--button-text); border: 2px solid var(--button-border);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s ease; font-size: 12px; flex-grow: 1;
+    box-shadow: 0 2px 0 rgba(0,0,0,.2);
 }
+button:hover { transform: translateY(-2px); box-shadow: 0 4px 0 rgba(0,0,0,.25), 0 6px 16px rgba(0,0,0,.15); }
+button.active { background-color: var(--button-active); color: #fff; border-color: var(--button-active-border); }
 
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
+.instructions { margin: 15px 0; padding: 10px; background-color: var(--stats-bg); border-radius: 6px; text-align: center; border:1px dashed var(--button-border); }
 
-button.active {
-    background-color: var(--button-active);
-    color: white;
-    border-color: var(--button-active-border);
-}
+kbd { background-color: var(--button-bg); border: 2px solid var(--button-border); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
 
-.instructions {
-    margin: 15px 0;
-    padding: 10px;
-    background-color: var(--stats-bg);
-    border-radius: 5px;
-    text-align: center;
-    transition: background-color 0.3s;
-}
+#info { min-height: 30px; margin: 10px 0; padding: 10px; text-align: center; color: var(--button-text); }
 
-kbd {
-    background-color: var(--button-bg);
-    border: 1px solid var(--button-border);
-    border-radius: 3px;
-    padding: 2px 5px;
-    font-size: 0.9em;
-    transition: background-color 0.3s, border-color 0.3s;
-}
+.theme-toggle { position: absolute; top: 10px; right: 10px; z-index: 100; }
+.theme-toggle button { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; padding: 0; color: var(--button-text); overflow: hidden; border:2px solid var(--button-border); background: var(--panel-bg); }
+.theme-toggle button:hover svg { transform: rotate(15deg); }
 
-#info {
-    min-height: 30px;
-    margin: 10px 0;
-    padding: 10px;
-    text-align: center;
-    color: var(--button-text);
-    transition: color 0.3s;
-}
-
-.theme-toggle {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 100;
-}
-
-.theme-toggle button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 18px;
-    padding: 0;
-    color: var(--button-text);
-    overflow: hidden;
-}
-
-.theme-toggle button svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
-    transition: transform 0.3s ease;
-}
-
-.theme-toggle button:hover svg {
-    transform: rotate(15deg);
-}
-
-.github-buttons {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    align-items: flex-end; /* Right align buttons */
-    transition: opacity 0.3s ease; /* Match with body transition timing */
-}
-
-.github-button-wrapper {
-    display: flex;
-    justify-content: flex-end; /* Ensure right alignment within wrapper */
-    width: 100%;
-    margin-bottom: 5px;
-}
-
-#active-buttons {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-}
-
-#active-buttons iframe {
-    margin: 0 !important; /* Override GitHub's default margins */
-}
+.github-buttons { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; transition: opacity 0.3s ease; }
+.github-button-wrapper { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 5px; }
+#active-buttons { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+#active-buttons iframe { margin: 0 !important; }
 
 @media (max-width: 1000px) {
-    .container {
-        flex-direction: column;
-        align-items: center;
-        height: auto;
-    }
-    
-    .controls-container {
-        max-width: 600px;
-        width: 100%;
-        max-height: none;
-        height: auto;
-    }
-
-    body {
-        height: auto;
-        overflow-y: auto;
-        padding: 10px;
-    }
-
-    .game-container {
-        margin-bottom: 20px;
-    }
+    .container { flex-direction: column; align-items: center; height: auto; }
+    .controls-container { max-width: 600px; width: 100%; max-height: none; height: auto; }
+    body { height: auto; overflow-y: auto; padding: 10px; }
+    .game-container { margin-bottom: 20px; }
 }
 
-/* Effects container */
-.effects-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 10;
-}
+/* 效果容器 */
+.effects-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
 
-/* Enhanced graze effect styling */
-.graze-effect {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
-    pointer-events: none;
-    animation: graze-pulse 0.5s ease-out forwards;
-    transform: translate(-50%, -50%);
-}
+/* 贴近判定特效：偏粉色 */
+.graze-effect { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, rgba(255,180,210,0.85) 0%, rgba(255,180,210,0) 70%); pointer-events: none; animation: graze-pulse 0.5s ease-out forwards; z-index: 10; }
+@keyframes graze-pulse { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }
 
-@keyframes graze-pulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.5);
-        opacity: 0.7;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(2.5);
-        opacity: 0;
-    }
-}
+/* Game over 效果：粉橙系爆闪 */
+.game-over-effect { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,80,110,0.95) 0%, rgba(255,190,120,0.6) 40%, rgba(255,255,255,0) 70%); pointer-events: none; animation: explosion 0.8s ease-out forwards; transform: translate(-50%, -50%); }
+@keyframes explosion { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(15); opacity: 0; } }
 
-/* Game over effect styling */
-.game-over-effect {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,50,50,0.9) 0%, rgba(255,150,0,0.6) 40%, rgba(255,255,255,0) 70%);
-    pointer-events: none;
-    animation: explosion 0.8s ease-out forwards;
-    transform: translate(-50%, -50%);
-}
-
-@keyframes explosion {
-    0% {
-        transform: translate(-50%, -50%) scale(0.5);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(15);
-        opacity: 0;
-    }
-}
-
-.game-over-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 803px;
-    background-color: var(--game-over-effect-bg);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    animation: fade-in 0.5s ease-in forwards;
-    z-index: 20;
-}
-
-@keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.game-over-overlay span {
-    font-size: 48px;
-    font-weight: bold;
-    color: #ff3333;
-    text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-    margin-bottom: 20px;
-    animation: game-over-text 2s ease-in-out infinite;
-    letter-spacing: 5px;
-}
-
-@keyframes game-over-text {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-@keyframes blink {
-    0% { opacity: 0.5; }
-    50% { opacity: 1; }
-    100% { opacity: 0.5; }
-}
-
-/* Graze effect styling */
-.graze-effect {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
-    pointer-events: none;
-    animation: graze-pulse 0.5s ease-out forwards;
-    z-index: 10;
-}
-
-@keyframes graze-pulse {
-    0% {
-        transform: scale(0.5);
-        opacity: 0.7;
-    }
-    100% {
-        transform: scale(2);
-        opacity: 0;
-    }
-}
+.game-over-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 803px; background-color: var(--game-over-effect-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; animation: fade-in 0.5s ease-in forwards; z-index: 20; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.game-over-overlay span { font-size: 40px; font-weight: 700; color: var(--pink); text-shadow: 0 1px 0 #fff, 0 0 10px rgba(255,120,165,.7), 0 0 20px rgba(255,120,165,.45); margin-bottom: 18px; animation: game-over-text 2s ease-in-out infinite; letter-spacing: 3px; }
+@keyframes game-over-text { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
