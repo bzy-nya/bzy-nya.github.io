@@ -12,15 +12,36 @@
     
     <style>
         :root{
-            --pink: #F0A0B0;
-            --mint: #B8E6D3;
-            --cream: #FFF8DC;
-            --white: #ffffff;
-            --soft-white: #f8f8f8;
-            --border-white: #e8e8e8;
+            /* Day Theme: 背景粉+前景白 */
+            --primary: #F0A0B0;
+            --secondary: #B8E6D3;
+            --accent: #FFF8DC;
+            --text: #ffffff;
+            --text-soft: #f8f8f8;
+            --border: #e8e8e8;
             --shadow: rgba(255, 255, 255, 0.1);
             --accent-shadow: rgba(184, 230, 211, 0.15);
             --px: 8px;
+            
+            /* Legacy variable mappings */
+            --pink: var(--primary);
+            --mint: var(--secondary);
+            --cream: var(--accent);
+            --white: var(--text);
+            --soft-white: var(--text-soft);
+            --border-white: var(--border);
+        }
+
+        /* Dark Theme: 背景黑+前景粉 */
+        [data-theme="dark"] {
+            --primary: #1a1a1a;
+            --secondary: #B8E6D3;
+            --accent: #DDD6BA;
+            --text: #F0A0B0;
+            --text-soft: #e8a0b0;
+            --border: #F0A0B0;
+            --shadow: rgba(240, 160, 176, 0.1);
+            --accent-shadow: rgba(240, 160, 176, 0.15);
         }
 
         /* Fonts: Pixel for emphasis/titles, clean sans-serif for body text */
@@ -41,26 +62,26 @@
         
         /* Text selection styling */
         ::selection {
-            background: var(--mint);
-            color: var(--pink);
+            background: var(--secondary);
+            color: var(--primary);
         }
         ::-moz-selection {
-            background: var(--mint);
-            color: var(--pink);
+            background: var(--secondary);
+            color: var(--primary);
         }
         
         /* Link styling */
         a {
-            color: var(--mint);
+            color: var(--secondary);
             text-decoration: none;
             transition: all 0.3s ease;
             position: relative;
             border-bottom: 1px solid transparent;
         }
         a:hover {
-            color: var(--white);
-            border-bottom-color: var(--cream);
-            text-shadow: 0 0 8px var(--mint);
+            color: var(--text);
+            border-bottom-color: var(--accent);
+            text-shadow: 0 0 8px var(--secondary);
         }
         a:active {
             transform: scale(0.98);
@@ -68,18 +89,19 @@
         
         /* Special link styling for white text areas */
         .content a, .item-desc a, .item-meta a {
-            color: var(--cream);
-            border-bottom: 1px dashed var(--cream);
+            color: var(--accent);
+            border-bottom: 1px dashed var(--accent);
         }
         
         body {
-            background: var(--pink);
-            color: var(--white);
+            background: var(--primary);
+            color: var(--text);
             font-family: Roboto, 'Inter', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
             letter-spacing: 0.02em;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
+            transition: background-color 0.6s ease, color 0.6s ease;
         }
 
         /* Container: Sidebar + Main content, academic two-column layout */
@@ -98,9 +120,10 @@
         .topbar {
             position: sticky;
             top: 0; z-index: 2;
-            background: var(--pink);
-            border-bottom: 2px solid var(--border-white);
+            background: var(--primary);
+            border-bottom: 2px solid var(--border);
             backdrop-filter: blur(8px);
+            transition: background-color 0.6s ease, border-color 0.6s ease;
         }
         .topbar-inner {
             max-width: 1200px;
@@ -113,7 +136,8 @@
         }
         .brand {
             display: flex; align-items: center; gap: 12px;
-            text-decoration: none; color: var(--white);
+            text-decoration: none; color: var(--text);
+            transition: color 0.6s ease;
         }
         .brand-title { 
             font-family: 'Press Start 2P', 'Courier New', monospace; 
@@ -125,24 +149,85 @@
             display: flex; flex-wrap: wrap; gap: 0;
         }
         .nav-btn{
-            color: var(--white);
+            color: var(--text);
             text-decoration: none;
             font-family: 'Press Start 2P', 'Courier New', monospace;
             font-size: 12px;
             padding: 10px 20px;
-            border: 2px solid var(--white);
+            border: 2px solid var(--text);
             background: transparent;
-            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all .6s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             font-weight: 400;
         }
         .nav-btn:not(:last-child) { border-right: none; }
+        .nav-btn:last-of-type { border-right: 2px solid var(--text); }
         .nav-btn:hover, .nav-btn.active { 
-            background: var(--white); 
-            color: var(--pink);
+            background: var(--text); 
+            color: var(--primary);
         }
         .nav-btn:active {
             transform: none;
+        }
+
+        /* Theme switcher */
+        .theme-switcher {
+            display: flex;
+            align-items: center;
+            margin-left: 12px;
+        }
+        
+        .theme-btn {
+            color: var(--text);
+            background: transparent;
+            border: 2px solid var(--text);
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.6s ease;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .theme-btn:hover {
+            background: var(--text);
+            color: var(--primary);
+            border-color: var(--text);
+            transform: scale(1.05);
+        }
+        
+        .theme-btn:hover .theme-icon {
+            color: var(--primary);
+        }
+        
+        .theme-btn .theme-icon {
+            color: var(--text);
+            transition: color 0.6s ease;
+        }
+        
+        .theme-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Theme animation effect */
+        .theme-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .theme-btn.switching::before {
+            opacity: 0.3;
+            transform: scale(1);
         }
 
         /* Sidebar */
@@ -152,20 +237,21 @@
         }
         .card{
             background: transparent;
-            border: 2px solid var(--border-white);
+            border: 2px solid var(--border);
             padding: 24px; /* increased padding */
             box-shadow: 0 4px 12px var(--shadow); /* subtle shadow */
-            transition: all 0.3s ease;
+            transition: all 0.6s ease;
         }
         .card:hover {
             box-shadow: 0 6px 20px var(--shadow);
         }
         .avatar {
             width: 120px; height: 120px;
-            border: 4px solid var(--mint);
+            border: 4px solid var(--secondary);
             display: grid; place-items: center;
             margin: 0 auto 16px;
             background: transparent;
+            transition: border-color 0.6s ease;
         }
         .name { 
             font-family: 'Press Start 2P', 'Courier New', monospace; 
@@ -191,17 +277,17 @@
             gap: 12px;
             padding: 12px 16px; 
             text-decoration: none; 
-            color: var(--white);
+            color: var(--text);
             background: transparent;
-            border: 2px solid var(--white);
+            border: 2px solid var(--text);
             font-family: 'Press Start 2P', 'Courier New', monospace;
             font-size: 10px;
-            transition: all .15s ease;
+            transition: all .6s ease;
             font-weight: 400;
         }
         .social-btn:hover { 
-            background: var(--white); 
-            color: var(--pink);
+            background: var(--text); 
+            color: var(--primary);
         }
         
         /* Disabled/Not Available styling */
@@ -247,11 +333,11 @@
         }
         .section { 
             padding: 32px; /* increased padding */
-            border: 2px solid var(--border-white); 
+            border: 2px solid var(--border); 
             background: transparent; 
             margin-bottom: 24px; /* positive margin for spacing */
             box-shadow: 0 2px 8px var(--shadow);
-            transition: box-shadow 0.3s ease;
+            transition: all 0.6s ease;
         }
         .section:hover {
             box-shadow: 0 4px 16px var(--shadow);
@@ -260,7 +346,7 @@
         /* Accent sections with mint background */
         .section.accent {
             background: linear-gradient(135deg, rgba(184, 230, 211, 0.1), rgba(184, 230, 211, 0.05));
-            border-color: var(--mint);
+            border-color: var(--secondary);
             box-shadow: 0 2px 8px var(--accent-shadow);
         }
         .section.accent:hover {
@@ -310,7 +396,7 @@
         .fun-item {
             aspect-ratio: 1;
             padding: 20px;
-            border: 2px solid var(--border-white);
+            border: 2px solid var(--border);
             background: transparent;
             transition: all .3s ease;
             box-shadow: 0 2px 6px var(--shadow);
@@ -325,9 +411,9 @@
         }
         
         .fun-item:hover {
-            border: 2px solid var(--cream);
+            border: 2px solid var(--accent);
             box-shadow: 0 4px 12px var(--shadow);
-            color: var(--cream);
+            color: var(--accent);
         }
         
         .fun-item .fun-icon {
@@ -346,7 +432,7 @@
         
         .item{ 
             padding: 24px; /* increased padding */
-            border: 2px solid var(--border-white); 
+            border: 2px solid var(--border); 
             background: transparent; 
             transition: all .3s ease; 
             box-shadow: 0 2px 6px var(--shadow);
@@ -402,8 +488,9 @@
             font-family: 'Press Start 2P', 'Courier New', monospace;
             font-size: 12px; 
             margin-bottom: 10px; 
-            color: var(--white);
+            color: var(--text);
             font-weight: 400;
+            transition: color 0.6s ease;
         }
         
         /* Special styling for math in item titles */
@@ -413,14 +500,17 @@
             font-size: 16px;
             font-weight: 600;
             background: transparent;
-            border: 1px dashed var(--cream);
-            color: var(--cream);
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            transition: color 0.6s ease, border-color 0.6s ease;
         }
         
         .item-title .katex {
             font-size: 14px !important;
             vertical-align: baseline !important;
             font-weight: 700 !important;
+            color: var(--accent) !important;
+            transition: color 0.6s ease !important;
         }
         .item-desc{ 
             font-size: 16px; 
@@ -462,7 +552,7 @@
         
         /* Override link styles in meta for better contrast */
         .item-meta a:hover {
-            color: var(--mint) !important;
+            color: var(--secondary) !important;
             background: rgba(255, 255, 255, 0.1);
             text-decoration: none;
         }
@@ -474,9 +564,10 @@
             gap: 20px;
         }
         .timeline-item {
-            border-left: 4px solid var(--white);
+            border-left: 4px solid var(--text);
             padding-left: 16px;
             position: relative;
+            transition: border-color 0.6s ease;
         }
         .timeline-item::before {
             content: '';
@@ -485,7 +576,8 @@
             top: 0px; /* align dot with timeline-head */
             width: 8px;
             height: 8px;
-            background: var(--white);
+            background: var(--text);
+            transition: background-color 0.6s ease;
         }
         /* Put org and date on the same row */
         .timeline-head { 
@@ -498,21 +590,28 @@
         }
         .timeline-head .timeline-org { margin: 0; }
         .timeline-head .timeline-date { margin: 0; }
-        .timeline-title { font-size: 16px; margin: 0; }
+        .timeline-title { 
+            font-size: 16px; 
+            margin: 0;
+            transition: color 0.6s ease;
+        }
         .timeline-org {
             font-family: 'Press Start 2P', 'Courier New', monospace;
             font-size: 12px;
             font-weight: 400;
             margin-bottom: 6px;
+            transition: color 0.6s ease;
         }
         .timeline-date {
             font-size: 14px;
             opacity: 0.8;
             margin-bottom: 10px;
+            transition: color 0.6s ease;
         }
         .timeline-desc {
             font-size: 16px;
             line-height: 1.6;
+            transition: color 0.6s ease;
         }
 
         .footer { 
@@ -523,19 +622,20 @@
             padding: 20px; /* increased padding */
             font-family: monospace;
             font-size: 12px;
-            background: var(--pink);
-            border-top: 2px solid var(--border-white);
+            background: transparent;
+            border-top: 2px solid var(--border);
             z-index: 10;
             font-weight: 400;
-            backdrop-filter: blur(8px);
+            transition: border-color 0.6s ease;
         }
 
         /* Pixel SVG styles */
         .icon { 
             width: 24px; 
             height: 24px; 
-            color: var(--white); 
-            display: inline-block; 
+            color: var(--text); 
+            display: inline-block;
+            transition: color 0.6s ease, fill 0.6s ease;
         }
         .icon.large{ 
             width: 80px; 
@@ -544,6 +644,11 @@
         .icon.small {
             width: 16px;
             height: 16px;
+        }
+        
+        /* SVG elements smooth transition */
+        svg, svg * {
+            transition: fill 0.6s ease, stroke 0.6s ease;
         }
 
         /* Background pixel cats */
@@ -585,9 +690,10 @@
             position: absolute;
             width: 12px;
             height: 12px;
-            background: var(--white);
+            background: var(--text);
             pointer-events: none;
             clip-path: polygon(0 0, 100% 0, 100% 4px, 4px 4px, 4px 100%, 0 100%);
+            transition: background-color 0.6s ease;
         }
         .section::before, .card::before {
             top: -2px;
@@ -599,12 +705,11 @@
             transform: rotate(180deg);
         }
         
-        /* Accent sections get mint triangles */
-        .section.accent::before {
-            border-left-color: var(--mint);
-        }
+        /* Accent sections get secondary color triangles */
+        .section.accent::before,
         .section.accent::after {
-            border-right-color: var(--mint);
+            background: var(--secondary);
+            transition: background-color 0.6s ease;
         }
 
         /* Section title pixel underline and sparkles spacing */
@@ -626,53 +731,69 @@
             margin: 20px 0;
             background: repeating-linear-gradient(
                 to right,
-                var(--white) 0px, var(--white) 4px,
+                #ffffff 0px, #ffffff 4px,
                 transparent 4px, transparent 8px,
-                var(--mint) 8px, var(--mint) 12px,
+                #B8E6D3 8px, #B8E6D3 12px,
                 transparent 12px, transparent 16px
             );
             opacity: 0.6;
+            transition: background 0.6s ease;
+        }
+        
+        [data-theme="dark"] .pixel-divider {
+            background: repeating-linear-gradient(
+                to right,
+                #F0A0B0 0px, #F0A0B0 4px,
+                transparent 4px, transparent 8px,
+                #B8E6D3 8px, #B8E6D3 12px,
+                transparent 12px, transparent 16px
+            );
         }
         
         /* Pixel badges */
         .pixel-badge {
             display: inline-block;
             padding: 4px 8px;
-            background: var(--mint);
-            color: var(--pink);
+            background: var(--secondary);
+            color: var(--primary);
             font-family: 'Press Start 2P', monospace;
             font-size: 8px;
             text-transform: uppercase;
             margin: 2px;
             clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+            transition: background-color 0.6s ease, color 0.6s ease;
         }
 
         /* Math rendering styling */
         .math {
             display: inline-block;
-            color: var(--cream);
+            color: var(--accent);
             font-weight: 600;
             font-family: Roboto, 'Inter', system-ui, sans-serif;
             padding: 2px 6px;
-            border: 1px  var(--cream);
+            border: 1px var(--accent);
             background: transparent;
+            transition: color 0.6s ease, border-color 0.6s ease;
         }
         
         .katex {
-            color: var(--cream) !important;
+            color: var(--accent) !important;
             font-size: 0.95em !important;
             font-family: Roboto, 'Inter', 'Times New Roman', serif !important;
             font-weight: 600 !important;
+            transition: color 0.6s ease !important;
         }
         
         .katex .base {
-            color: var(--cream) !important;
+            color: var(--accent) !important;
             font-weight: 600 !important;
+            transition: color 0.6s ease !important;
         }
         
         .katex .mord, .katex .mop, .katex .mbin, .katex .mrel, .katex .mpunct {
-            color: var(--cream) !important;
+            color: var(--accent) !important;
             font-weight: 600 !important;
+            transition: color 0.6s ease !important;
         }
         
         /* Make math expressions slightly less intrusive */
@@ -810,6 +931,41 @@
                 </g>
             </symbol>
             
+            <!-- Pixel sun icon -->
+            <symbol id="px-sun" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <!-- Center -->
+                    <rect x="6" y="6" width="4" height="4"/>
+                    <!-- Rays -->
+                    <rect x="7" y="0" width="2" height="2"/>
+                    <rect x="7" y="14" width="2" height="2"/>
+                    <rect x="0" y="7" width="2" height="2"/>
+                    <rect x="14" y="7" width="2" height="2"/>
+                    <!-- Diagonal rays -->
+                    <rect x="2" y="2" width="2" height="2"/>
+                    <rect x="12" y="2" width="2" height="2"/>
+                    <rect x="2" y="12" width="2" height="2"/>
+                    <rect x="12" y="12" width="2" height="2"/>
+                </g>
+            </symbol>
+            
+            <!-- Pixel moon icon -->
+            <symbol id="px-moon" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <!-- Moon crescent -->
+                    <rect x="4" y="2" width="8" height="2"/>
+                    <rect x="2" y="4" width="10" height="2"/>
+                    <rect x="2" y="6" width="8" height="2"/>
+                    <rect x="2" y="8" width="6" height="2"/>
+                    <rect x="2" y="10" width="8" height="2"/>
+                    <rect x="4" y="12" width="6" height="2"/>
+                    <!-- Stars -->
+                    <rect x="12" y="3" width="1" height="1"/>
+                    <rect x="14" y="5" width="1" height="1"/>
+                    <rect x="13" y="8" width="1" height="1"/>
+                </g>
+            </symbol>
+            
             <!-- Pixel star icon -->
             <symbol id="px-star" viewBox="0 0 16 16">
                <g fill="currentColor" shape-rendering="crispEdges">
@@ -920,6 +1076,11 @@
                 <button class="nav-btn active" data-page="home">Home</button>
                 <button class="nav-btn" data-page="blog">Blog</button>
                 <button class="nav-btn" data-page="fun">Fun</button>
+                <div class="theme-switcher">
+                    <button class="theme-btn" id="theme-btn" title="Switch Theme">
+                        <svg class="icon small theme-icon" aria-hidden="true"><use href="#px-sun"/></svg>
+                    </button>
+                </div>
             </nav>
         </div>
     </header>
@@ -1181,10 +1342,116 @@
             initCatAnimation();
             initAvatarInteraction();
             initPublicationExpand();
+            initThemeSwitcher();
             
             // Initialize KaTeX math rendering
             renderMathInHtml();
         });
+
+        // Theme switching functionality
+        function initThemeSwitcher() {
+            const themeBtn = document.getElementById('theme-btn');
+            const themeIcon = themeBtn.querySelector('.theme-icon use');
+            const body = document.body;
+            
+            // Function to detect system theme preference
+            function getSystemTheme() {
+                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            
+            // Load saved theme from localStorage or use system preference
+            let currentTheme = localStorage.getItem('theme') || getSystemTheme();
+            
+            // Listen for system theme changes
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', (e) => {
+                    // Only auto-switch if user hasn't manually set a preference
+                    if (!localStorage.getItem('theme')) {
+                        currentTheme = e.matches ? 'dark' : 'light';
+                        applyTheme(currentTheme);
+                    }
+                });
+            }
+            
+            function applyTheme(theme) {
+                // Apply theme to body
+                if (theme === 'dark') {
+                    body.setAttribute('data-theme', 'dark');
+                } else {
+                    body.removeAttribute('data-theme');
+                }
+                
+                // Update theme icon with gentle transition
+                if (themeIcon) {
+                    themeIcon.style.transition = 'opacity 0.3s ease';
+                    themeIcon.style.opacity = '0';
+                    setTimeout(() => {
+                        themeIcon.setAttribute('href', theme === 'light' ? '#px-sun' : '#px-moon');
+                        themeIcon.style.opacity = '1';
+                    }, 150);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('theme', theme);
+                
+                // Update button title
+                themeBtn.title = `Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`;
+                
+                // Console log for fun
+                console.log(`🎨 Theme switched to: ${theme === 'light' ? '☀️ Light' : '🌙 Dark'} Mode`);
+            }
+            
+            // Theme switch event listener
+            themeBtn.addEventListener('click', () => {
+                currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+                applyTheme(currentTheme);
+                
+                // Add a little sparkle effect
+                createSparkleEffect(themeBtn);
+            });
+            
+            // Create pixel particle effect when switching themes
+            function createSparkleEffect(element) {
+                const rect = element.getBoundingClientRect();
+                const particleCount = 8;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.style.position = 'fixed';
+                    particle.style.left = rect.left + rect.width / 2 + 'px';
+                    particle.style.top = rect.top + rect.height / 2 + 'px';
+                    particle.style.width = '4px';
+                    particle.style.height = '4px';
+                    particle.style.background = 'var(--secondary)';
+                    particle.style.pointerEvents = 'none';
+                    particle.style.zIndex = '9999';
+                    particle.style.transition = 'all 1s ease-out';
+                    particle.style.opacity = '1';
+                    particle.style.borderRadius = '0'; // Keep it square/pixel-like
+                    
+                    document.body.appendChild(particle);
+                    
+                    // Animate pixels with different directions
+                    setTimeout(() => {
+                        const angle = (i / particleCount) * 2 * Math.PI;
+                        const distance = 60 + Math.random() * 30;
+                        particle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+                        particle.style.opacity = '0';
+                        particle.style.width = '2px';
+                        particle.style.height = '2px';
+                    }, 10);
+                    
+                    // Remove particle
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 1000);
+                }
+            }
+            
+            // Initialize theme
+            applyTheme(currentTheme);
+        }
 
         // Publication expand/collapse functionality
         function initPublicationExpand() {
