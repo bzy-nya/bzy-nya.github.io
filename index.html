@@ -1,6 +1,1332 @@
 <!DOCTYPE html>
-<html>
-    <head>
-    <meta http-equiv="Refresh" content="2; URL=https://Logistics.camber.moe/" />
-    </head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Bzy — Academic Homepage / Research Interests / Projects" />
+    <meta name="theme-color" content="#F5A9B8" />
+    <title>Cirno Nya</title>
+    
+    <!-- KaTeX CSS for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    
+    <style>
+        :root{
+            --pink: #F0A0B0;
+            --mint: #B8E6D3;
+            --cream: #FFF8DC;
+            --white: #ffffff;
+            --soft-white: #f8f8f8;
+            --border-white: #e8e8e8;
+            --shadow: rgba(255, 255, 255, 0.1);
+            --accent-shadow: rgba(184, 230, 211, 0.15);
+            --px: 8px;
+        }
+
+        /* Fonts: Pixel for emphasis/titles, clean sans-serif for body text */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        /* Ensure pixel font loads properly */
+        @font-face {
+            font-family: 'Press Start 2P';
+            font-style: normal;
+            font-weight: 400;
+            src: url('https://fonts.gstatic.com/s/pressstart2p/v14/e3t4euO8T-267oIAQAu6jDQyK3nVivNm4I81.woff2') format('woff2');
+            font-display: swap;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        
+        /* Text selection styling */
+        ::selection {
+            background: var(--mint);
+            color: var(--pink);
+        }
+        ::-moz-selection {
+            background: var(--mint);
+            color: var(--pink);
+        }
+        
+        /* Link styling */
+        a {
+            color: var(--mint);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            border-bottom: 1px solid transparent;
+        }
+        a:hover {
+            color: var(--white);
+            border-bottom-color: var(--cream);
+            text-shadow: 0 0 8px var(--mint);
+        }
+        a:active {
+            transform: scale(0.98);
+        }
+        
+        /* Special link styling for white text areas */
+        .content a, .item-desc a, .item-meta a {
+            color: var(--cream);
+            border-bottom: 1px dashed var(--cream);
+        }
+        
+        body {
+            background: var(--pink);
+            color: var(--white);
+            font-family: Roboto, 'Inter', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+            letter-spacing: 0.02em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* Container: Sidebar + Main content, academic two-column layout */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 80px; /* increased padding */
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 48px; /* increased gap */
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Top navigation */
+        .topbar {
+            position: sticky;
+            top: 0; z-index: 2;
+            background: var(--pink);
+            border-bottom: 2px solid var(--border-white);
+            backdrop-filter: blur(8px);
+        }
+        .topbar-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .brand {
+            display: flex; align-items: center; gap: 12px;
+            text-decoration: none; color: var(--white);
+        }
+        .brand-title { 
+            font-family: 'Press Start 2P', 'Courier New', monospace; 
+            font-size: 18px; 
+            line-height: 1.2;
+            font-weight: 400;
+        }
+        .nav {
+            display: flex; flex-wrap: wrap; gap: 0;
+        }
+        .nav-btn{
+            color: var(--white);
+            text-decoration: none;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px 20px;
+            border: 2px solid var(--white);
+            background: transparent;
+            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            font-weight: 400;
+        }
+        .nav-btn:not(:last-child) { border-right: none; }
+        .nav-btn:hover, .nav-btn.active { 
+            background: var(--white); 
+            color: var(--pink);
+        }
+        .nav-btn:active {
+            transform: none;
+        }
+
+        /* Sidebar */
+        .sidebar{
+            position: sticky; top: 80px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .card{
+            background: transparent;
+            border: 2px solid var(--border-white);
+            padding: 24px; /* increased padding */
+            box-shadow: 0 4px 12px var(--shadow); /* subtle shadow */
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 6px 20px var(--shadow);
+        }
+        .avatar {
+            width: 120px; height: 120px;
+            border: 4px solid var(--mint);
+            display: grid; place-items: center;
+            margin: 0 auto 16px;
+            background: transparent;
+        }
+        .name { 
+            font-family: 'Press Start 2P', 'Courier New', monospace; 
+            font-size: 20px; 
+            text-align: center; 
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+        .title { 
+            text-align: center; 
+            font-size: 16px; 
+            font-weight: 500;
+        }
+        .social-links{ 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-top: 16px; 
+        }
+        .social-btn{
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            padding: 12px 16px; 
+            text-decoration: none; 
+            color: var(--white);
+            background: transparent;
+            border: 2px solid var(--white);
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 10px;
+            transition: all .15s ease;
+            font-weight: 400;
+        }
+        .social-btn:hover { 
+            background: var(--white); 
+            color: var(--pink);
+        }
+        
+        /* Disabled/Not Available styling */
+        .social-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .social-btn.disabled:hover {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Main content area */
+        .main { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px;
+            padding-bottom: 80px; /* Space for fixed footer */
+        }
+        .page-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .page-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Page transition states */
+        .page-content.fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .page-content.fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .section { 
+            padding: 32px; /* increased padding */
+            border: 2px solid var(--border-white); 
+            background: transparent; 
+            margin-bottom: 24px; /* positive margin for spacing */
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: box-shadow 0.3s ease;
+        }
+        .section:hover {
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+        
+        /* Accent sections with mint background */
+        .section.accent {
+            background: linear-gradient(135deg, rgba(184, 230, 211, 0.1), rgba(184, 230, 211, 0.05));
+            border-color: var(--mint);
+            box-shadow: 0 2px 8px var(--accent-shadow);
+        }
+        .section.accent:hover {
+            box-shadow: 0 4px 16px var(--accent-shadow);
+        }
+        .section-title { 
+            font-family: 'Press Start 2P', 'Courier New', monospace; 
+            font-size: 32px; 
+            margin-bottom: 20px; 
+            text-align: center;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+        .section-title .deco {
+            display: inline-flex;
+            align-items: center;
+        }
+        .section .content { 
+            font-size: 21px; 
+            line-height: 34.65px;
+            font-weight: 450; 
+        }
+
+        /* Biography two-column grid */
+        .bio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        .sub-title { font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 16px; margin: 0 0 12px; font-weight: 400; text-align: left; }
+        .research-list { list-style: square; list-style-position: outside; padding-left: 18px; margin: 0; font-size: 16px; line-height: 1.6; }
+        .research-list li { margin: 6px 0; }
+
+        /* Lists & Items */
+        .list{ 
+            display: flex; 
+            flex-direction: column; 
+            gap: 16px; 
+        }
+        
+        /* Fun page grid layout */
+        .fun-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .fun-item {
+            aspect-ratio: 1;
+            padding: 20px;
+            border: 2px solid var(--border-white);
+            background: transparent;
+            transition: all .3s ease;
+            box-shadow: 0 2px 6px var(--shadow);
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .fun-item:hover {
+            border: 2px solid var(--cream);
+            box-shadow: 0 4px 12px var(--shadow);
+            color: var(--cream);
+        }
+        
+        .fun-item .fun-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.9;
+        }
+        
+        .fun-item .fun-title {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+        
+        .item{ 
+            padding: 24px; /* increased padding */
+            border: 2px solid var(--border-white); 
+            background: transparent; 
+            transition: all .3s ease; 
+            box-shadow: 0 2px 6px var(--shadow);
+            position: relative;
+        }
+        .item:hover{ 
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        
+        /* Publication expand/collapse functionality */
+        
+        .item.publication .expand-indicator {
+            position: absolute;
+            top: 31px;
+            right: 24px;
+            width: 12px;
+            height: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            transform: rotate(0deg);
+        }
+        
+        .item.publication:hover .expand-indicator {
+            opacity: 1;
+        }
+        
+        .item.publication.expanded .expand-indicator {
+            transform: rotate(90deg);
+            opacity: 1;
+        }
+        
+        .item.publication .abstract {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 0;
+            opacity: 0;
+            transform: translateY(-8px);
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        .item.publication.expanded .abstract {
+            max-height: 300px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            opacity: 1;
+            transform: translateY(0);
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .item-title{ 
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 12px; 
+            margin-bottom: 10px; 
+            color: var(--white);
+            font-weight: 400;
+        }
+        
+        /* Special styling for math in item titles */
+        .item-title .math {
+            vertical-align: baseline;
+            font-family: Roboto, 'Inter', system-ui, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            background: transparent;
+            border: 1px dashed var(--cream);
+            color: var(--cream);
+        }
+        
+        .item-title .katex {
+            font-size: 14px !important;
+            vertical-align: baseline !important;
+            font-weight: 700 !important;
+        }
+        .item-desc{ 
+            font-size: 16px; 
+            line-height: 1.6;
+        }
+        .item-meta {
+            font-size: 14px;
+            margin-top: 8px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Publication type indicators */
+        .pub-type {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+            border-radius: 2px;
+        }
+        
+        .pub-type.conference {
+            background: #4A90E2; /* Blue for conference */
+        }
+        
+        .pub-type.journal {
+            background: #7B68EE; /* Purple for journal */
+        }
+        
+        .pub-type.submitted {
+            background: #FFDCA2; /* Orange for submitted */
+        }
+        
+        .pub-type.arxiv {
+            background: #8E8E93; /* Gray for arXiv */
+        }
+        
+        /* Override link styles in meta for better contrast */
+        .item-meta a:hover {
+            color: var(--mint) !important;
+            background: rgba(255, 255, 255, 0.1);
+            text-decoration: none;
+        }
+
+        /* Education & Experience */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .timeline-item {
+            border-left: 4px solid var(--white);
+            padding-left: 16px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0px; /* align dot with timeline-head */
+            width: 8px;
+            height: 8px;
+            background: var(--white);
+        }
+        /* Put org and date on the same row */
+        .timeline-head { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            gap: 12px; 
+            margin: 0 0 6px 0;
+            line-height: 16px; /* ensure consistent height for dot alignment */
+        }
+        .timeline-head .timeline-org { margin: 0; }
+        .timeline-head .timeline-date { margin: 0; }
+        .timeline-title { font-size: 16px; margin: 0; }
+        .timeline-org {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: 400;
+            margin-bottom: 6px;
+        }
+        .timeline-date {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        .timeline-desc {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .footer { 
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center; 
+            padding: 20px; /* increased padding */
+            font-family: monospace;
+            font-size: 12px;
+            background: var(--pink);
+            border-top: 2px solid var(--border-white);
+            z-index: 10;
+            font-weight: 400;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Pixel SVG styles */
+        .icon { 
+            width: 24px; 
+            height: 24px; 
+            color: var(--white); 
+            display: inline-block; 
+        }
+        .icon.large{ 
+            width: 80px; 
+            height: 80px; 
+        }
+        .icon.small {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Background pixel cats */
+        .bg-layer { 
+            position: fixed; 
+            inset: 0; 
+            pointer-events: none; 
+            z-index: 0; 
+        }
+        .cat-bg { 
+            position: absolute; 
+            opacity: .08; /* reduced opacity */
+        }
+        .cat-1{ top: 15%; left: 8%; animation: gentleFloat 12s ease-in-out infinite; }
+        .cat-2{ top: 35%; right: 12%; animation: gentleFloat 15s ease-in-out infinite 2s; }
+        .cat-3{ bottom: 40%; left: 15%; animation: gentleFloat 18s ease-in-out infinite 4s; }
+        .cat-4{ bottom: 20%; right: 8%; animation: gentleFloat 14s ease-in-out infinite 6s; }
+        @keyframes gentleFloat { 
+            0%,100%{ transform: translateY(0) rotate(0deg); } 
+            50%{ transform: translateY(-8px) rotate(1deg); } 
+        }
+
+        /* Subtle pixel grid background */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent var(--px)),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent var(--px));
+        }
+
+        /* Pixel decorative corners - L-shape style */
+        .section, .card { position: relative; }
+        .section::before, .card::before,
+        .section::after, .card::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--white);
+            pointer-events: none;
+            clip-path: polygon(0 0, 100% 0, 100% 4px, 4px 4px, 4px 100%, 0 100%);
+        }
+        .section::before, .card::before {
+            top: -2px;
+            left: -2px;
+        }
+        .section::after, .card::after {
+            bottom: -2px;
+            right: -2px;
+            transform: rotate(180deg);
+        }
+        
+        /* Accent sections get mint triangles */
+        .section.accent::before {
+            border-left-color: var(--mint);
+        }
+        .section.accent::after {
+            border-right-color: var(--mint);
+        }
+
+        /* Section title pixel underline and sparkles spacing */
+        /*
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 120px; height: 2px;
+            margin: 12px auto 0;
+            background: repeating-linear-gradient(to right, var(--white), var(--white) 6px, transparent 6px, transparent 12px);
+            opacity: 0.8;
+        }
+        .section-title .deco { vertical-align: middle; margin: 0 8px; opacity: 0.9; }
+        */
+
+        /* Pixel dividers */
+        .pixel-divider {
+            height: 4px;
+            margin: 20px 0;
+            background: repeating-linear-gradient(
+                to right,
+                var(--white) 0px, var(--white) 4px,
+                transparent 4px, transparent 8px,
+                var(--mint) 8px, var(--mint) 12px,
+                transparent 12px, transparent 16px
+            );
+            opacity: 0.6;
+        }
+        
+        /* Pixel badges */
+        .pixel-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--mint);
+            color: var(--pink);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            text-transform: uppercase;
+            margin: 2px;
+            clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+        }
+
+        /* Math rendering styling */
+        .math {
+            display: inline-block;
+            color: var(--cream);
+            font-weight: 600;
+            font-family: Roboto, 'Inter', system-ui, sans-serif;
+            padding: 2px 6px;
+            border: 1px  var(--cream);
+            background: transparent;
+        }
+        
+        .katex {
+            color: var(--cream) !important;
+            font-size: 0.95em !important;
+            font-family: Roboto, 'Inter', 'Times New Roman', serif !important;
+            font-weight: 600 !important;
+        }
+        
+        .katex .base {
+            color: var(--cream) !important;
+            font-weight: 600 !important;
+        }
+        
+        .katex .mord, .katex .mop, .katex .mbin, .katex .mrel, .katex .mpunct {
+            color: var(--cream) !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Make math expressions slightly less intrusive */
+        .katex-display {
+            margin: 0.5em 0 !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 980px){
+            .page{ 
+                grid-template-columns: 1fr; 
+                gap: 20px;
+            }
+            .sidebar{ 
+                position: static; 
+                order: -1;
+            }
+            .nav {
+                gap: 0;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+            .nav-btn {
+                font-size: 10px;
+                padding: 8px 14px;
+                white-space: nowrap;
+            }
+            /* Biography grid becomes single-column on mobile */
+            .bio-grid { grid-template-columns: 1fr; }
+            
+            /* Fun grid responsive */
+            .fun-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+        }
+        
+        @media (max-width: 600px){
+            .fun-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .fun-item .fun-icon {
+                width: 48px;
+                height: 48px;
+                margin-bottom: 12px;
+            }
+            
+            .fun-item .fun-title {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Subtle pixel grid background -->
+    <div class="bg-grid"></div>
+    <!-- Pixel SVG definitions -->
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <!-- Pixel cat (16x16) -->
+            <symbol id="px-cat" viewBox="0 0 16 16">
+                <defs>
+                    <!-- Define a mask for transparent eyes -->
+                    <mask id="cat-eye-mask">
+                        <!-- White areas will be visible, black areas will be transparent -->
+                        <rect x="0" y="0" width="16" height="16" fill="white"/>
+                        <!-- Cut out eye holes -->
+                        <rect x="5" y="6" width="2" height="2" fill="black"/>
+                        <rect x="9" y="6" width="2" height="2" fill="black"/>
+                    </mask>
+                </defs>
+                <g fill="currentColor" shape-rendering="crispEdges" mask="url(#cat-eye-mask)">
+                    <!-- outer ears -->
+                    <rect x="3" y="1" width="2" height="2"/>
+                    <rect x="11" y="1" width="2" height="2"/>
+                    <!-- inner ears -->
+                    <rect x="4" y="2" width="1" height="1"/>
+                    <rect x="11" y="2" width="1" height="1"/>
+                    <!-- head outline -->
+                    <rect x="2" y="3" width="12" height="9"/>
+                    <!-- face (eyes will be cut out by mask) -->
+                    <rect x="3" y="4" width="10" height="7"/>
+                    <!-- nose -->
+                    <rect x="7" y="8" width="2" height="1"/>
+                    <!-- mouth -->
+                    <rect x="6" y="9" width="1" height="1"/>
+                    <rect x="9" y="9" width="1" height="1"/>
+                    <rect x="7" y="10" width="2" height="1"/>
+                    <!-- whiskers -->
+                    <rect x="1" y="7" width="2" height="1"/>
+                    <rect x="13" y="7" width="2" height="1"/>
+                    <rect x="1" y="9" width="2" height="1"/>
+                    <rect x="13" y="9" width="2" height="1"/>
+                    <!-- chin -->
+                    <rect x="5" y="11" width="6" height="1"/>
+                </g>
+            </symbol>
+
+            <!-- Email icon -->
+            <symbol id="px-email" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M22 4H2v16h20V4zM4 18V6h16v12H4zM8 8H6v2h2v2h2v2h4v-2h2v-2h2V8h-2v2h-2v2h-4v-2H8V8z" fill="currentColor"/> </svg>
+                </g>
+            </symbol>
+
+            <!-- GitHub icon -->
+            <symbol id="px-github" viewBox="0 0 16 16">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="currentColor" d="M6 2h12v2H6V2Zm4 12H8v-2h2v2Zm4 0v2h-4v-2h4Zm0 0v-2h2v2h-2Z"/> <path fill="currentColor" d="M6 6V4H4v2H2v12h2v2h2v2h12v-2h2v-2h2V6h-2V4h-2v2h-2v2H8V6H6Zm2 6v-2h8v2h2V6h2v12h-2v2h-2v-4h-2v4h-4v-4H6v2h2v2H6v-2H4v-2h2v-2H4V6h2v6h2Z"/> </svg>
+            </symbol>
+
+            <!-- Google Scholar icon -->
+            <symbol id="px-scholar" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM14 7h-4v4h4V7zm1 6H9v2H7v2h2v-2h6v2h2v-2h-2v-2z" fill="currentColor"/> </svg>
+                </g>
+            </symbol>
+
+            <!-- CV/Resume icon -->
+            <symbol id="px-cv" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M3 3h18v18H3V3zm16 2H5v14h14V5zM7 12h2v5H7v-5zm10-5h-2v10h2V7zm-6 3h2v2h-2v-2zm2 4h-2v3h2v-3z" fill="currentColor"/> </svg>
+                </g>
+            </symbol>
+
+            <!-- Pixel sparkle icon -->
+            <symbol id="px-sparkle" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <rect x="7" y="0" width="2" height="3"/>
+                    <rect x="7" y="13" width="2" height="3"/>
+                    <rect x="0" y="7" width="3" height="2"/>
+                    <rect x="13" y="7" width="3" height="2"/>
+                    <rect x="5" y="5" width="6" height="6"/>
+                </g>
+            </symbol>
+            
+            <!-- Pixel star icon -->
+            <symbol id="px-star" viewBox="0 0 16 16">
+               <g fill="currentColor" shape-rendering="crispEdges">
+                    <rect x="7" y="0" width="2" height="3"/>
+                    <rect x="7" y="13" width="2" height="3"/>
+                    <rect x="0" y="7" width="3" height="2"/>
+                    <rect x="13" y="7" width="3" height="2"/>
+                    <rect x="5" y="5" width="6" height="6"/>
+                </g>
+            </symbol>
+
+            <!-- Pixel heart icon -->
+            <symbol id="px-heart" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <rect x="2" y="2" width="4" height="2"/>
+                    <rect x="10" y="2" width="4" height="2"/>
+                    <rect x="1" y="4" width="6" height="2"/>
+                    <rect x="9" y="4" width="6" height="2"/>
+                    <rect x="2" y="6" width="12" height="2"/>
+                    <rect x="3" y="8" width="10" height="2"/>
+                    <rect x="4" y="10" width="8" height="2"/>
+                    <rect x="5" y="12" width="6" height="2"/>
+                    <rect x="6" y="14" width="4" height="2"/>
+                    <rect x="7" y="16" width="2" height="2"/>
+                </g>
+            </symbol>
+            
+            <!-- Pixel triangle (expand indicator) -->
+            <symbol id="px-triangle" viewBox="0 0 12 12">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <rect x="2" y="2" width="2" height="2"/>
+                    <rect x="2" y="4" width="2" height="2"/>
+                    <rect x="4" y="4" width="2" height="2"/>
+                    <rect x="2" y="6" width="2" height="2"/>
+                    <rect x="4" y="6" width="2" height="2"/>
+                    <rect x="6" y="6" width="2" height="2"/>
+                    <rect x="2" y="8" width="2" height="2"/>
+                    <rect x="4" y="8" width="2" height="2"/>
+                    <rect x="2" y="10" width="2" height="2"/>
+                </g>
+            </symbol>
+            
+            <!-- Game controller icon -->
+            <symbol id="px-gamepad" viewBox="0 0 24 24">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <rect x="8" y="6" width="8" height="6" fill="#535353"/>
+                    <rect x="6" y="12" width="12" height="6" fill="#535353"/>
+                    <rect x="4" y="18" width="4" height="2" fill="#535353"/>
+                    <rect x="16" y="18" width="4" height="2" fill="#535353"/>
+                    <rect x="10" y="8" width="2" height="2" fill="white"/>
+                    <rect x="14" y="8" width="2" height="2" fill="white"/>
+                    <rect x="16" y="10" width="2" height="2" fill="#535353"/>
+                    <rect x="2" y="14" width="4" height="2" fill="#535353"/>
+                </g>
+            </symbol>
+            
+            <!-- Strategy/Map icon -->
+            <symbol id="px-gen" viewBox="0 0 24 24">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <path d="M4 20 L4 9 L8 13 L12 7 L16 13 L20 9 L20 20 Z" />
+                        <!-- 中央小门 -->
+                        <rect x="10" y="15" width="4" height="5" />
+                        <!-- 两侧旗帜 -->
+                        <line x1="8" y1="9" x2="8" y2="6" />
+                        <line x1="16" y1="9" x2="16" y2="6" />
+                </g>
+            </symbol>
+            
+            <!-- Bullet hell icon -->
+            <symbol id="px-bullet" viewBox="0 0 16 16">
+                <g fill="currentColor" shape-rendering="crispEdges">
+                    <!-- Player -->
+                    <rect x="7" y="12" width="2" height="2"/>
+                    <rect x="6" y="13" width="4" height="1"/>
+                    <!-- Bullets -->
+                    <rect x="3" y="2" width="1" height="1"/>
+                    <rect x="7" y="1" width="1" height="1"/>
+                    <rect x="11" y="3" width="1" height="1"/>
+                    <rect x="1" y="5" width="1" height="1"/>
+                    <rect x="13" y="6" width="1" height="1"/>
+                    <rect x="5" y="4" width="1" height="1"/>
+                    <rect x="9" y="5" width="1" height="1"/>
+                    <rect x="2" y="8" width="1" height="1"/>
+                    <rect x="12" y="9" width="1" height="1"/>
+                    <rect x="6" y="7" width="1" height="1"/>
+                    <rect x="10" y="8" width="1" height="1"/>
+                </g>
+            </symbol>
+        </defs>
+    </svg>
+
+    <!-- Background pixel cats -->
+    <div class="bg-layer">
+        <svg class="cat-bg cat-1 icon large" aria-hidden="true"><use href="#px-cat"/></svg>
+        <svg class="cat-bg cat-2 icon large" aria-hidden="true"><use href="#px-cat"/></svg>
+        <svg class="cat-bg cat-3 icon large" aria-hidden="true"><use href="#px-cat"/></svg>
+        <svg class="cat-bg cat-4 icon large" aria-hidden="true"><use href="#px-cat"/></svg>
+    </div>
+
+    <!-- Top navigation -->
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="#top" aria-label="home">
+                <svg class="icon" aria-hidden="true"><use href="#px-cat"/></svg>
+                <span class="brand-title">Cirno Nya</span>
+            </a>
+            <nav class="nav">
+                <button class="nav-btn active" data-page="home">Home</button>
+                <button class="nav-btn" data-page="blog">Blog</button>
+                <button class="nav-btn" data-page="fun">Fun</button>
+            </nav>
+        </div>
+    </header>
+
+    <main id="top" class="page">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <section class="card">
+                <div class="avatar" title="avatar">
+                    <img id="avatar-face" src="asset/image/头像.jpeg" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div class="name">Cirno Nya</div>
+                <div class="title">Graduate Student · Computer Science · NJU</div>
+                <div class="social-links">
+                    <a class="social-btn" href="mailto:your-email@example.com" target="_blank" rel="noreferrer">
+                        <svg class="icon small" aria-hidden="true"><use href="#px-email"/></svg>
+                        EMAIL
+                    </a>
+                    <a class="social-btn" href="https://github.com/bzy-nya" target="_blank" rel="noreferrer">
+                        <svg class="icon small" aria-hidden="true"><use href="#px-github"/></svg>
+                        GITHUB
+                    </a>
+                    <span class="social-btn disabled">
+                        <svg class="icon small" aria-hidden="true"><use href="#px-scholar"/></svg>
+                        GOOGLE SCHOLAR
+                    </span>
+                    <span class="social-btn disabled">
+                        <svg class="icon small" aria-hidden="true"><use href="#px-cv"/></svg>
+                        CV/RESUME
+                    </span>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Main content -->
+        <div class="main">
+            <!-- Home Page -->
+            <div class="page-content active" id="home">
+                <section class="section">
+                    <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Biography <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
+                    <div class="content">
+                        <p>I am Cirno Nya(Can Zhou), and I am a graduate student in the <a href="https://tcs.nju.edu.cn">Theory Group</a> in the <a href="https://cs.nju.edu.cn">Department of Computer Science and Technology</a> at <a href="https://www.nju.edu.cn">Nanjing University</a>, where I was fortunate to have <a href="https://tcs.nju.edu.cn/yinyt/">Prof. Yitong Yin</a> be my advisor.</p>
+                        <div class="pixel-divider"></div>
+                        <div class="bio-grid">
+                            <div class="bio-col">
+                                <h3 class="sub-title"><svg class="icon small" style="margin-right: 12px;" aria-hidden="true"><use href="#px-star"/></svg>Research Interests</h3>
+                                <ul class="research-list">
+                                    <li>Algorithmic Lovász local lemma</li>
+                                    <li>Counting and Sampling algorithms</li>
+                                </ul>
+                            </div>
+                            <div class="bio-col">
+                                <h3 class="sub-title"><svg class="icon small" style="margin-right: 12px; margin-left:-6px" aria-hidden="true"><use href="#px-star"/></svg>Education</h3>
+                                <div class="timeline timeline-compact">
+                                    <div class="timeline-item">
+                                        <div class="timeline-head">
+                                            <div class="timeline-org">Nanjing University</div>
+                                            <div class="timeline-date">2024 - Present</div>
+                                        </div>
+                                        <div class="timeline-title">M.S. in Computer Science</div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-head">
+                                            <div class="timeline-org">Xidian University</div>
+                                            <div class="timeline-date">2020 - 2024</div>
+                                        </div>
+                                        <div class="timeline-title">B.S. in Computer Science</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="section">
+                    <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Publications <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
+                    <div class="pixel-divider"></div>
+                    <div class="list">
+                        <div class="item publication" data-publication="1">
+                            <svg class="expand-indicator" aria-hidden="true"><use href="#px-triangle"/></svg>
+                            <div class="item-title">Coupling from the past for graph colorings with <span class="math">$2.5\Delta$</span> colors <span class="pixel-badge">New</span></div>
+                            <div class="abstract">
+                                <strong>Abstract:</strong> Not avalilable now.
+                            </div>
+                            <div class="item-meta">
+                                <span class="pub-type submitted"></span>
+                                Submitted. <a href="#">PDF</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Publications Page (removed, content moved to home) -->
+
+            <!-- Blog Page -->
+            <div class="page-content" id="blog">
+                <section class="section">
+                    <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Blog Posts <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
+                    <div class="pixel-divider"></div>
+                    <div class="list">
+                        <div class="item">
+                            <div class="item-title">Hello Blog! <span class="pixel-badge">First Post</span></div>
+                            <div class="item-desc">
+                                Welcome to my blog! This is my first blog post where I'll be sharing my thoughts, experiences, and discoveries in computer science, algorithms, and academic life. 
+                                <br><br>
+                                I'm excited to start this journey of documenting my research progress, coding adventures, and maybe some random thoughts about cats and pixel art. Stay tuned for more interesting content!
+                                <br><br>
+                                Topics I plan to cover:
+                                <br>• Research insights and paper discussions
+                                <br>• Algorithm implementations and explanations  
+                                <br>• Academic life as a graduate student
+                                <br>• Fun programming projects and experiments
+                            </div>
+                            <div class="item-meta">January 2025 • <a href="#">Read more</a></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Fun Page -->
+            <div class="page-content" id="fun">
+                <section class="section">
+                    <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Something Fun <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
+                    <div class="pixel-divider"></div>
+                    <div class="fun-grid">
+                        <a class="fun-item" href="dino/index.html" target="_self">
+                            <svg class="fun-icon" aria-hidden="true"><use href="#px-gamepad"/></svg>
+                            <div class="fun-title">Dino GA</div>
+                        </a>
+                        <a class="fun-item" href="gen/index.html" target="_self">
+                            <svg class="fun-icon" aria-hidden="true"><use href="#px-gen"/></svg>
+                            <div class="fun-title">generals?</div>
+                        </a>
+                        <a class="fun-item" href="th00/index.html" target="_self">
+                            <svg class="fun-icon" aria-hidden="true"><use href="#px-bullet"/></svg>
+                            <div class="fun-title">Touhou00</div>
+                        </a>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Global footer moved outside main content -->
+        </div>
+
+        <footer class="footer">
+            <div>Made with love and lots of cats</div>
+            <div>© 2025 Cirno. All rights reserved.</div>
+        </footer>
+    </main>
+
+    <!-- KaTeX JavaScript for math rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+
+    <script>
+        // Page navigation system with smooth transitions
+        function initNavigation() {
+            const navBtns = document.querySelectorAll('.nav-btn');
+            const pages = document.querySelectorAll('.page-content');
+            let isTransitioning = false;
+
+            function showPage(pageId) {
+                if (isTransitioning) return; // Prevent rapid clicking
+                
+                isTransitioning = true;
+                const currentPage = document.querySelector('.page-content.active');
+                const targetPage = document.getElementById(pageId);
+                
+                if (!targetPage || currentPage === targetPage) {
+                    isTransitioning = false;
+                    return;
+                }
+
+                // Fade out current page
+                if (currentPage) {
+                    currentPage.classList.add('fade-out');
+                    setTimeout(() => {
+                        currentPage.classList.remove('active', 'fade-out');
+                        currentPage.style.display = 'none';
+                        
+                        // Fade in new page
+                        targetPage.style.display = 'block';
+                        // Force reflow to ensure display change takes effect
+                        targetPage.offsetHeight;
+                        targetPage.classList.add('active');
+                        
+                        setTimeout(() => {
+                            isTransitioning = false;
+                        }, 50);
+                    }, 200);
+                } else {
+                    // First load
+                    targetPage.style.display = 'block';
+                    targetPage.offsetHeight;
+                    targetPage.classList.add('active');
+                    isTransitioning = false;
+                }
+                
+                // Update nav buttons
+                navBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                const activeBtn = document.querySelector(`[data-page="${pageId}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+            }
+
+            // Add click listeners
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const pageId = btn.getAttribute('data-page');
+                    showPage(pageId);
+                });
+            });
+        }
+
+        // Background cats mouse follow effect
+        function initCatAnimation() {
+            const cats = Array.from(document.querySelectorAll('.cat-bg'));
+            let mx = 0, my = 0;
+            
+            document.addEventListener('mousemove', (e) => { 
+                mx = e.clientX; 
+                my = e.clientY; 
+            });
+            
+            setInterval(() => {
+                cats.forEach((el, i) => {
+                    const strength = 0.008 + i * 0.002;
+                    const centerX = window.innerWidth / 2;
+                    const centerY = window.innerHeight / 2;
+                    const deltaX = (mx - centerX) * strength;
+                    const deltaY = (my - centerY) * strength;
+                    el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                });
+            }, 100);
+        }
+
+        // Avatar click interaction
+        function initAvatarInteraction() {
+            const avatar = document.getElementById('avatar-face');
+            let isClicked = false;
+            
+            avatar?.addEventListener('click', () => {
+                isClicked = !isClicked;
+                avatar.style.transform = isClicked ? 'scale(1.1) rotate(5deg)' : 'scale(1) rotate(0deg)';
+                setTimeout(() => {
+                    avatar.style.transform = 'scale(1) rotate(0deg)';
+                }, 200);
+            });
+        }
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initNavigation();
+            initCatAnimation();
+            initAvatarInteraction();
+            initPublicationExpand();
+            
+            // Initialize KaTeX math rendering
+            renderMathInHtml();
+        });
+
+        // Publication expand/collapse functionality
+        function initPublicationExpand() {
+            const publications = document.querySelectorAll('.item.publication');
+            
+            publications.forEach(item => {
+                const abstract = item.querySelector('.abstract');
+                
+                item.addEventListener('click', (e) => {
+                    // Don't expand if clicking on links
+                    if (e.target.tagName === 'A') return;
+                    
+                    const isExpanded = item.classList.contains('expanded');
+                    
+                    // Close all other publications
+                    publications.forEach(pub => {
+                        if (pub !== item && pub.classList.contains('expanded')) {
+                            collapseAbstract(pub);
+                        }
+                    });
+                    
+                    // Toggle current publication
+                    if (isExpanded) {
+                        collapseAbstract(item);
+                    } else {
+                        expandAbstract(item);
+                    }
+                });
+            });
+            
+            function expandAbstract(item) {
+                const abstract = item.querySelector('.abstract');
+                
+                // Clear any inline styles first
+                abstract.style.height = '';
+                abstract.style.maxHeight = '';
+                abstract.style.opacity = '';
+                abstract.style.transform = '';
+                abstract.style.marginTop = '';
+                
+                // Add expanded class to get target values
+                item.classList.add('expanded');
+                
+                // Measure the natural height and other target values
+                const targetHeight = abstract.scrollHeight;
+                
+                // Set initial collapsed state with inline styles
+                abstract.style.height = '0px';
+                abstract.style.maxHeight = 'none';
+                abstract.style.opacity = '0';
+                abstract.style.transform = 'translateY(-8px)';
+                abstract.style.marginTop = '0px';
+                
+                // Force reflow
+                abstract.offsetHeight;
+                
+                // Animate to expanded state
+                requestAnimationFrame(() => {
+                    abstract.style.height = targetHeight + 'px';
+                    abstract.style.opacity = '1';
+                    abstract.style.transform = 'translateY(0)';
+                    abstract.style.marginTop = '12px';
+                    
+                    // Clean up after animation - let CSS take over
+                    setTimeout(() => {
+                        if (item.classList.contains('expanded')) {
+                            abstract.style.height = '';
+                            abstract.style.maxHeight = '';
+                            abstract.style.opacity = '';
+                            abstract.style.transform = '';
+                            abstract.style.marginTop = '';
+                        }
+                    }, 400);
+                });
+            }
+            
+            function collapseAbstract(item) {
+                const abstract = item.querySelector('.abstract');
+                
+                // Get current height and set it explicitly
+                const currentHeight = abstract.scrollHeight;
+                abstract.style.height = currentHeight + 'px';
+                abstract.style.maxHeight = 'none';
+                
+                // Force reflow
+                abstract.offsetHeight;
+                
+                // Start collapse animation - animate height, opacity, and transform together
+                requestAnimationFrame(() => {
+                    abstract.style.height = '0px';
+                    abstract.style.opacity = '0';
+                    abstract.style.transform = 'translateY(-8px)';
+                    abstract.style.marginTop = '0px';
+                    
+                    // Remove expanded class immediately to let CSS transitions handle other properties
+                    item.classList.remove('expanded');
+                    
+                    // Clean up inline styles after animation
+                    setTimeout(() => {
+                        abstract.style.height = '';
+                        abstract.style.maxHeight = '';
+                        abstract.style.opacity = '';
+                        abstract.style.transform = '';
+                        abstract.style.marginTop = '';
+                    }, 400);
+                });
+            }
+        }
+
+        // Math rendering function
+        function renderMathInHtml() {
+            // Auto-render KaTeX for inline and display math
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false,
+                errorColor: '#cc0000',
+                strict: false
+            });
+            
+            // Also manually render elements with .math class
+            document.querySelectorAll('.math').forEach(element => {
+                const mathText = element.textContent;
+                if (mathText.startsWith('$') && mathText.endsWith('$')) {
+                    const cleanText = mathText.slice(1, -1); // Remove $ delimiters
+                    try {
+                        katex.render(cleanText, element, {
+                            throwOnError: false,
+                            displayMode: false,
+                            errorColor: '#cc0000',
+                            strict: false
+                        });
+                    } catch (e) {
+                        console.warn('KaTeX rendering error:', e);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
 </html>
