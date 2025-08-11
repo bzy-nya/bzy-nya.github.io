@@ -58,7 +58,10 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        html, body { 
+            height: 100%; 
+            width: 100%;
+        }
         
         /* Text selection styling */
         ::selection {
@@ -114,6 +117,8 @@
             gap: 48px; /* increased gap */
             position: relative;
             z-index: 1;
+            width: 100%; /* 确保容器不超过视口宽度 */
+            box-sizing: border-box; /* 包含padding在宽度计算内 */
         }
 
         /* Top navigation */
@@ -354,7 +359,7 @@
         }
         .section-title { 
             font-family: 'Press Start 2P', 'Courier New', monospace; 
-            font-size: 32px; 
+            font-size: clamp(16px, 5vw, 32px); /* 响应式字体：最小16px，最大32px */
             margin-bottom: 20px; 
             text-align: center;
             font-weight: 400;
@@ -362,22 +367,47 @@
             align-items: center;
             justify-content: center;
             gap: 24px;
+            transition: all 0.6s ease;
         }
         .section-title .deco {
             display: inline-flex;
             align-items: center;
         }
         .section .content { 
-            font-size: 21px; 
-            line-height: 34.65px;
+            font-size: clamp(16px, 4vw, 21px); /* 响应式字体：最小16px，最大21px */
+            line-height: clamp(24px, 5.5vw, 34.65px); /* 响应式行高 */
             font-weight: 450; 
+            transition: all 0.6s ease;
         }
 
         /* Biography two-column grid */
         .bio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-        .sub-title { font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 16px; margin: 0 0 12px; font-weight: 400; text-align: left; }
-        .research-list { list-style: square; list-style-position: outside; padding-left: 18px; margin: 0; font-size: 16px; line-height: 1.6; }
+        .sub-title { 
+            font-family: 'Press Start 2P', 'Courier New', monospace; 
+            font-size: clamp(12px, 3vw, 16px); /* 响应式字体：最小12px，最大16px */
+            margin: 0 0 12px; 
+            font-weight: 400; 
+            text-align: left; 
+            transition: all 0.6s ease;
+        }
+        .research-list { 
+            list-style: square; 
+            list-style-position: outside; 
+            padding-left: 18px; 
+            margin: 0; 
+            font-size: clamp(12px, 3vw, 16px); /* 响应式字体：最小12px，最大16px */
+            line-height: 1.6; 
+            transition: all 0.6s ease;
+        }
         .research-list li { margin: 6px 0; }
+
+        /* Responsive paragraph styling */
+        p {
+            font-size: clamp(14px, 3.5vw, 18px); /* 响应式字体：最小14px，最大18px */
+            line-height: clamp(20px, 5vw, 28px); /* 响应式行高 */
+            margin-bottom: 16px;
+            transition: all 0.6s ease;
+        }
 
         /* Lists & Items */
         .list{ 
@@ -473,6 +503,8 @@
             transform: translateY(-8px);
             padding-top: 0;
             padding-bottom: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .item.publication.expanded .abstract {
@@ -483,21 +515,25 @@
             transform: translateY(0);
             padding-top: 0;
             padding-bottom: 0;
+            overflow-y: auto; /* 如果内容太长，允许垂直滚动 */
         }
         .item-title{ 
             font-family: 'Press Start 2P', 'Courier New', monospace;
-            font-size: 12px; 
+            font-size: clamp(7px, 3vw, 12px); /* 更强的自适应：更小最小值，更大视口比例 */
             margin-bottom: 10px; 
             color: var(--text);
             font-weight: 400;
             transition: color 0.6s ease;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         /* Special styling for math in item titles */
         .item-title .math {
             vertical-align: baseline;
             font-family: Roboto, 'Inter', system-ui, sans-serif;
-            font-size: 16px;
+            font-size: clamp(12px, 3vw, 16px); /* 自适应数学公式大小 */
             font-weight: 600;
             background: transparent;
             border: 1px dashed var(--accent);
@@ -753,15 +789,16 @@
         /* Pixel badges */
         .pixel-badge {
             display: inline-block;
-            padding: 4px 8px;
+            padding: clamp(2px, 1vw, 4px) clamp(4px, 2vw, 8px); /* 自适应 padding */
             background: var(--secondary);
             color: var(--primary);
             font-family: 'Press Start 2P', monospace;
-            font-size: 8px;
+            font-size: clamp(6px, 2vw, 8px); /* 自适应字体 */
             text-transform: uppercase;
             margin: 2px;
             clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
             transition: background-color 0.6s ease, color 0.6s ease;
+            white-space: nowrap; /* 防止徽章内文字换行 */
         }
 
         /* Math rendering styling */
@@ -806,20 +843,40 @@
             .page{ 
                 grid-template-columns: 1fr; 
                 gap: 20px;
+                padding: 16px 16px 80px; /* 减少左右padding */
+                max-width: 100vw; /* 确保不超过视口宽度 */
             }
             .sidebar{ 
                 position: static; 
                 order: -1;
             }
+            .topbar-inner {
+                padding: 12px 16px; /* 减少padding */
+                gap: 12px;
+            }
+            .brand-title {
+                font-size: 14px; /* 缩小字体 */
+            }
             .nav {
                 gap: 0;
                 flex-wrap: nowrap;
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
             }
             .nav-btn {
-                font-size: 10px;
-                padding: 8px 14px;
+                font-size: 9px;
+                padding: 6px 12px;
                 white-space: nowrap;
+                flex-shrink: 0; /* 防止按钮收缩 */
+            }
+            .theme-btn {
+                padding: 6px;
+                font-size: 8px;
+            }
+            /* 确保所有section不会溢出 */
+            .section, .card {
+                max-width: 100%;
+                overflow: visible; /* 改为 visible，避免不必要的滚动条 */
             }
             /* Biography grid becomes single-column on mobile */
             .bio-grid { grid-template-columns: 1fr; }
@@ -829,9 +886,64 @@
                 grid-template-columns: repeat(2, 1fr);
                 gap: 16px;
             }
+            
+            /* Publication 内容溢出修复 */
+            .item.publication {
+                overflow: visible;
+            }
+            .item-title {
+                word-wrap: break-word;
+                hyphens: auto;
+                line-height: 1.5; /* 增加行高改善可读性 */
+            }
+            .item-desc, .abstract {
+                word-wrap: break-word;
+                hyphens: auto;
+            }
         }
         
         @media (max-width: 600px){
+            .page {
+                padding: 12px 12px 80px; /* 更小的padding */
+                max-width: 100vw;
+                overflow-x: hidden; /* 防止水平溢出 */
+            }
+            .topbar-inner {
+                padding: 8px 12px;
+                gap: 8px;
+                flex-wrap: nowrap; /* 确保不换行 */
+            }
+            .brand {
+                gap: 8px;
+            }
+            .brand-title {
+                font-size: 12px;
+                line-height: 1.1;
+            }
+            .nav {
+                max-width: calc(100vw - 120px); /* 限制导航栏最大宽度 */
+            }
+            .nav-btn {
+                font-size: 8px;
+                padding: 5px 10px;
+                border-width: 1px; /* 更细的边框 */
+            }
+            .theme-btn {
+                padding: 5px;
+                border-width: 1px;
+            }
+            /* 确保内容不溢出 */
+            .section, .card, .main {
+                max-width: 100%;
+                overflow: visible; /* 改为 visible */
+                word-wrap: break-word;
+            }
+            .section {
+                padding: 20px 16px; /* 减少section内部padding */
+            }
+            .card {
+                padding: 16px; /* 减少card内部padding */
+            }
             .fun-grid {
                 grid-template-columns: 1fr;
                 gap: 16px;
@@ -845,6 +957,107 @@
             
             .fun-item .fun-title {
                 font-size: 9px;
+            }
+            
+            /* 强制设置 section-title 在移动端的字体大小 */
+            .section-title {
+                font-size: 20px !important; /* 在中等屏幕上使用20px */
+                gap: 16px;
+                margin-bottom: 16px;
+            }
+            
+            /* 强制设置 item-title 在移动端的字体大小 */
+            .item-title {
+                font-size: 8px !important;
+                line-height: 1.3;
+            }
+            
+            /* 中等屏幕下的文字自适应 */
+            .sub-title {
+                font-size: 12px !important;
+            }
+            .section .content {
+                font-size: 16px !important;
+                line-height: 24px !important;
+            }
+            p {
+                font-size: 14px !important;
+                line-height: 20px !important;
+            }
+            .research-list {
+                font-size: 12px !important;
+            }
+            
+            /* 移动端长文本处理 */
+            .item-title {
+                line-height: 1.6; /* 更大的行高 */
+                word-break: break-word;
+                overflow-wrap: break-word;
+                /* 移除固定 font-size，让 clamp 生效 */
+            }
+            .item-desc, .abstract, .item-meta {
+                font-size: clamp(12px, 3.5vw, 16px); /* 自适应字体 */
+                line-height: 1.6;
+                word-break: break-word;
+                overflow-wrap: break-word;
+            }
+        }
+        
+        /* Extra small devices */
+        @media (max-width: 360px){
+            .topbar-inner {
+                padding: 6px 8px;
+                gap: 6px;
+            }
+            .brand-title {
+                font-size: 10px;
+            }
+            .nav {
+                max-width: calc(100vw - 100px);
+            }
+            .nav-btn {
+                font-size: 7px;
+                padding: 4px 8px;
+            }
+            .theme-btn {
+                padding: 4px;
+            }
+            .page {
+                padding: 8px 8px 80px;
+                max-width: 100vw;
+            }
+            .section {
+                padding: 16px 12px;
+            }
+            .card {
+                padding: 12px;
+            }
+            /* 极小屏幕下的文字优化 */
+            .section-title {
+                font-size: 16px !important; /* 在超小屏幕上使用16px */
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+            .sub-title {
+                font-size: 10px !important;
+            }
+            .section .content {
+                font-size: 14px !important;
+                line-height: 20px !important;
+            }
+            p {
+                font-size: 12px !important;
+                line-height: 18px !important;
+            }
+            .research-list {
+                font-size: 10px !important;
+            }
+            .item-title {
+                font-size: 7px !important; /* 在超小屏幕上更小 */
+                line-height: 1.7; /* 更大行高避免拥挤 */
+            }
+            .item-title .math {
+                font-size: clamp(10px, 4vw, 14px); /* 更小的数学公式 */
             }
         }
     </style>
