@@ -1,0 +1,29 @@
+{
+  "posts": [
+    {
+      "id": "hello-blog",
+      "title": "Hello Blog!",
+      "date": "2025-01-15",
+      "tags": ["misc"],
+      "description": "Welcome to my blog! This is my first blog post where I'll be sharing my thoughts and discoveries.",
+      "file": "2025-01-15-hello-blog.md",
+      "featured": "First Post",
+      "pinned": true
+    },
+    {
+      "id": "MCMC-1",
+      "title": "Markov Chain Monte Carlo 1: Introduction",
+      "date": "2025-08-16",
+      "tags": ["algorithm", "math"],
+      "description": "An introduction to Markov Chain Monte Carlo methods, exploring their applications and theoretical foundations.",
+      "file": "2025-08-16-MCMC1-Introduction.md"
+    }
+  ],
+  "tags": {
+    "personal": { "name": "Personal", "color": "#F0A0B0" },
+    "algorithm": { "name": "Algorithm", "color": "#87CEEB" },
+    "research": { "name": "Research", "color": "#FF7100" },
+    "math": { "name": "Mathematics", "color": "#8A2BE2" },
+    "misc": { "name": "Miscellaneous", "color": "#FFFFFF" }
+  }
+}
