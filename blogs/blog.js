@@ -10,8 +10,8 @@ class BlogSystem {
         // 初始化 marked.js 配置
         this.initMarked();
         
-        // 初始化导航功能
-        this.initNavigation();
+        // 初始化路由系统但不启动
+        this.initRouterConfig();
     }
 
     /**
@@ -80,28 +80,100 @@ class BlogSystem {
     }
 
     /**
-     * 初始化导航功能
+     * 初始化路由配置（不启动）
      */
-    initNavigation() {
-        // 监听浏览器的返回事件
-        window.addEventListener('popstate', (event) => {
-            // 检查当前状态
-            if (event.state) {
-                if (event.state.view === 'blog-list') {
+    initRouterConfig() {
+        // 不在这里创建路由实例，推迟到 startRouter 时创建
+        console.log('[Blog] Router config prepared, but router not created yet');
+    }
+
+    /**
+     * 启动路由系统
+     */
+    startRouter() {
+        console.log('[Blog] Starting router system...');
+        
+        // 创建路由实例
+        if (!window.router) {
+            window.router = createRouter({
+                mode: 'hash', // 使用 hash 模式，适合静态网站
+                defaultRoute: '/'
+            });
+        }
+
+        // 注册路由但不启动
+        window.router
+            .route('/', () => {
+                if (this.posts && this.posts.length > 0) {
                     this.showBlogList();
-                } else if (event.state.view === 'blog-post' && event.state.postId) {
-                    this.showPost(event.state.postId, false); // false表示不推送新的历史记录
+                } else {
+                    // 如果数据还没加载，等待加载完成
+                    this.waitForDataThenShow('list');
                 }
-            } else {
-                // 如果没有状态，默认显示博客列表
-                this.showBlogList();
-            }
+            })
+            .route('/blog', () => {
+                if (this.posts && this.posts.length > 0) {
+                    this.showBlogList();
+                } else {
+                    this.waitForDataThenShow('list');
+                }
+            })
+            .route('/post/:id', (context) => {
+                const postId = context.params.id;
+                if (this.posts && this.posts.length > 0) {
+                    this.showPost(postId, false);
+                } else {
+                    // 如果数据还没加载，等待加载完成
+                    this.waitForDataThenShow('post', postId);
+                }
+            });
+
+        // 监听路由事件
+        window.router.on('routeChanged', (route) => {
+            console.log('Route changed:', route);
         });
 
-        // 初始化历史记录状态
-        if (!history.state) {
-            history.replaceState({ view: 'blog-list' }, '', '');
+        window.router.on('routeNotFound', (data) => {
+            console.warn('Route not found:', data.path);
+            this.showBlogList(); // 默认显示博客列表
+        });
+        
+        // 启动路由器
+        if (window.router) {
+            window.router.start();
         }
+    }
+
+    /**
+     * 等待数据加载完成后显示指定内容
+     */
+    async waitForDataThenShow(type, postId = null) {
+        console.log(`[Blog] waitForDataThenShow called: type=${type}, postId=${postId}`);
+        console.log(`[Blog] Current posts loaded:`, this.posts?.length || 0);
+        
+        // 如果数据还没加载，先加载
+        if (!this.posts || this.posts.length === 0) {
+            console.log(`[Blog] Loading posts first...`);
+            await this.loadPosts();
+            console.log(`[Blog] Posts loaded:`, this.posts.length);
+        }
+        
+        // 数据加载完成后显示对应内容
+        if (type === 'list') {
+            console.log(`[Blog] Showing blog list`);
+            this.showBlogList();
+        } else if (type === 'post' && postId) {
+            console.log(`[Blog] Showing post: ${postId}`);
+            this.showPost(postId, false);
+        }
+    }
+
+    /**
+     * 初始化导航功能（保留兼容性）
+     */
+    initNavigation() {
+        // 这个方法现在由路由系统处理
+        console.log('Navigation handled by router system');
     }
 
     /**
@@ -192,7 +264,7 @@ class BlogSystem {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const postId = link.getAttribute('data-post-id');
-                this.showPost(postId);
+                window.router.navigate(`/post/${postId}`);
             });
         });
 
@@ -203,7 +275,7 @@ class BlogSystem {
                 if (e.target.tagName === 'A') return;
                 
                 const postId = item.getAttribute('data-post-id');
-                this.showPost(postId);
+                window.router.navigate(`/post/${postId}`);
             });
         });
     }
@@ -212,24 +284,22 @@ class BlogSystem {
      * 显示单篇博客文章
      */
     async showPost(postId, pushHistory = true) {
+        console.log(`[Blog] showPost called with postId: ${postId}`);
+        console.log(`[Blog] Available posts:`, this.posts.map(p => p.id));
+        
         const post = this.posts.find(p => p.id === postId);
         if (!post) {
             console.error('Post not found:', postId);
+            console.error('Available post IDs:', this.posts.map(p => p.id));
             return;
         }
 
+        console.log(`[Blog] Found post:`, post.title);
         this.isLoading = true;
         this.showLoading();
 
         try {
-            // 推送历史记录（除非明确指定不推送）
-            if (pushHistory) {
-                history.pushState(
-                    { view: 'blog-post', postId: postId }, 
-                    post.title, 
-                    `#blog-post-${postId}`
-                );
-            }
+            // 路由系统会自动处理历史记录，这里不需要手动推送
 
             // 隐藏博客导航
             this.removeBlogNavigation();
@@ -429,7 +499,7 @@ class BlogSystem {
                 <div class="error-container" style="text-align: center; padding: 40px;">
                     <p style="color: var(--accent); font-family: 'Press Start 2P', monospace; font-size: 12px; margin-bottom: 16px;">Error!</p>
                     <p>${message}</p>
-                    <button class="nav-btn" onclick="blogSystem.showBlogList()" style="margin-top: 20px;">Back to Blog List</button>
+                    <button class="nav-btn" onclick="window.router.navigate('/')" style="margin-top: 20px;">Back to Blog List</button>
                 </div>
             </section>
         `;
@@ -480,7 +550,6 @@ class BlogSystem {
      * 预处理并渲染数学公式，先用KaTeX渲染再处理markdown
      */
     preprocessAndRenderMath(markdown) {
-        console.log('preprocessAndRenderMath: Input length:', markdown.length);
         
         // 保护代码块，避免在代码块中处理数学公式
         const codeBlocks = [];
@@ -493,7 +562,6 @@ class BlogSystem {
             codeBlockIndex++;
             return placeholder;
         });
-        console.log('After code block extraction:', codeBlocks.length, 'blocks found');
 
         // 检查KaTeX是否可用
         if (typeof katex === 'undefined') {
@@ -509,9 +577,7 @@ class BlogSystem {
 
         // 处理显示数学公式 $$...$$
         markdown = markdown.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
-            try {
-                console.log('Processing display math:', mathContent.trim());
-                
+            try {                
                 // 检测是否包含复杂的LaTeX环境，如果包含则使用更兼容的输出模式
                 const hasComplexEnvironments = /\\begin\{(array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|align|gather|split)\}/.test(mathContent);
                 
@@ -538,12 +604,7 @@ class BlogSystem {
                     errorColor: '#cc0000',
                     colorIsTextColor: false
                 });
-                console.log('Rendered display math HTML length:', rendered.length);
-                if (hasComplexEnvironments) {
-                    console.log('Complex environment detected, using htmlAndMathml output');
-                    console.log('Array/matrix content:', mathContent);
-                    console.log('Array rendered result:', rendered.substring(0, 200));
-                }
+
                 const placeholder = `<!--MATH_BLOCK_${mathIndex}-->`;
                 mathBlocks[mathIndex] = rendered;
                 mathIndex++;
@@ -557,7 +618,6 @@ class BlogSystem {
         // 处理行内数学公式 $...$
         markdown = markdown.replace(/\$([^$\n]+)\$/g, (match, mathContent) => {
             try {
-                console.log('Processing inline math:', mathContent);
                 const rendered = katex.renderToString(mathContent.trim(), {
                     displayMode: false,
                     throwOnError: false,
@@ -581,7 +641,6 @@ class BlogSystem {
                     errorColor: '#cc0000',
                     colorIsTextColor: false
                 });
-                console.log('Rendered inline math HTML:', rendered);
                 
                 // 检查渲染结果是否包含问题字符
                 if (rendered.includes('<del>') || rendered.includes('</del>')) {
@@ -602,27 +661,11 @@ class BlogSystem {
         codeBlocks.forEach((codeBlock, index) => {
             markdown = markdown.replace(`<!--CODE_BLOCK_${index}-->`, codeBlock);
         });
-        console.log('After code block restoration, length:', markdown.length);
 
         // 恢复渲染后的数学公式
         mathBlocks.forEach((mathBlock, index) => {
             markdown = markdown.replace(`<!--MATH_BLOCK_${index}-->`, `<!--MATH_BLOCK_${index}-->`);
         });
-        console.log('After display math restoration:', mathBlocks.length, 'blocks restored');
-        
-        // 恢复渲染后的行内数学公式
-        inlineMathBlocks.forEach((mathBlock, index) => {
-            const placeholder = `<!--MATH_INLINE_${index}-->`;
-            console.log(`Keeping placeholder ${placeholder} for later restoration`);
-        });
-        console.log('After inline math restoration:', inlineMathBlocks.length, 'blocks prepared');
-        console.log('Final preprocessAndRenderMath output length:', markdown.length);
-
-        // 检查是否还有未替换的占位符
-        const remainingPlaceholders = markdown.match(/<!--[A-Z_]+_\d+-->/g);
-        if (remainingPlaceholders) {
-            console.log('Remaining placeholders for later processing:', remainingPlaceholders.length);
-        }
 
         return {
             markdown: markdown,
@@ -635,7 +678,6 @@ class BlogSystem {
      * 在HTML中恢复渲染的数学公式
      */
     restoreMathInHTML(html, mathResult) {
-        console.log('Restoring math in final HTML');
         
         // 恢复显示数学公式
         mathResult.mathBlocks.forEach((mathBlock, index) => {
@@ -649,7 +691,6 @@ class BlogSystem {
             html = html.replace(placeholder, mathBlock);
         });
         
-        console.log('Math restoration complete, final HTML length:', html.length);
         return html;
     }
 
@@ -788,19 +829,41 @@ class BlogSystem {
      * 渲染博客导航栏
      */
     renderBlogNavigation() {
-        // 检查是否在博客页面
-        const blogPage = document.querySelector('#blog');
-        if (!blogPage || !blogPage.classList.contains('active')) return;
+        console.log('[Blog] renderBlogNavigation called');
+        
+        // 简化检查：如果当前正在显示单篇文章，不显示博客导航栏
+        if (this.currentPost) {
+            console.log('[Blog] Currently viewing single post, skipping navigation render');
+            return;
+        }
 
-        // 查找或创建导航栏容器
+        console.log('[Blog] Rendering blog navigation...');
+        this._doRenderBlogNavigation();
+    }
+
+    /**
+     * 实际渲染博客导航栏
+     */
+    _doRenderBlogNavigation() {
+
+        // 查找现有的导航栏容器
         let navContainer = document.querySelector('.blog-navigation-card');
+        let shouldAnimate = false;
+        
         if (!navContainer) {
+            // 创建新的导航栏容器
             const sidebar = document.querySelector('.sidebar');
             if (!sidebar) return;
 
             navContainer = document.createElement('section');
             navContainer.className = 'card blog-navigation-card';
             sidebar.appendChild(navContainer);
+            shouldAnimate = true;
+        } else {
+            // 如果容器已存在，准备重新触发动画
+            shouldAnimate = true;
+            // 暂时移除动画类
+            navContainer.style.animation = 'none';
         }
 
         // 获取所有标签和统计信息
@@ -865,6 +928,15 @@ class BlogSystem {
 
         // 添加过滤事件监听器
         this.addNavigationEventListeners();
+        
+        // 触发渐入动画
+        if (shouldAnimate) {
+            // 使用requestAnimationFrame确保DOM更新后再触发动画
+            requestAnimationFrame(() => {
+                // 重新应用动画
+                navContainer.style.animation = 'slideInFromDown 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            });
+        }
     }
 
     /**
@@ -960,21 +1032,26 @@ class BlogSystem {
      * 渲染文章目录导航
      */
     renderArticleTOC(toc) {
-        if (!toc || toc.length === 0) return;
+        if (!toc || toc.length === 0) {
+            console.log('[Blog] No TOC to render');
+            return;
+        }
         
-        // 检查是否在文章页面
-        const blogPage = document.querySelector('#blog');
-        if (!blogPage || !blogPage.classList.contains('active')) return;
+        console.log('[Blog] renderArticleTOC called with', toc.length, 'items');
 
         // 查找或创建目录容器
         let tocContainer = document.querySelector('.article-toc-card');
         if (!tocContainer) {
             const sidebar = document.querySelector('.sidebar');
-            if (!sidebar) return;
+            if (!sidebar) {
+                console.log('[Blog] No sidebar found for TOC');
+                return;
+            }
 
             tocContainer = document.createElement('section');
             tocContainer.className = 'card article-toc-card';
             sidebar.appendChild(tocContainer);
+            console.log('[Blog] Created new TOC container');
         }
 
         // 生成目录HTML
@@ -1240,16 +1317,45 @@ class BlogSystem {
      * 初始化博客系统
      */
     async init() {
+        console.log('[Blog] Initializing blog system...');
         await this.loadPosts();
-        this.showBlogList();
+        console.log('[Blog] Posts loaded, starting router...');
+        
+        // 数据加载完成后启动路由系统
+        this.startRouter();
+        
+        console.log('[Blog] Blog system initialized');
     }
 }
 
 // 全局博客系统实例
 let blogSystem = null;
+let blogSystemInitializing = false;
 
 // 初始化函数
-function initBlogSystem() {
-    blogSystem = new BlogSystem();
-    return blogSystem.init();
+async function initBlogSystem() {
+    if (blogSystem) {
+        console.log('[Blog] Blog system already initialized');
+        return blogSystem;
+    }
+    
+    if (blogSystemInitializing) {
+        console.log('[Blog] Blog system initialization already in progress');
+        return;
+    }
+    
+    blogSystemInitializing = true;
+    console.log('[Blog] Starting blog system initialization...');
+    
+    try {
+        blogSystem = new BlogSystem();
+        await blogSystem.init();
+        console.log('[Blog] Blog system initialization completed');
+        return blogSystem;
+    } catch (error) {
+        console.error('[Blog] Failed to initialize blog system:', error);
+        blogSystem = null;
+    } finally {
+        blogSystemInitializing = false;
+    }
 }

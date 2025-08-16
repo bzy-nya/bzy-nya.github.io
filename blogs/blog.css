@@ -511,9 +511,9 @@
 
 
 /* 博客导航卡片 */
-.blog-navi  tion-card {
+.blog-navigation-card {
     margin-top: 20px;
-    margin-bottom: 100px; /* 添加底部边距避免与footer重合 */
+    margin-bottom: 120px; /* 增加底部边距避免与footer重合 */
     animation: slideInFromDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 1;
