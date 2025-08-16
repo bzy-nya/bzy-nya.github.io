@@ -406,23 +406,30 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
 
     <!-- Blog System -->
-    <script src="blogs/blog.js"></script>
+    <!-- Router system -->
+    <!-- Scripts -->
+    <script src="asset/js/router.js"></script>
+    <script src="blogs/blog.js"></script>    <script>
+        // Global page transition state
+        let isTransitioning = false;
 
-    <script>
-        // Page navigation system with smooth transitions
-        function initNavigation() {
-            const navBtns = document.querySelectorAll('.nav-btn');
-            const pages = document.querySelectorAll('.page-content');
-            let isTransitioning = false;
-
-            function showPage(pageId) {
-                if (isTransitioning) return; // Prevent rapid clicking
+        // Global page navigation function
+        function showPage(pageId) {
+                console.log('[Main] showPage called with:', pageId);
+                if (isTransitioning) {
+                    console.log('[Main] Transition in progress, ignoring showPage call');
+                    return; // Prevent rapid clicking
+                }
                 
                 isTransitioning = true;
                 const currentPage = document.querySelector('.page-content.active');
                 const targetPage = document.getElementById(pageId);
                 
+                console.log('[Main] Current page:', currentPage?.id || 'none');
+                console.log('[Main] Target page:', targetPage?.id || 'not found');
+                
                 if (!targetPage || currentPage === targetPage) {
+                    console.log('[Main] Target page not found or already active');
                     isTransitioning = false;
                     return;
                 }
@@ -448,11 +455,12 @@
                         
                         // Initialize blog system if switching to blog page
                         if (pageId === 'blog' && typeof blogSystem !== 'undefined') {
-                            if (!blogSystem) {
+                            if (!blogSystem && !blogSystemInitializing) {
+                                console.log('[Main] Initializing blog system...');
+                                // 不等待初始化完成，让路由系统处理
                                 initBlogSystem();
-                            } else {
-                                blogSystem.showBlogList();
                             }
+                            // 不要强制显示博客列表，让路由系统处理
                         }
                         
                         setTimeout(() => {
@@ -467,37 +475,63 @@
                     
                     // Initialize blog system if switching to blog page
                     if (pageId === 'blog' && typeof blogSystem !== 'undefined') {
-                        if (!blogSystem) {
+                        if (!blogSystem && !blogSystemInitializing) {
+                            console.log('[Main] Initializing blog system (first load)...');
+                            // 不等待初始化完成，让路由系统处理
                             initBlogSystem();
-                        } else {
-                            blogSystem.showBlogList();
                         }
+                        // 不要强制显示博客列表，让路由系统处理
                     }
                     
                     isTransitioning = false;
                 }
                 
-                // Update nav buttons
-                navBtns.forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                
-                const activeBtn = document.querySelector(`[data-page="${pageId}"]`);
-                if (activeBtn) {
-                    activeBtn.classList.add('active');
-                }
+                // Note: Navigation state sync is handled by handleHashChange when triggered by hash
+                // or by syncNavigationState() when called directly
             }
 
-            // Add click listeners
-            navBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const pageId = btn.getAttribute('data-page');
-                    showPage(pageId);
-                });
-            });
-        }
+            // Initialize navigation system
+            function initNavigation() {
+                const navBtns = document.querySelectorAll('.nav-btn');
+                const pages = document.querySelectorAll('.page-content');
 
-        // Background cats mouse follow effect
+                // Add click listeners
+                navBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const pageId = btn.getAttribute('data-page');
+                        
+                        console.log('[Main] Navigation button clicked:', pageId);
+                        
+                        // Prevent default behavior and handle navigation manually
+                        e.preventDefault();
+                        
+                        // Set appropriate hash for each page and let hash change handle the rest
+                        if (pageId === 'home') {
+                            console.log('[Main] Setting home hash');
+                            // Clear hash for home page
+                            history.replaceState(null, '', window.location.pathname + window.location.search);
+                            // Manually trigger page change since hash won't change
+                            showPage('home');
+                            syncNavigationState();
+                        } else if (pageId === 'fun') {
+                            console.log('[Main] Setting fun hash');
+                            // Clean up blog state when leaving
+                            if (window.blogSystem) {
+                                window.blogSystem.removeBlogNavigation();
+                                window.blogSystem.removeArticleTOC();
+                            }
+                            location.hash = '#fun';
+                            // handleHashChange will take care of the rest
+                        } else if (pageId === 'blog') {
+                            console.log('[Main] Setting blog hash');
+                            location.hash = '#blog';
+                            // handleHashChange will take care of the rest
+                        }
+                    });
+                });
+            }
+
+            // Background cats mouse follow effect
         function initCatAnimation() {
             const cats = Array.from(document.querySelectorAll('.cat-bg'));
             let mx = 0, my = 0;
@@ -543,7 +577,45 @@
             
             // Initialize KaTeX math rendering
             renderMathInHtml();
+            
+            // Sync navigation state based on current page and hash
+            syncNavigationState();
         });
+
+        // Function to sync navigation state with current page
+        function syncNavigationState() {
+            const currentPage = document.querySelector('.page-content.active');
+            const hash = location.hash;
+            
+            console.log('[Main] Syncing navigation state - page:', currentPage?.id, 'hash:', hash);
+            
+            // Update nav buttons based on current hash and page state
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Determine which nav button should be active based on hash and current page
+            let activePageId = 'home'; // default
+            
+            if (hash.startsWith('#/') || hash === '#blog') {
+                // Any blog-related hash should activate blog button
+                activePageId = 'blog';
+            } else if (hash === '#fun') {
+                activePageId = 'fun';
+            } else if (!hash || hash === '#' || hash === '#home') {
+                activePageId = 'home';
+            } else if (currentPage) {
+                // Fallback to current page if hash doesn't match known patterns
+                activePageId = currentPage.id;
+            }
+            
+            const activeBtn = document.querySelector(`[data-page="${activePageId}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                console.log('[Main] Activated nav button for:', activePageId);
+            }
+        }
 
         // Theme switching functionality
         function initThemeSwitcher() {
@@ -791,6 +863,88 @@
                 }
             });
         }
+        
+        // 监听hash变化，用于博客路由
+        function handleHashChange() {
+            const hash = location.hash;
+            console.log('[Main] Hash changed:', hash, 'type:', typeof hash, 'length:', hash.length);
+            
+            // 详细的条件检查
+            console.log('[Main] Hash conditions:', {
+                startsWith: hash.startsWith('#/'),
+                isBlog: hash === '#blog',
+                isFun: hash === '#fun',
+                isEmpty: !hash || hash === '#' || hash === '#home'
+            });
+            
+            // 如果hash指向博客相关页面，自动切换到blog页面
+            if (hash.startsWith('#/') || hash === '#blog') {
+                console.log('[Main] Handling blog routes');
+                handleBlogRoutes(hash);
+            } else if (hash === '#fun') {
+                console.log('[Main] Handling fun route');
+                // 如果hash为#fun，切换到fun页面
+                const currentPage = document.querySelector('.page-content.active');
+                if (currentPage && currentPage.id !== 'fun') {
+                    console.log('[Main] Hash points to fun page, switching...');
+                    showPage('fun');
+                }
+            } else if (!hash || hash === '#' || hash === '#home') {
+                console.log('[Main] Handling home route');
+                // 如果hash为空、#或#home，切换到主页
+                const currentPage = document.querySelector('.page-content.active');
+                if (currentPage && currentPage.id !== 'home') {
+                    console.log('[Main] Hash cleared or points to home, returning to home page');
+                    showPage('home');
+                }
+            }
+            
+            // 确保导航状态同步
+            syncNavigationState();
+        }
+
+        // 处理博客相关的路由
+        async function handleBlogRoutes(hash) {
+            const currentPage = document.querySelector('.page-content.active');
+            console.log('[Main] Current active page:', currentPage?.id || 'none');
+            
+            // 无论当前在哪个页面，都需要确保切换到blog页面
+            if (!currentPage || currentPage.id !== 'blog') {
+                console.log('[Main] Auto-switching to blog page due to hash:', hash);
+                
+                // 确保博客系统在页面切换前就被初始化
+                if (typeof blogSystem !== 'undefined' && !blogSystem && !blogSystemInitializing) {
+                    console.log('[Main] Pre-initializing blog system for hash route...');
+                    await initBlogSystem();
+                }
+                
+                showPage('blog');
+            } else if (currentPage && currentPage.id === 'blog' && !blogSystem && !blogSystemInitializing) {
+                // 如果已经在blog页面但blogSystem未初始化
+                console.log('[Main] Blog page active but system not initialized, initializing...');
+                await initBlogSystem();
+            } else if (!currentPage) {
+                // 没有活跃页面，直接切换到blog
+                console.log('[Main] No active page found, switching to blog...');
+                
+                // 确保博客系统在页面切换前就被初始化
+                if (typeof blogSystem !== 'undefined' && !blogSystem && !blogSystemInitializing) {
+                    console.log('[Main] Pre-initializing blog system for no active page...');
+                    await initBlogSystem();
+                }
+                
+                showPage('blog');
+            }
+        }
+        
+        // 监听hash变化事件
+        window.addEventListener('hashchange', handleHashChange);
+        
+        // 页面加载时也检查一次hash
+        window.addEventListener('load', handleHashChange);
+        
+        // 立即检查当前hash
+        handleHashChange();
     </script>
 </body>
 </html>

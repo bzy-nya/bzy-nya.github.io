@@ -168,13 +168,11 @@ $$
 a & b \\
 c & d
 \end{pmatrix}
-\left(
 \begin{pmatrix}
 x \\
 y
 \end{pmatrix}
 =
-\left(
 \begin{pmatrix}
 ax + by \\
 cx + dy
