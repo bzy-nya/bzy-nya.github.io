@@ -29,6 +29,18 @@
     --shadow: rgba(240, 160, 176, 0.1);
 }
 
+/* Halloween Theme: 背景深紫+前景橙+南瓜色 */
+[data-theme="halloween"] {
+    --primary: #2a1835; /* 深紫色 */
+    --secondary: #ff9800; /* 南瓜橙 */
+    --accent: #ffb347; /* 浅南瓜 */
+    --text: #fffbe6; /* 微黄白 */
+    --border: #ff9800;
+    --shadow: rgba(255, 152, 0, 0.15);
+}
+
+
+
 /* Fonts: Pixel for emphasis/titles, clean sans-serif for body text */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
@@ -313,26 +325,36 @@ body {
     gap: 20px;
     padding-bottom: 80px; /* Space for fixed footer */
 }
-.page-content {
-    display: none;
+
+/* Universal component animations */
+.component {
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.page-content.active {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
+    transform: scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease, height 0.2s ease, background-color 0.6s ease, border-color 0.6s ease, color 0.6s ease;
 }
 
-/* Page transition states */
-.page-content.fade-out {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-.page-content.fade-in {
+.component.active {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
+}
+
+.component.fade-out {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Content update animations - 内容淡入淡出 */
+.component.content-updating {
+    position: relative;
+}
+
+/* 特殊组件样式 */
+#article-toc-card {
+    /* 确保 TOC 组件有正确的定位 */
+    position: sticky;
+    top: 80px;
+    z-index: 15;
 }
 .section { 
     padding: 32px; /* increased padding */
@@ -783,7 +805,6 @@ svg, svg * {
     display: inline-block;
     color: var(--accent);
     font-weight: 600;
-    font-family: Roboto, 'Inter', system-ui, sans-serif;
     padding: 2px 6px;
     border: 1px var(--accent);
     background: transparent;
@@ -793,20 +814,16 @@ svg, svg * {
 .katex {
     color: var(--accent) !important;
     font-size: 0.95em !important;
-    font-family: Roboto, 'Inter', 'Times New Roman', serif !important;
-    font-weight: 600 !important;
     transition: color 0.6s ease !important;
 }
 
 .katex .base {
     color: var(--accent) !important;
-    font-weight: 600 !important;
     transition: color 0.6s ease !important;
 }
 
 .katex .mord, .katex .mop, .katex .mbin, .katex .mrel, .katex .mpunct {
     color: var(--accent) !important;
-    font-weight: 600 !important;
     transition: color 0.6s ease !important;
 }
 

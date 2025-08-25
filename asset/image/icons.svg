@@ -154,7 +154,7 @@
         </symbol>
         
         <!-- Game controller icon -->
-        <symbol id="px-gamepad" viewBox="0 0 24 24">
+        <symbol id="px-dino" viewBox="0 0 24 24">
             <g fill="currentColor" shape-rendering="crispEdges">
                 <rect x="8" y="6" width="8" height="6" fill="#535353"/>
                 <rect x="6" y="12" width="12" height="6" fill="#535353"/>
@@ -180,7 +180,7 @@
         </symbol>
         
         <!-- Bullet hell icon -->
-        <symbol id="px-bullet" viewBox="0 0 16 16">
+        <symbol id="px-touhou" viewBox="0 0 16 16">
             <g fill="currentColor" shape-rendering="crispEdges">
                 <!-- Player -->
                 <rect x="7" y="12" width="2" height="2"/>
@@ -197,6 +197,34 @@
                 <rect x="12" y="9" width="1" height="1"/>
                 <rect x="6" y="7" width="1" height="1"/>
                 <rect x="10" y="8" width="1" height="1"/>
+            </g>
+        </symbol>
+        <!-- Pixel pumpkin icon (cat-style) -->
+        <symbol id="px-pumpkin" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+            <!-- stem -->
+            <rect x="7" y="1" width="2" height="2"/>
+            <rect x="8" y="0" width="1" height="1"/>
+            <!-- pumpkin body (rounder, cat-style) -->
+            <rect x="2" y="3" width="12" height="9"/>
+            <rect x="3" y="4" width="10" height="7"/>
+            <!-- vertical ribs -->
+            <rect x="5" y="4" width="1" height="7"/>
+            <rect x="10" y="4" width="1" height="7"/>
+            <!-- cheeks -->
+            <rect x="3" y="9" width="2" height="1"/>
+            <rect x="11" y="9" width="2" height="1"/>
+            <!-- eyes (triangle style) -->
+            <rect x="5" y="6" width="2" height="2"/>
+            <rect x="9" y="6" width="2" height="2"/>
+            <!-- nose (triangle) -->
+            <rect x="7" y="8" width="2" height="1"/>
+            <!-- mouth (zigzag) -->
+            <rect x="6" y="10" width="1" height="1"/>
+            <rect x="9" y="10" width="1" height="1"/>
+            <rect x="7" y="11" width="2" height="1"/>
+            <!-- chin -->
+            <rect x="6" y="12" width="4" height="1"/>
             </g>
         </symbol>
     </defs>
