@@ -45,6 +45,7 @@
     line-height: 1.4;
     word-wrap: break-word;
     font-weight: 400;
+    transition: color 0.6s ease;
 }
 
 .blog-post-meta {
@@ -63,6 +64,7 @@
     font-size: 10px;
     color: var(--accent);
     font-weight: 400;
+    transition: color 0.6s ease;
 }
 
 /* 博客文章内容 */
@@ -93,20 +95,22 @@
 .blog-post-content h1,
 .blog-post-content h2,
 .blog-post-content h3 {
-    font-family: 'Courier New', monospace;
+    font-family: sans-serif;
     color: var(--text);
-    margin: 28px 0 28px 0;
+    margin: 15px 0 15px 0;
     font-weight: 400;
     line-height: 1.4;
+    transition: color 0.6s ease;
 }
 
 .blog-post-content h1 {
-    font-size: clamp(36px, 4vw, 36px);
-    font-weight: 800;
+    margin: 20px 0;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: clamp(18px, 4vw, 32px);
 }
 
 .blog-post-content h2 {
-    font-size: clamp(32px, 4vw, 32px);
+    font-size: clamp(18px, 4vw, 32px)
 }
 
 .blog-post-content h3 {
@@ -123,32 +127,41 @@
 .blog-post-content p {
     font-size: clamp(16px, 3.5vw, 18px);
     line-height: clamp(24px, 5vw, 28px);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     margin-left: 15px;
     color: var(--text);
 }
 
 .blog-post-content ul,
 .blog-post-content ol {
-    margin: 16px 0;
+    margin: 5px 0;
     padding-left: 24px;
 }
 
 .blog-post-content li {
     font-size: clamp(16px, 3.5vw, 18px);
     line-height: clamp(24px, 5vw, 28px);
-    margin-bottom: 8px;
-    color: var(--text);
+}
+
+.blog-post-content li.task-list-item {
+    list-style: none;
+    margin-left: 0;
+}
+
+.blog-post-content .task-list-item .task-list-item-checkbox {
+  margin-right: .5em;
 }
 
 .blog-post-content strong {
     color: var(--accent);
     font-weight: 700;
+    transition: color 0.6s ease;
 }
 
 .blog-post-content em {
     color: var(--accent);
     font-style: italic;
+    transition: color 0.6s ease;
 }
 
 /* 代码块样式 */
@@ -174,20 +187,18 @@
 }
 
 .blog-post-content pre {
-    background: rgba(26, 26, 26, 0.4) !important;
     color: #f8f8f2;
-    padding: 20px;
+    padding: 10px 20px;
     margin: 20px 0;
     overflow-x: auto;
-    border: 2px solid var(--border);
     position: relative;
-    border-radius: 4px;
+    border-radius: 10px;
 }
 
 /* Prism.js 兼容性 */
 .blog-post-content pre[class*="language-"] {
-    background: rgba(26, 26, 26, 0.6) !important;
-    border: 2px solid var(--border) !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px dashed var(--secondary) !important;
 }
 
 .blog-post-content code[class*="language-"] {
@@ -204,26 +215,74 @@
     line-height: 1.5;
 }
 
-/* 数学公式样式 - 保持KaTeX原始字体和布局 */
+.blog-post-content div.code-toolbar {
+	position: relative;
+}
+
+.blog-post-content div.code-toolbar > .toolbar {
+	position: absolute;
+	z-index: 10;
+	top: .3em;
+	right: .2em;
+	transition: opacity 0.3s ease-in-out;
+	opacity: 0;
+}
+
+.blog-post-content div.code-toolbar:hover > .toolbar {
+	opacity: 1;
+}
+
+/* Separate line b/c rules are thrown out if selector is invalid.
+   IE11 and old Edge versions don't support :focus-within. */
+.blog-post-content div.code-toolbar:focus-within > .toolbar {
+	opacity: 1;
+}
+
+.blog-post-content div.code-toolbar > .toolbar > .toolbar-item {
+	display: inline-block;
+}
+
+div.code-toolbar > .toolbar > .toolbar-item > a,
+div.code-toolbar > .toolbar > .toolbar-item > button,
+div.code-toolbar > .toolbar > .toolbar-item > span {
+	font-size: 14px;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+	padding: 4px 6px;
+    margin-top: 5px;
+    margin-right: 5px;
+	border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+div.code-toolbar > .toolbar > .toolbar-item > span {
+    user-select: none;
+    color: rgba(140, 170, 151, 0.8);
+    background: transparent;
+}
+div.code-toolbar > .toolbar > .toolbar-item > button {
+    cursor: pointer;
+    background-color: transparent;
+    color: var(--secondary);
+    border: 1px dashed var(--secondary);
+}
+div.code-toolbar > .toolbar > .toolbar-item > button:hover {
+    background-color: rgba(100, 130, 111, 0.4);
+}
+
 .blog-post-content .katex {
-    /* 让KaTeX使用自己的字体设置，只调整颜色适应主题 */
     color: var(--text);
-    /* 不强制覆盖字体大小，让KaTeX自主控制 */
+    font-size: 18px;
 }
 
 .blog-post-content .katex-display {
     margin: 24px 0;
     padding: 16px;
+    font-size: 18px;
     background: rgba(255, 248, 220, 0.05);
     border: 1px dashed var(--accent);
     border-radius: 4px;
     overflow-x: auto;
 }
 
-/* 修复可能的字体冲突 */
-.blog-post-content .katex * {
-    font-family: "KaTeX_Main", "Times New Roman", serif;
-}
 
 /* 图片样式 */
 .blog-post-content .blog-image {
@@ -301,16 +360,37 @@
 
 .blog-post-content th,
 .blog-post-content td {
-    border: 2px solid var(--border);
-    padding: 12px;
-    text-align: left;
+    padding: 10px 10px;
+    font-size: 15px;
+    text-align: center;
+    border-bottom-width: 1px;
+    border-bottom-style: dashed;
+}
+
+.blog-post-content tbody {
+    padding-top: 5px;
+}
+.blog-post-content tr:nth-child(even) {
+    background: transparent;
+}
+.blog-post-content tr:nth-child(odd) {
+    background: rgba(184, 230, 211, 0.1);
+}
+.blog-post-content tr:last-child {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.blog-post-content tr:first-child {
+    border-top-width: 1px;
+    border-top-style: solid;
 }
 
 .blog-post-content th {
-    background: var(--secondary);
-    color: var(--primary);
+    border-top-width: 1px;
+    border-top-style: solid;
     font-family: 'Press Start 2P', 'Courier New', monospace;
-    font-size: 10px;
+    font-size: 12px;
+    padding: 10px 10px;
     font-weight: 400;
 }
 
@@ -345,7 +425,6 @@
 
 /* 博客列表项特殊样式 */
 .blog-post-item {
-    cursor: pointer;
     transition: all 0.3s ease;
 }
 
@@ -514,17 +593,6 @@
 .blog-navigation-card {
     margin-top: 20px;
     margin-bottom: 120px; /* 增加底部边距避免与footer重合 */
-    animation: slideInFromDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    opacity: 1;
-}
-
-/* 淡出动画 */
-.blog-navigation-card.fade-out,
-.article-toc-card.fade-out {
-    opacity: 0;
-    transform: translateY(-10px);
-    pointer-events: none;
 }
 
 @keyframes slideInFromDown {
@@ -541,7 +609,6 @@
 .blog-nav-title {
     font-family: 'Press Start 2P', 'Courier New', monospace;
     font-size: 12px;
-    color: var(--text);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -556,6 +623,7 @@
     margin-bottom: 20px;
     padding: 12px 0;
     border-bottom: 1px dashed var(--border);
+    transition: border-color 0.6s ease; 
 }
 
 .stat-item {
@@ -586,6 +654,7 @@
     margin-bottom: 12px;
     text-transform: uppercase;
     font-weight: 400;
+    transition: color 0.6s ease;
 }
 
 /* 标签过滤器 */
@@ -741,7 +810,6 @@
 .article-toc-card {
     margin-top: 20px;
     margin-bottom: 100px;
-    animation: slideInFromDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: calc(100vh - 160px);
     overflow: hidden;
     position: sticky;
@@ -750,17 +818,14 @@
     width: 100%;
     box-sizing: border-box;
     /* 让目录在header完全消失时能贴到顶部 */
-    transition: top 0.3s ease, opacity 0.3s ease;
+    transition: top 0.3s ease, border-color 0.6s ease, color 0.6s ease; /* 只保留top位置的transition */
     /* 移除padding，在内部元素中控制间距 */
     padding: 0;
-    /* 添加淡出效果支持 */
-    opacity: 1;
 }
 
 .toc-title {
     font-family: 'Press Start 2P', 'Courier New', monospace;
     font-size: 12px;
-    color: var(--text);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -819,6 +884,7 @@
     min-height: 26px;
     display: flex;
     align-items: center;
+    border-bottom: none;
 }
 
 .toc-link:hover {
@@ -1048,3 +1114,29 @@
     background: rgba(64, 156, 255, 0.1);
     border-bottom-style: solid;
 }
+
+.md-video { margin: 1em 0; }
+.md-video__box { position: relative; width: 100%; }
+.md-video__box iframe, .md-video__box video {
+  width: 100%; height: 100%; border: 0; display: block; aspect-ratio: 16 / 9;
+}
+.md-video__link { text-decoration: underline; }
+.md-video__unavailable {
+  padding: .75rem; background: #f6f7f8; border: 1px solid #e2e3e5; border-radius: .5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  video { animation: none !important; transition: none !important; }
+}
+
+/* 外层容器用 flex 控水平位置 */
+.md-align { 
+  display: flex;
+}
+
+/* 居中 / 右对齐 */
+.md-align { display: flex; }
+.md-align--center { justify-content: center; }
+.md-align--right  { justify-content: flex-end; }
+
+/* 盒子按声明宽度走，不要被 100% 顶满 */
+.md-align__box { flex: 0 0 auto; max-width: 100%; width: auto; }

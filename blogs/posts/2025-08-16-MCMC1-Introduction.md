@@ -10,7 +10,7 @@
 
 设 $\omega$ 是 $[0,1]^2$ 上的均匀采样，如果 $\omega$ 落在上图 1/4 圆之内，则 $Z=1$，否则 $Z=0$，很容易知道 $\mathbb{E}(Z)=\frac{\pi}{4}$。在这个例子下，蒙特卡洛方法的收敛速率也是很容易计算的，假设算法运行了 $n$ 轮，由于每次采样的 $Z_i$ 是独立同分布，根据 Hoeffding's inequality
 
-$$\Pr(|\overline{Z}-\mathbb{E}(Z)|\ge\epsilon)\le  2e^{-2n\epsilon^2}\le\delta\\$$
+$$\Pr(|\overline{Z}-\mathbb{E}(Z)|\ge\epsilon)\le  2e^{-2n\epsilon^2}\le\delta$$
 
 所以 $n=O(1/\epsilon^2\log(1/\delta))$。虽然在这个例子中，蒙特卡洛方法相较于一些确定性算法收敛的更慢，但是在许多其他确定性算法很难设计得高效的复杂情形中，蒙特卡洛方法则有许多优势。
 
@@ -22,13 +22,13 @@ $$\Pr(|\overline{Z}-\mathbb{E}(Z)|\ge\epsilon)\le  2e^{-2n\epsilon^2}\le\delta\\
 
 大部分 $\mathrm{NP}$ 中的判定问题都有很自然的计数版本在 $\mathrm{\# P}$ 中，例如 $\mathrm{SAT}$ 问题对应的计数问题 $\mathrm{\#SAT}$ 表示：求解布尔表达式 $\phi$ 的可满足解的个数。可以观察到，由于这种对应关系总是存在，所以 $\mathrm{\# P}$ 比 $\mathrm{NP}$ 更为困难，因为得到可行解的数量可以直接推出可行解的存在性，即 $\mathrm{NP}\subseteq\mathrm{P}^\mathrm{\# P}$。1991 年 Toda 进一步证明了 $\mathrm{PH}\subseteq\mathrm{P}^\mathrm{\# P}$，这表明了很多计数问题在多项式层谱以内都很难解决。
 
-仿照 $\mathrm{NP}$ 完全问题，我们也可以定义 $\mathrm{\# P}$ 完全问题：如果所有的 $f\in\mathrm{\# P}$，都可以在多项式时间内规约到函数 $F$，则 $F\in\text{\#P-hard}$；如果同时 $F\in\mathrm{\#P}$，则 $F\in\text{\#P-complete}$。根据 Cook–Levin theorem，可以很容易地知道 $\mathrm{\#SAT}$ 是 $\mathrm{\# P}$ 完全问题。但是非 $\mathrm{NP}$ 完全问题对应的计数问题也有可能是 $\mathrm{\# P}$ 完全的，例如 $\text{\#2-SAT}$ 或者 $\text{\#MATCH}$ 问题。
+仿照 $\mathrm{NP}$ 完全问题，我们也可以定义 $\mathrm{\# P}$ 完全问题：如果所有的 $f\in\mathrm{\# P}$，都可以在多项式时间内规约到函数 $F$，则 $F\in\mathrm{\#P-hard}$；如果同时 $F\in\mathrm{\#P}$，则 $F\in\text{\#P-complete}$。根据 Cook–Levin theorem，可以很容易地知道 $\mathrm{\#SAT}$ 是 $\mathrm{\# P}$ 完全问题。但是非 $\mathrm{NP}$ 完全问题对应的计数问题也有可能是 $\mathrm{\# P}$ 完全的，例如 $\text{\#2-SAT}$ 或者 $\text{\#MATCH}$ 问题。
 
 但是近似的解决 $\mathrm{\# P}$ 完全问题是有可能。Sipser 与 Stockmeyer 于 1983 年各自独立地证明了这一点。
 
 **Theorem 1.1(Sipser & Stockmeyer, 1983[^4]).** 对于任意 $f\in\mathrm{\#P}$, 存在一个有着 NP 预言机的随机算法 $M$，能够在 $\mathrm{Poly}(|x|,1/\epsilon)$ 时间内输出 $M(x,\epsilon)$ 使得
 
-$$\Pr((1+\epsilon)^{-1}f(x)\le M(x,1/\epsilon)\le(1+\epsilon)f(x))\ge \frac{3}{4}\\$$
+$$\Pr((1+\epsilon)^{-1}f(x)\le M(x,1/\epsilon)\le(1+\epsilon)f(x))\ge \frac{3}{4}$$
 
 即 $\text{approximations of \#P}\subseteq\text{RP}^\text{NP}\subseteq\Sigma^P_2\subseteq\mathrm{PH}$。
 
@@ -36,11 +36,11 @@ Theorem 1.1 说明了近似计算计数问题似乎比精确计算容易很多�
 
 **Theorem 1.2** 假设存在一个采样示谕机 $S$，输入一个布尔表达式 $\phi$，能够输出其满足解的一个均匀采样 $\hat{x}$。则存在一个确定性算法 $M$ 能在 $\mathrm{Poly}(|\phi|,1/\epsilon)$ 的时间内，输出任意布尔表达式 $\phi$ 可满足的数量的一个近似 $M(\phi,\epsilon)$，使得
 
-$$\Pr((1+\epsilon)^{-1}\mathrm{\#SAT}(\phi)\le M(\phi,1/\epsilon)\le(1+\epsilon)\mathrm{\#SAT}(\phi))\ge \frac{3}{4}\\$$
+$$\Pr((1+\epsilon)^{-1}\mathrm{\#SAT}(\phi)\le M(\phi,1/\epsilon)\le(1+\epsilon)\mathrm{\#SAT}(\phi))\ge \frac{3}{4}$$
 
 **Proof** 设 $\tilde{x}$ 是 $\phi$ 的一组满足解，定义 $\phi_{0},\phi_1,\cdots,\phi_n$，其中 $\phi_i\triangleq \phi(\tilde x|_{[i]})$ 表示 $\phi$ 在固定前 $i$ 个变量等于 $\tilde x$ 时得到的新的布尔布尔表达式。容易知道对于任意 $x$，$\phi(x)=1$ 可以推出对于任意 $i$，$\phi_i(x)=1$。设 $\Omega$ 为 $\phi$ 的可行解集合，$\Omega_i$ 为 $\phi_i$ 的可行解集合。
 
-$$|\Omega|=\frac{|\Omega_0|}{|\Omega_1|}\times \frac{|\Omega_1|}{|\Omega_2|}\times\cdots\times \frac{|\Omega_{n-1}|}{|\Omega_n|}\\$$
+$$|\Omega|=\frac{|\Omega_0|}{|\Omega_1|}\times \frac{|\Omega_1|}{|\Omega_2|}\times\cdots\times \frac{|\Omega_{n-1}|}{|\Omega_n|}$$
 
 令 $Z_i=\frac{|\Omega_{i-1}|}{|\Omega_i|}$，则有 $|\Omega|=\prod\limits_{i=1}^nZ_i$，所以考虑通过采样示谕机一步一步的选取合适 $x_i$ 并且使用门特卡洛方法估算 $Z_i$ 将问题规模缩小，则 $M^S(\psi,\epsilon)$ 可以设计为：
 
@@ -50,29 +50,29 @@ $$|\Omega|=\frac{|\Omega_0|}{|\Omega_1|}\times \frac{|\Omega_1|}{|\Omega_2|}\tim
 
 假设算法得到的最终变量取值为 $\tilde x$，对于任意 $i$ 定义坏事件 $A_i$ 表示 $\frac{|\Omega_{i-1}|}{|\Omega_i|}\ge 16$，则 $\Pr(A_i)\le\frac{2^n}{8^{n/2}}=1/2^n$ 所以
 
-$$\Pr(A)\triangleq\Pr\left(\bigcup_{i=1}^n A_i\right)\le n\Pr(A_i)=\frac{n}{2^n}\le\frac{1}{8}\\$$
+$$\Pr(A)\triangleq\Pr\left(\bigcup_{i=1}^n A_i\right)\le n\Pr(A_i)=\frac{n}{2^n}\le\frac{1}{8}$$
 
 当 $n\ge 6$ 时成立。
 
 除此之外当所有 $A_i$ 均不成立时，对于任意 $i$，$Z_i=\frac{|\Omega_{i-1}|}{|\Omega_i|}<16$，所以 $\frac{1}{16}\le \frac{1}{Z_i}\le 1$。设指示随机变量 $I_j$ 表示 $S(\phi_i)$ 第 $j$ 轮采样的可行解 $x^{(j)}$ 满足 $x^{(j)}_i=\tilde{x}_i$，则有 $\mathbb{E}(I_j)=\frac{1}{Z_i}$，$\frac{1}{\hat{Z_i}}=\frac{U}{T}=\frac{1}{T}\sum\limits_{j=1}^T I_i$ 是 $\frac{1}{Z_i}$ 的一个很好的估计，根据前文对于蒙特卡洛方法计算 $\pi$ 的收敛速度分析，可以知道，存在 $T=O(n\log n/\epsilon^2)$。
 
-$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-1}\cdot\frac{1}{Z_i}\le\frac{1}{\hat{Z_i}}\left(1+\frac{\epsilon}{2n}\right)\cdot\frac{1}{Z_i}\right)\ge 1-\frac{1}{16n}\\$$
+$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-1}\cdot\frac{1}{Z_i}\le\frac{1}{\hat{Z_i}}\left(1+\frac{\epsilon}{2n}\right)\cdot\frac{1}{Z_i}\right)\ge 1-\frac{1}{16n}$$
 
 转换后可得到
 
-$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-1}\cdot Z_i\le\hat{Z_i}\le\left(1+\frac{\epsilon}{2n}\right)\cdot Z_i\right)\ge 1-\frac{1}{16n}\\$$
+$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-1}\cdot Z_i\le\hat{Z_i}\le\left(1+\frac{\epsilon}{2n}\right)\cdot Z_i\right)\ge 1-\frac{1}{16n}$$
 
 累乘起来可得
 
-$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-n}|\Omega|\le\hat{Z}\le \left(1+\frac{\epsilon}{2n}\right)^n|\Omega|\right)\ge \left(1-\frac{1}{16n}\right)^n\\$$
+$$\Pr\left(\left(1+\frac{\epsilon}{2n}\right)^{-n}|\Omega|\le\hat{Z}\le \left(1+\frac{\epsilon}{2n}\right)^n|\Omega|\right)\ge \left(1-\frac{1}{16n}\right)^n$$
 
 由于在 $[-1,0]$ 内，有 $1+\frac{x}{2}\ge e^x$，所以 $(1-\frac{1}{16n})^n\ge e^{-\frac{1}{8n}\times n}\ge 1-\frac{1}{8}$；同样地，在 $[0,1]$ 内有 $e^\frac{x}{2}\le 1+x$，当 $\frac{\epsilon}{2n}\le 1$ 时，$(1+\frac{\epsilon}{2n})^n\le e^{\frac{\epsilon}{2n}\times n}\le 1+\epsilon$。所以综合起来可得
 
-$$\Pr\left(\left(1+\epsilon\right)^{-1}|\Omega|\le\hat{Z}\le (1+\epsilon)|\Omega|\right)\ge \frac{7}{8}\\$$
+$$\Pr\left(\left(1+\epsilon\right)^{-1}|\Omega|\le\hat{Z}\le (1+\epsilon)|\Omega|\right)\ge \frac{7}{8}$$
 
 定义坏事件 $B$ 表示算法估计失败。
 
-$$\Pr(\overline{A}\cap\overline{B})\ge 1-\Pr(A)-\Pr(B|A)\ge 1-\frac{1}{8}-\frac{1}{8}=\frac{3}{4}\\$$
+$$\Pr(\overline{A}\cap\overline{B})\ge 1-\Pr(A)-\Pr(B|A)\ge 1-\frac{1}{8}-\frac{1}{8}=\frac{3}{4}$$
 
 于是我们便得到了一个在 $O(n^2\log n/\epsilon^2)$ 步采样近似计算 $\mathrm{\#SAT}$ 问题的算法。但是这样的采样示谕机 $S$ 是否能够很容易的得到呢？
 
@@ -80,7 +80,7 @@ $$\Pr(\overline{A}\cap\overline{B})\ge 1-\Pr(A)-\Pr(B|A)\ge 1-\frac{1}{8}-\frac{
 
 在统计物理学中，学者们经常考虑一种简化的模型——自旋系统(Spin System)。一个自旋系统由一个无向图 $G(V,E)$ 和一个状态集合 $Q$ 所组成，对于自旋系统中的每一个组态(configuration) $\sigma\in Q^{|V|}$，其哈密尔顿量(或能量)表示为
 
-$$H(\sigma)=\sum_{(u,v)\in E} f(\sigma_u,\sigma_v)+\sum_{u\in V} g(\sigma_v)\\$$
+$$H(\sigma)=\sum_{(u,v)\in E} f(\sigma_u,\sigma_v)+\sum_{u\in V} g(\sigma_v)$$
 
 以描述磁现象的伊辛模型(Ising Model)为例，$Q$ 只有两个状态 $+1$ 或 $-1$，表示原子的磁矩(自旋)。而 $f(\cdot,\cdot)=J_{u,v}\sigma_u\sigma_v$ 表示晶格点之间的交互作用，$g(\cdot)=h_u\sigma_u$ 表示外加磁场的作用。
 
@@ -88,11 +88,11 @@ $$H(\sigma)=\sum_{(u,v)\in E} f(\sigma_u,\sigma_v)+\sum_{u\in V} g(\sigma_v)\\$$
 
 自旋系统在热平衡的情况下，其组态呈现玻尔兹曼分布(Boltzmann distribution，也称为吉布斯分布 Gibbs distribution)
 
-$$\mu(\sigma)\propto e^{-\beta H(\sigma)}\\$$
+$$\mu(\sigma)\propto e^{-\beta H(\sigma)}$$
 
 其中 $\beta=\frac{1}{KT}$ 是只与温度相关的参数。而该分布的比例因子
 
-$$Z(\beta)=\sum_{\sigma}e^{-\beta H(\sigma)}\\$$
+$$Z(\beta)=\sum_{\sigma}e^{-\beta H(\sigma)}$$
 
 被称为配分函数(partition function)。配分函数与许多物理现象息息相关，例如系统整体的内能，磁化率等等。然而配分函数的计算是困难的，那如何在配分函数无法计算的情况下对 $\mu$ 进行采样以近似计算自旋系统的各种参数以及相变呢？
 
@@ -102,25 +102,25 @@ $$Z(\beta)=\sum_{\sigma}e^{-\beta H(\sigma)}\\$$
 
 **Definition 1.2** 对于两个 $\Omega$ 上的分布 $\nu,\mu$，可以使用全变差距离(total variation distance)来描述两者之间的差距：
 
-$$D_\mathrm{TV}(\nu\parallel\mu)\triangleq=\frac{1}{2}\sum_{w\in\Omega}|\nu(w)-\mu(w)|=\frac{1}{2}\lVert\nu-\mu\rVert_1=\max_{A\in 2^\Omega}|\nu(A)-\mu(A)|\\$$
+$$D_\mathrm{TV}(\nu\parallel\mu)\triangleq=\frac{1}{2}\sum_{w\in\Omega}|\nu(w)-\mu(w)|=\frac{1}{2}\lVert\nu-\mu\rVert_1=\max_{A\in 2^\Omega}|\nu(A)-\mu(A)|$$
 
 （马尔可夫链基本定理，将在下一节中严谨的定义与证明）对于任意非病态的马尔可夫链 $P$，如果其稳态分布为 $\mu$，从初始分布 $\nu$ 开始出发，则有
 
-$$\lim_{n\rightarrow \infty} D_\mathrm{TV}(\nu P^n\parallel\mu P^n)=0\\$$
+$$\lim_{n\rightarrow \infty} D_\mathrm{TV}(\nu P^n\parallel\mu P^n)=0$$
 
 可以看出来 MCMC 方法得到的是一个近似采样，并且可以n任意地接近真实分布(good sampling)，但是在许多情况下近似采样就足以代替精确采样了。
 
 **Theorem 1.3** 设 $\nu$ 是 $\mu$ 的近似分布，$Z_1,Z_2,\cdots,Z_t$ 是 $\nu$ 上的一组采样，$\hat{Z}=\frac{1}{t}\sum\limits_{i=1}^t Z_i$。如果 $D_\mathrm{TV}(\nu\parallel\mu)\le\delta=\epsilon\mu_{\min}/3$，其中 $\mu_{\min}=\min\limits_{x\in\Omega}\mu(x)$，$Z$ 是 $\mu$ 上的随机变量，值域大小为 $n$，$\mathbb{E}=m$。当 $t=O(n/\epsilon^2 m)$ 时
 
-$$\Pr(|\hat{Z}-\mathbb{E}Z|\ge\epsilon \mathbb{E}Z)\le\frac{1}{4}\\$$
+$$\Pr(|\hat{Z}-\mathbb{E}Z|\ge\epsilon \mathbb{E}Z)\le\frac{1}{4}$$
 
 **Proof** 根据分数不等式 $\min\limits_{x\in\Omega}\frac{\nu(x)}{\mu(x)}\le\frac{\mathbb{E}\hat{Z}}{\mathbb{E}Z}\le\max\limits_{x\in\Omega}\frac{\nu(x)}{\mu(x)}$，$1-\frac{\delta}{\mu_{\min}}\le\frac{\mathbb{E}\hat{Z}}{\mathbb{E}Z}\le 1+\frac{\delta}{\mu_{\min}}$，所以有
 
-$$|\mathbb{E}\hat{Z}-\mathbb{E}Z|\le\frac{\epsilon}{3}\mathbb{E} Z\\$$
+$$|\mathbb{E}\hat{Z}-\mathbb{E}Z|\le\frac{\epsilon}{3}\mathbb{E} Z$$
 
 根据 Hoeffding's inequality，存在 $t=O(n/\epsilon^2m)$ 使得
 
-$$\Pr(|\hat{Z}-\mathbb{E}\hat{Z}|\ge\frac{\epsilon}{3}\mathbb{E}Z)\le  \frac{1}{4}\\$$
+$$\Pr(|\hat{Z}-\mathbb{E}\hat{Z}|\ge\frac{\epsilon}{3}\mathbb{E}Z)\le  \frac{1}{4}$$
 
 两者综合即可得。$\square$
 
@@ -128,7 +128,7 @@ $$\Pr(|\hat{Z}-\mathbb{E}\hat{Z}|\ge\frac{\epsilon}{3}\mathbb{E}Z)\le  \frac{1}{
 
 **Definition(混合时间)** 对于马尔可夫链 $P$，其混合时间 $\tau$ 定义为
 
-$$\tau(\epsilon)\triangleq\max_{\nu}\min\left\{t:D_\mathrm{TV}(\nu P^t\parallel\mu P^t)\le\epsilon\right\}\\$$
+$$\tau(\epsilon)\triangleq\max_{\nu}\min\left\{t:D_\mathrm{TV}(\nu P^t\parallel\mu P^t)\le\epsilon\right\}$$
 
 马尔可夫链的混合时间直接决定了 MCMC 算法的运行效率，自 MCMC 方法发明以来，有许多关于混合时间分析的优秀方法被提出，例如偶合法(Coupling Method)。至今马尔可夫链混合时间的研究依然是热门方向。
 

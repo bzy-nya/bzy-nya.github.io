@@ -1,256 +1,281 @@
-/**
- * 静态页面路由系统
- * 专为博客系统设计的轻量级路由器
- */
-class StaticRouter {
-    constructor(options = {}) {
+class ComponentRouter {
+    constructor() {
         this.routes = new Map();
-        this.middlewares = [];
         this.currentRoute = null;
-        this.mode = options.mode || 'hash'; // 仅支持 hash 模式
-        this.defaultRoute = options.defaultRoute || '/';
-        this.eventListeners = new Map();
+        this.activeComponents = new Set();
+        this.isTransitioning = false;
         
-        // 初始化路由
         this.init();
     }
 
-    /**
-     * 初始化路由系统 - 只处理博客相关的hash
-     */
     init() {
-        // Hash 模式 - 只处理博客相关的hash
-        window.addEventListener('hashchange', () => {
-            const hash = window.location.hash;
-            // 只处理博客相关的hash (以 #/ 开头或者是 #blog)
-            if (hash.startsWith('#/') || hash === '#blog') {
-                console.log('[Router] Handling blog-related hash:', hash);
-                this.handleRouteChange();
-            } else {
-                console.log('[Router] Ignoring non-blog hash:', hash);
-            }
-        });
-        
-        window.addEventListener('load', () => {
-            const hash = window.location.hash;
-            // 页面加载时也只处理博客相关的hash
-            if (hash.startsWith('#/') || hash === '#blog') {
-                this.handleRouteChange();
-            }
-        });
-
-        console.log('[Router] Initialized for blog routes only');
+        console.log("[router] Starting initialization...");
+        window.addEventListener('hashchange', () => this.handleRouteChange());
+        window.addEventListener('load', () => this.handleRouteChange());
     }
 
     /**
-     * 注册路由
-     * @param {string} path - 路由路径
-     * @param {function} handler - 路由处理函数
+     * 注册路由配置
+     * @param {string|RegExp} pattern - 路由模式
+     * @param {Object} config - 路由配置
      */
-    route(path, handler) {
-        // 支持路径参数，如 /post/:id
-        const paramNames = [];
-        const regexPath = path.replace(/:([^/]+)/g, (match, paramName) => {
-            paramNames.push(paramName);
-            return '([^/]+)';
-        });
+    register(pattern, config) {
+        console.log(`[router] Registering new pattern "${pattern}"`);
 
-        const regex = new RegExp(`^${regexPath}$`);
-        
-        this.routes.set(path, {
-            regex,
-            handler,
-            paramNames,
-            originalPath: path
-        });
-        
-        return this;
-    }
+        const routeConfig = {
+            pattern,
+            components: config.components || [],
+            handler: config.handler || null,
+            beforeEnter: config.beforeEnter || null,
+            afterEnter: config.afterEnter || null,
+            beforeLeave: config.beforeLeave || null,
+            ...config
+        };
 
-    /**
-     * 开始路由处理
-     */
-    start() {
-        console.log('[Router] Starting with routes:', Array.from(this.routes.keys()));
-        this.handleRouteChange();
-        return this;
-    }
-
-    /**
-     * 添加中间件
-     * @param {function} middleware - 中间件函数
-     */
-    use(middleware) {
-        this.middlewares.push(middleware);
-        return this;
-    }
-
-    /**
-     * 导航到指定路径
-     * @param {string} path - 目标路径
-     * @param {boolean} replace - 是否替换当前历史记录
-     */
-    navigate(path, replace = false) {
-        if (replace) {
-            location.replace(`#${path}`);
-        } else {
-            location.hash = path;
+        // 如果是字符串，转换为正则表达式以支持参数
+        if (typeof pattern === 'string') {
+            const paramNames = [];
+            const regexPattern = pattern.replace(/:([^/]+)/g, (match, paramName) => {
+                paramNames.push(paramName);
+                return '([^/]+)';
+            });
+            
+            routeConfig.regex = new RegExp(`^${regexPattern}$`);
+            routeConfig.paramNames = paramNames;
         }
+
+        this.routes.set(pattern, routeConfig);
+        return this;
     }
 
     /**
-     * 获取当前路径
+     * 解析当前路由
      */
-    getCurrentPath() {
-        return location.hash.slice(1) || this.defaultRoute;
+    parseCurrentHash() {
+        var path = window.location.hash.slice(1) || '';
+
+        if (!path.startsWith('/')) path = '/' + path;
+        
+        return path;
     }
 
     /**
-     * 解析查询参数
+     * 匹配路由配置
      */
-    parseQuery() {
-        const params = new URLSearchParams(location.search);
-        const query = {};
-        for (const [key, value] of params) {
-            query[key] = value;
+    matchRoute(path) {
+        for (const [pattern, config] of this.routes) {
+            let match = null;
+            let params = {};
+            
+            if (typeof pattern === 'string') {
+                if (config.regex) {
+                    match = path.match(config.regex);
+                    if (match && config.paramNames) {
+                        config.paramNames.forEach((paramName, index) => {
+                            params[paramName] = match[index + 1];
+                        });
+                    }
+                } else {
+                    match = path === pattern;
+                }
+            } else if (pattern instanceof RegExp) {
+                match = path.match(pattern);
+            }
+            
+            if (match) {
+                return { config, params, path };
+            }
         }
-        return query;
+        
+        return null;
     }
 
     /**
      * 处理路由变化
      */
     async handleRouteChange() {
-        const path = this.getCurrentPath();
-        const query = this.parseQuery();
+        if (this.isTransitioning) return;
         
-        console.log(`[Router] Navigating to: ${path}`);
+        const path = this.parseCurrentHash();
+        const match = this.matchRoute(path);
+        
+        if (!match) {
+            console.warn('[router] No route match for:', path);
+            return;
+        }
+        
+        const { config, params } = match;
+        
+        // 检查是否需要组件切换
+        const newComponents = new Set(config.components);
+        
+        console.log('[router] Route to', path, {
+            components: config.components,
+            params
+        });
+        
+        await this.performTransition(config, params, path);
+        
+        this.currentRoute = { path, config, params };
+    }
 
-        // 查找匹配的路由
-        let matchedRoute = null;
-        let params = {};
-
-        for (const [routePath, route] of this.routes) {
-            const match = path.match(route.regex);
-            if (match) {
-                matchedRoute = route;
-                
-                // 提取路径参数
-                route.paramNames.forEach((paramName, index) => {
-                    params[paramName] = match[index + 1];
+    /**
+     * 执行组件切换和路由处理
+     */
+    async performTransition(config, params, path) {
+        this.isTransitioning = true;
+        
+        try {
+            // 1. 执行离开前钩子
+            if (this.currentRoute?.config.beforeLeave) {
+                await this.currentRoute.config.beforeLeave({
+                    from: this.currentRoute,
+                    to: { config, params, path }
                 });
-                break;
             }
-        }
 
-        if (matchedRoute) {
-            const context = {
-                path,
-                params,
-                query,
-                router: this
-            };
-
-            try {
-                // 执行中间件
-                for (const middleware of this.middlewares) {
-                    await middleware(context);
+            // 2. 并行执行：组件切换动画 + 内容更新
+            async function Hooks() {
+                if (config.beforeEnter) {
+                    await config.beforeEnter({ params, path, router: this });
                 }
-
-                // 执行路由处理器
-                await matchedRoute.handler(context);
-                
-                this.currentRoute = {
-                    path: matchedRoute.originalPath,
-                    actualPath: path,
-                    params,
-                    query
-                };
-
-                // 触发路由变化事件
-                this.emit('routeChanged', this.currentRoute);
-
-            } catch (error) {
-                console.error('[Router] Error handling route:', error);
-                this.emit('routeError', { error, context });
+                await config.handler({ params, path, router: this })
+                if (config.afterEnter) {
+                    await config.afterEnter({ params, path, router: this });
+                }
             }
-        } else {
-            console.warn(`[Router] No route found for: ${path}`);
-            this.emit('routeNotFound', { path, query });
             
-            // 重定向到默认路由
-            if (path !== this.defaultRoute) {
-                this.navigate(this.defaultRoute, true);
-            }
+            const componentTransition = this.switchComponents(config.components);
+            const handler = Hooks();
+
+            await Promise.all([componentTransition, handler]);
+            
+        } catch (error) {
+            console.error('[router] Transition error:', error);
+        } finally {
+            this.isTransitioning = false;
         }
     }
 
     /**
-     * 事件发射器
+     * 切换组件显示状态 - 统一动画管理
      */
-    emit(eventName, data) {
-        if (this.eventListeners.has(eventName)) {
-            this.eventListeners.get(eventName).forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error(`[Router] Error in event listener for ${eventName}:`, error);
+    async switchComponents(targetComponents) {
+        // 找出需要隐藏和显示的组件
+        const toHide = Array.from(this.activeComponents).filter(c => !targetComponents.includes(c));
+        const toShow = targetComponents.filter(c => !this.activeComponents.has(c));
+        
+        // 隐藏组件 - 统一淡出动画
+        if (toHide.length > 0) {
+            console.log('[router] Hiding components:', toHide);
+            await this.hideComponents(toHide);
+        }
+        
+        // 显示组件 - 统一淡入动画
+        if (toShow.length > 0) {
+            console.log('[router] Showing components:', toShow);
+            await this.showComponents(toShow);
+        }
+        
+        // 更新活跃组件集合
+        this.activeComponents = new Set(targetComponents);
+    }
+
+    /**
+     * 隐藏组件（淡出动画）
+     */
+    async hideComponents(componentIds) {
+        const promises = componentIds.map(componentId => {
+            return new Promise(resolve => {
+                const element = document.getElementById(componentId);
+                if (!element) {
+                    resolve();
+                    return;
                 }
+
+                // 添加淡出动画类
+                element.classList.add('fade-out');
+                
+                // 等待动画完成后隐藏
+                setTimeout(() => {
+                    element.classList.remove('active', 'fade-out');
+                    element.style.display = 'none';
+                    resolve();
+                }, 200); // 与CSS动画时间一致
             });
+        });
+        
+        await Promise.all(promises);
+    }
+
+    /**
+     * 显示组件（淡入动画）
+     */
+    async showComponents(componentIds) {
+        const promises = componentIds.map(componentId => {
+            return new Promise(resolve => {
+                const element = document.getElementById(componentId);
+                if (!element) {
+                    resolve();
+                    return;
+                }
+
+                // 先显示元素
+                element.style.display = 'block';
+                
+                // 强制重绘确保display生效
+                element.offsetHeight;
+                
+                // 添加激活类触发淡入动画
+                element.classList.add('active');
+                
+                // 等待动画完成
+                setTimeout(() => {
+                    resolve();
+                }, 200); // 与CSS动画时间一致
+            });
+        });
+        
+        await Promise.all(promises);
+    }
+
+    /**
+     * 比较两个集合是否相等
+     */
+    setsEqual(set1, set2) {
+        if (set1.size !== set2.size) return false;
+        for (const item of set1) {
+            if (!set2.has(item)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * 导航到指定路由
+     */
+    navigate(path, replace = false) {
+        var fullPath = path.startsWith('#') ? path : '#' + path;
+
+        if (replace) {
+            window.location.replace(fullPath);
+        } else {
+            window.location.hash = fullPath;
         }
     }
 
     /**
-     * 监听路由事件
-     * @param {string} eventName - 事件名称
-     * @param {function} callback - 回调函数
+     * 获取当前状态
      */
-    on(eventName, callback) {
-        if (!this.eventListeners.has(eventName)) {
-            this.eventListeners.set(eventName, []);
-        }
-        this.eventListeners.get(eventName).push(callback);
-    }
-
-    /**
-     * 移除事件监听器
-     */
-    off(eventName, callback) {
-        if (this.eventListeners.has(eventName)) {
-            const listeners = this.eventListeners.get(eventName);
-            const index = listeners.indexOf(callback);
-            if (index > -1) {
-                listeners.splice(index, 1);
-            }
-        }
-    }
-
-    /**
-     * 销毁路由器
-     */
-    destroy() {
-        this.routes.clear();
-        this.middlewares = [];
-        this.eventListeners.clear();
-        this.currentRoute = null;
+    getCurrentState() {
+        return {
+            route: this.currentRoute,
+            activeComponents: Array.from(this.activeComponents),
+            isTransitioning: this.isTransitioning
+        };
     }
 }
 
-// 全局路由实例
-window.router = null;
-
-// 初始化路由的便捷函数
-function createRouter(options = {}) {
-    if (window.router) {
-        console.warn('[Router] Router already exists');
-        return window.router;
-    }
-
-    window.router = new StaticRouter(options);
-    return window.router;
-}
-
-// 导出类和函数
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { StaticRouter, createRouter };
+// 导出
+if (typeof window !== 'undefined') {
+    window.ComponentRouter = ComponentRouter;
 }

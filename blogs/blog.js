@@ -9,11 +9,7 @@ class BlogSystem {
         
         // 初始化 marked.js 配置
         this.initMarked();
-        
-        // 初始化路由系统但不启动
-        this.initRouterConfig();
     }
-
     /**
      * 初始化 Marked.js 配置
      */
@@ -21,27 +17,6 @@ class BlogSystem {
         if (typeof marked !== 'undefined') {
             // 配置renderer来处理表格对齐
             const renderer = new marked.Renderer();
-            
-            // 重写table cell renderer来处理对齐
-            const originalTablecell = renderer.tablecell;
-            renderer.tablecell = function(content, flags) {
-                let align = '';
-                if (flags.align) {
-                    align = ` align="${flags.align}"`;
-                }
-                const type = flags.header ? 'th' : 'td';
-                return `<${type}${align}>${content}</${type}>\n`;
-            };
-
-            // 重写paragraph renderer来保护数学公式
-            const originalParagraph = renderer.paragraph;
-            renderer.paragraph = function(text) {
-                // 如果段落只包含数学公式，直接返回不包装p标签
-                if (/^\s*\$\$[\s\S]*\$\$\s*$/.test(text)) {
-                    return text + '\n';
-                }
-                return originalParagraph.call(this, text);
-            };
 
             // 重写image renderer来处理图片标题和居中
             const originalImage = renderer.image;
@@ -60,15 +35,68 @@ class BlogSystem {
                 }
             };
 
+            renderer.listitem = (text, task, checked) => {
+                if (task) {
+                    return `<li class="task-list-item">${text}</li>`;
+                }
+                return `<li>${text}</li>`;
+            }
+
+            renderer.checkbox = (checked) => {
+                return `<input class="task-list-item-checkbox" type="checkbox" ${checked ? 'checked' : ''} disabled>`;
+            };
+
+            /*
+            renderer.code = (code, infoString) => {
+                const lang = (infoString || '').trim();
+                const grammar = Prism.languages[lang] || Prism.languages.markup;
+                const html =    (code, grammar, lang);
+                const cls = lang ? `class="language-${lang}"` : '';
+                return `<pre><code ${cls}>${html}</code></pre>`;
+            };
+            */
+
+            if (typeof katex !== 'undefined') {
+                const mathBlock = {
+                    name: 'mathBlock',
+                    level: 'block',
+                    start(src) { return src.indexOf('$$'); },
+                    tokenizer(src) {
+                        const m = /^\$\$([\s\S]+?)\$\$(?:\n+|$)/.exec(src);
+                        if (m) return { type: 'mathBlock', raw: m[0], text: m[1].trim() };
+                    },
+                    renderer(tok) {
+                        return katex.renderToString(tok.text, {
+                        displayMode: true,
+                        throwOnError: false,
+                        output: 'html' // 避免 MathML 在后续被清洗
+                        });
+                    }
+                };
+
+                const mathInline = {
+                    name: 'mathInline',
+                    level: 'inline',
+                    start(src) { return src.indexOf('$'); },
+                    tokenizer(src) {
+                        // 简单版：不支持嵌套 $，但够用且稳定
+                        const m = /^\$([^$\n]+?)\$(?!\d)/.exec(src);
+                        if (m) return { type: 'mathInline', raw: m[0], text: m[1] };
+                    },
+                    renderer(tok) {
+                        return katex.renderToString(tok.text, {
+                        displayMode: false,
+                        throwOnError: false,
+                        output: 'html'
+                        });
+                    }
+                };
+
+                marked.use({ extensions: [mathBlock, mathInline] });
+            }
+
             marked.setOptions({
                 renderer: renderer,
-                highlight: function(code, lang) {
-                    // 如果有 Prism.js，使用它来高亮代码
-                    if (typeof Prism !== 'undefined' && lang && Prism.languages[lang]) {
-                        return Prism.highlight(code, Prism.languages[lang], lang);
-                    }
-                    return code;
-                },
                 breaks: false, // 改为false，避免不必要的换行影响数学公式
                 gfm: true,
                 // 启用更多扩展
@@ -76,116 +104,38 @@ class BlogSystem {
                 mangle: false,
                 tables: true
             });
+
+            console.log(marked.parse('::video[https://www.youtube.com/embed/Sh5S3OxiE-s]'));
         }
     }
 
     /**
-     * 初始化路由配置（不启动）
+     * 显示博客首页 - 供组件路由器调用
      */
-    initRouterConfig() {
-        // 不在这里创建路由实例，推迟到 startRouter 时创建
-        console.log('[Blog] Router config prepared, but router not created yet');
-    }
-
-    /**
-     * 启动路由系统
-     */
-    startRouter() {
-        console.log('[Blog] Starting router system...');
-        
-        // 创建路由实例
-        if (!window.router) {
-            window.router = createRouter({
-                mode: 'hash', // 使用 hash 模式，适合静态网站
-                defaultRoute: '/'
-            });
-        }
-
-        // 注册路由但不启动
-        window.router
-            .route('/', () => {
-                if (this.posts && this.posts.length > 0) {
-                    this.showBlogList();
-                } else {
-                    // 如果数据还没加载，等待加载完成
-                    this.waitForDataThenShow('list');
-                }
-            })
-            .route('/blog', () => {
-                if (this.posts && this.posts.length > 0) {
-                    this.showBlogList();
-                } else {
-                    this.waitForDataThenShow('list');
-                }
-            })
-            .route('/post/:id', (context) => {
-                const postId = context.params.id;
-                if (this.posts && this.posts.length > 0) {
-                    this.showPost(postId, false);
-                } else {
-                    // 如果数据还没加载，等待加载完成
-                    this.waitForDataThenShow('post', postId);
-                }
-            });
-
-        // 监听路由事件
-        window.router.on('routeChanged', (route) => {
-            console.log('Route changed:', route);
-        });
-
-        window.router.on('routeNotFound', (data) => {
-            console.warn('Route not found:', data.path);
-            this.showBlogList(); // 默认显示博客列表
-        });
-        
-        // 启动路由器
-        if (window.router) {
-            window.router.start();
-        }
-    }
-
-    /**
-     * 等待数据加载完成后显示指定内容
-     */
-    async waitForDataThenShow(type, postId = null) {
-        console.log(`[Blog] waitForDataThenShow called: type=${type}, postId=${postId}`);
-        console.log(`[Blog] Current posts loaded:`, this.posts?.length || 0);
-        
-        // 如果数据还没加载，先加载
+    async showHome() {        
+        // 如果数据没有加载，先加载
         if (!this.posts || this.posts.length === 0) {
-            console.log(`[Blog] Loading posts first...`);
             await this.loadPosts();
-            console.log(`[Blog] Posts loaded:`, this.posts.length);
         }
         
-        // 数据加载完成后显示对应内容
-        if (type === 'list') {
-            console.log(`[Blog] Showing blog list`);
-            this.showBlogList();
-        } else if (type === 'post' && postId) {
-            console.log(`[Blog] Showing post: ${postId}`);
-            this.showPost(postId, false);
-        }
-    }
-
-    /**
-     * 初始化导航功能（保留兼容性）
-     */
-    initNavigation() {
-        // 这个方法现在由路由系统处理
-        console.log('Navigation handled by router system');
+        // 显示博客列表
+        this.showBlogList();
     }
 
     /**
      * 加载博客文章列表
      */
     async loadPosts() {
+        console.log("[Blog] Loading posts...");
+
         try {
             const response = await fetch('blogs/posts.json');
             const data = await response.json();
             this.posts = data.posts || [];
             this.tags = data.tags || {};
-            return this.posts;
+
+            console.log(`[Blog] Loaded ${this.posts.length} posts`);
+            return this.posts;  
         } catch (error) {
             console.error('Failed to load blog posts:', error);
             return [];
@@ -242,7 +192,7 @@ class BlogSystem {
                     <div class="item-meta">
                         ${this.formatDate(post.date)} 
                         ${tags}
-                        <a href="#" data-post-id="${post.id}">Read more</a>
+                        <a href="#/post/${post.id}" data-post-id="${post.id}">Read more</a>
                     </div>
                 </div>
             `;
@@ -259,34 +209,12 @@ class BlogSystem {
      * 添加博客列表事件监听器
      */
     addBlogListEventListeners() {
-        const readMoreLinks = document.querySelectorAll('.read-more');
-        readMoreLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const postId = link.getAttribute('data-post-id');
-                window.router.navigate(`/post/${postId}`);
-            });
-        });
-
-        const postItems = document.querySelectorAll('.blog-post-item');
-        postItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // 如果点击的是链接，不触发整个item的点击
-                if (e.target.tagName === 'A') return;
-                
-                const postId = item.getAttribute('data-post-id');
-                window.router.navigate(`/post/${postId}`);
-            });
-        });
     }
 
     /**
      * 显示单篇博客文章
      */
-    async showPost(postId, pushHistory = true) {
-        console.log(`[Blog] showPost called with postId: ${postId}`);
-        console.log(`[Blog] Available posts:`, this.posts.map(p => p.id));
-        
+    async showPost(postId) {
         const post = this.posts.find(p => p.id === postId);
         if (!post) {
             console.error('Post not found:', postId);
@@ -294,35 +222,22 @@ class BlogSystem {
             return;
         }
 
-        console.log(`[Blog] Found post:`, post.title);
         this.isLoading = true;
         this.showLoading();
 
         try {
             // 路由系统会自动处理历史记录，这里不需要手动推送
 
-            // 隐藏博客导航
-            this.removeBlogNavigation();
-
             // 加载 markdown 文件
             const response = await fetch(`blogs/posts/${post.file}`);
             let markdown = await response.text();
 
-            // 先提取并渲染数学公式，替换为占位符
-            const mathResult = this.preprocessAndRenderMath(markdown);
-            markdown = mathResult.markdown;
-            
-            // 预处理扩展语法
             markdown = this.preprocessExtensions(markdown);
 
-            // 转换为 HTML
-            const html = marked ? marked.parse(markdown) : markdown;
-            
-            // 恢复渲染的数学公式
-            const finalHtml = this.restoreMathInHTML(html, mathResult);
+            const Html = marked ? marked.parse(markdown) : markdown;
             
             // 生成目录
-            const result = this.generateTableOfContents(finalHtml);
+            const result = this.generateTableOfContents(Html);
 
             // 显示文章
             this.renderPostView(post, result.html, result.toc);
@@ -337,9 +252,6 @@ class BlogSystem {
             // 渲染文章目录导航
             this.renderArticleTOC(result.toc);
 
-            // 移除滚动跟随效果，避免奇怪的距离问题
-            // this.initContentScrollFollow();
-
         } catch (error) {
             console.error('Failed to load post:', error);
             this.showError('Failed to load the blog post. Please try again.');
@@ -353,7 +265,11 @@ class BlogSystem {
      */
     renderPostView(post, content, toc) {
         const blogContainer = document.querySelector('#blog');
-
+        if (!blogContainer) {
+            console.error('[Blog] Blog container not found!');
+            return;
+        }
+        
         const tags = post.tags ? post.tags.map(tag => 
             `<span class="pixel-badge" style="background: ${this.tags[tag]?.color || 'var(--secondary)'}">${this.tags[tag]?.name || tag}</span>`
         ).join('') : '';
@@ -389,37 +305,7 @@ class BlogSystem {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = content;
                 
-                contentElement.innerHTML = content;
-                
-                // 检查是否有 \tilde{x} 相关的内容
-                const domHTML = contentElement.innerHTML;
-                const tildeIndex = domHTML.indexOf('tilde');
-                
-                // 检查可见元素数量
-                setTimeout(() => {
-                    const visibleElements = contentElement.querySelectorAll('*');
-                    
-                    // 检查是否有元素被CSS隐藏或有错误
-                    const hiddenElements = Array.from(visibleElements).filter(el => {
-                        const style = window.getComputedStyle(el);
-                        return style.display === 'none' || style.visibility === 'hidden';
-                    });
-                    
-                    // 查找最后一个可见的文本节点
-                    const walker = document.createTreeWalker(
-                        contentElement,
-                        NodeFilter.SHOW_TEXT,
-                        null,
-                        false
-                    );
-                    let lastTextNode;
-                    let node;
-                    while (node = walker.nextNode()) {
-                        if (node.textContent.trim()) {
-                            lastTextNode = node;
-                        }
-                    }
-                }, 100);
+                contentElement.innerHTML = content;                
             } catch (error) {
                 console.error('Error inserting content:', error);
                 // 作为备用，尝试使用textContent
@@ -431,7 +317,7 @@ class BlogSystem {
         const backButton = document.getElementById('back-to-blog-list');
         if (backButton) {
             backButton.addEventListener('click', () => {
-                this.showBlogList();
+                Router.navigate('#blog')
             });
         }
     }
@@ -443,10 +329,7 @@ class BlogSystem {
         const blogContainer = document.querySelector('#blog');
         if (!blogContainer) return;
 
-        // 推送历史记录到博客列表状态
-        if (history.state?.view !== 'blog-list') {
-            history.pushState({ view: 'blog-list' }, 'Blog List', '#blog');
-        }
+        // 不再推送历史记录，因为组件路由器会管理 URL 状态
 
         blogContainer.innerHTML = `
             <section class="section">
@@ -462,9 +345,6 @@ class BlogSystem {
 
         this.renderBlogList();
         this.currentPost = null;
-        
-        // 清理文章目录
-        this.removeArticleTOC();
         
         // 重新显示博客导航
         this.renderBlogNavigation();
@@ -544,194 +424,6 @@ class BlogSystem {
                 Prism.highlightAllUnder(blogContent);
             }
         }
-    }
-
-    /**
-     * 预处理并渲染数学公式，先用KaTeX渲染再处理markdown
-     */
-    preprocessAndRenderMath(markdown) {
-        
-        // 保护代码块，避免在代码块中处理数学公式
-        const codeBlocks = [];
-        let codeBlockIndex = 0;
-        
-        // 先提取所有代码块
-        markdown = markdown.replace(/```[\s\S]*?```/g, (match) => {
-            const placeholder = `<!--CODE_BLOCK_${codeBlockIndex}-->`;
-            codeBlocks[codeBlockIndex] = match;
-            codeBlockIndex++;
-            return placeholder;
-        });
-
-        // 检查KaTeX是否可用
-        if (typeof katex === 'undefined') {
-            console.warn('KaTeX not loaded, falling back to original math processing');
-            return this.preprocessMath(markdown);
-        }
-
-        // 存储渲染后的数学公式
-        const mathBlocks = [];
-        const inlineMathBlocks = [];
-        let mathIndex = 0;
-        let inlineMathIndex = 0;
-
-        // 处理显示数学公式 $$...$$
-        markdown = markdown.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
-            try {                
-                // 检测是否包含复杂的LaTeX环境，如果包含则使用更兼容的输出模式
-                const hasComplexEnvironments = /\\begin\{(array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|align|gather|split)\}/.test(mathContent);
-                
-                const rendered = katex.renderToString(mathContent.trim(), {
-                    displayMode: true,
-                    throwOnError: false,
-                    trust: true,
-                    output: 'html', // 使用HTML输出保证最佳兼容性
-                    strict: false,
-                    // 启用更多的宏和环境
-                    macros: {
-                        "\\RR": "\\mathbb{R}",
-                        "\\NN": "\\mathbb{N}",
-                        "\\ZZ": "\\mathbb{Z}",
-                        "\\QQ": "\\mathbb{Q}",
-                        "\\CC": "\\mathbb{C}",
-                        "\\tilde": "\\widetilde"
-                    },
-                    // 改进字体和排版设置
-                    fleqn: false,
-                    leqno: false,
-                    minRuleThickness: 0.04,
-                    // 添加更好的错误处理和字体设置
-                    errorColor: '#cc0000',
-                    colorIsTextColor: false
-                });
-
-                const placeholder = `<!--MATH_BLOCK_${mathIndex}-->`;
-                mathBlocks[mathIndex] = rendered;
-                mathIndex++;
-                return placeholder;
-            } catch (error) {
-                console.warn('Failed to render math:', mathContent, error);
-                return match; // 保留原始内容
-            }
-        });
-
-        // 处理行内数学公式 $...$
-        markdown = markdown.replace(/\$([^$\n]+)\$/g, (match, mathContent) => {
-            try {
-                const rendered = katex.renderToString(mathContent.trim(), {
-                    displayMode: false,
-                    throwOnError: false,
-                    trust: true,
-                    output: 'html', // 行内公式使用HTML输出
-                    strict: false,
-                    // 添加与显示模式相同的宏定义
-                    macros: {
-                        "\\RR": "\\mathbb{R}",
-                        "\\NN": "\\mathbb{N}",
-                        "\\ZZ": "\\mathbb{Z}",
-                        "\\QQ": "\\mathbb{Q}",
-                        "\\CC": "\\mathbb{C}",
-                        "\\tilde": "\\widetilde"
-                    },
-                    // 改进字体和排版设置
-                    fleqn: false,
-                    leqno: false,
-                    minRuleThickness: 0.04,
-                    // 添加更好的错误处理和字体设置
-                    errorColor: '#cc0000',
-                    colorIsTextColor: false
-                });
-                
-                // 检查渲染结果是否包含问题字符
-                if (rendered.includes('<del>') || rendered.includes('</del>')) {
-                    console.warn('DEL tag found in KaTeX output!', rendered);
-                }
-                
-                const placeholder = `<!--MATH_INLINE_${inlineMathIndex}-->`;
-                inlineMathBlocks[inlineMathIndex] = rendered;
-                inlineMathIndex++;
-                return placeholder;
-            } catch (error) {
-                console.warn('Failed to render inline math:', mathContent, error);
-                return match; // 保留原始内容
-            }
-        });
-
-        // 恢复代码块
-        codeBlocks.forEach((codeBlock, index) => {
-            markdown = markdown.replace(`<!--CODE_BLOCK_${index}-->`, codeBlock);
-        });
-
-        // 恢复渲染后的数学公式
-        mathBlocks.forEach((mathBlock, index) => {
-            markdown = markdown.replace(`<!--MATH_BLOCK_${index}-->`, `<!--MATH_BLOCK_${index}-->`);
-        });
-
-        return {
-            markdown: markdown,
-            mathBlocks: mathBlocks,
-            inlineMathBlocks: inlineMathBlocks
-        };
-    }
-
-    /**
-     * 在HTML中恢复渲染的数学公式
-     */
-    restoreMathInHTML(html, mathResult) {
-        
-        // 恢复显示数学公式
-        mathResult.mathBlocks.forEach((mathBlock, index) => {
-            const placeholder = `<!--MATH_BLOCK_${index}-->`;
-            html = html.replace(placeholder, mathBlock);
-        });
-        
-        // 恢复行内数学公式
-        mathResult.inlineMathBlocks.forEach((mathBlock, index) => {
-            const placeholder = `<!--MATH_INLINE_${index}-->`;
-            html = html.replace(placeholder, mathBlock);
-        });
-        
-        return html;
-    }
-
-    /**
-     * 备用数学公式预处理（当KaTeX不可用时）
-     * 注意：这个函数只在KaTeX不可用时调用，不应该与preprocessAndRenderMath重复处理
-     */
-    preprocessMath(markdown) {
-        // 保护代码块，避免在代码块中处理数学公式
-        const codeBlocks = [];
-        let codeBlockIndex = 0;
-        
-        // 先提取所有代码块
-        markdown = markdown.replace(/```[\s\S]*?```/g, (match) => {
-            const placeholder = `<!--CODE_BLOCK_${codeBlockIndex}-->`;
-            codeBlocks[codeBlockIndex] = match;
-            codeBlockIndex++;
-            return placeholder;
-        });
-
-        // 处理跨行的$$数学公式 - 只是格式化，不渲染
-        // 先规范化所有的$$公式格式
-        markdown = markdown.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
-            // 清理内容，去除多余的空行
-            const cleanContent = content.trim();
-            
-            // 如果内容包含换行，使用display数学模式
-            if (cleanContent.includes('\n')) {
-                return `\n$$\n${cleanContent}\n$$\n`;
-            } else {
-                // 单行公式也使用display模式，确保正确渲染
-                return `\n$$\n${cleanContent}\n$$\n`;
-            }
-        });
-
-        // 恢复代码块
-        codeBlocks.forEach((codeBlock, index) => {
-            markdown = markdown.replace(`<!--CODE_BLOCK_${index}-->`, codeBlock);
-        });
-
-        return markdown;
     }
 
     /**
@@ -829,15 +521,7 @@ class BlogSystem {
      * 渲染博客导航栏
      */
     renderBlogNavigation() {
-        console.log('[Blog] renderBlogNavigation called');
-        
-        // 简化检查：如果当前正在显示单篇文章，不显示博客导航栏
-        if (this.currentPost) {
-            console.log('[Blog] Currently viewing single post, skipping navigation render');
-            return;
-        }
-
-        console.log('[Blog] Rendering blog navigation...');
+        // 直接渲染，由路由器控制组件可见性
         this._doRenderBlogNavigation();
     }
 
@@ -845,25 +529,11 @@ class BlogSystem {
      * 实际渲染博客导航栏
      */
     _doRenderBlogNavigation() {
-
-        // 查找现有的导航栏容器
-        let navContainer = document.querySelector('.blog-navigation-card');
-        let shouldAnimate = false;
-        
-        if (!navContainer) {
-            // 创建新的导航栏容器
-            const sidebar = document.querySelector('.sidebar');
-            if (!sidebar) return;
-
-            navContainer = document.createElement('section');
-            navContainer.className = 'card blog-navigation-card';
-            sidebar.appendChild(navContainer);
-            shouldAnimate = true;
-        } else {
-            // 如果容器已存在，准备重新触发动画
-            shouldAnimate = true;
-            // 暂时移除动画类
-            navContainer.style.animation = 'none';
+        // 查找博客导航组件容器
+        const navComponent = document.getElementById('blog-navigation');
+        if (!navComponent) {
+            console.warn('[Blog] Blog navigation component not found');
+            return;
         }
 
         // 获取所有标签和统计信息
@@ -883,60 +553,54 @@ class BlogSystem {
         const pinnedPosts = this.posts.filter(post => post.pinned).length;
         const featuredPosts = this.posts.filter(post => post.featured).length;
 
-        navContainer.innerHTML = `
-            <div class="blog-nav-title">
-                <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
-                Blog Navigation
-            </div>
-            
-            <div class="blog-stats">
-                <div class="stat-item">
-                    <span class="stat-number">${totalPosts}</span>
-                    <span class="stat-label">Total Posts</span>
+        // 直接在组件容器内渲染内容
+        navComponent.innerHTML = `
+            <section class="card blog-navigation-card">
+                <div class="blog-nav-title">
+                    <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
+                    Blog Navigation
                 </div>
-                ${pinnedPosts > 0 ? `
-                <div class="stat-item">
-                    <span class="stat-number">${pinnedPosts}</span>
-                    <span class="stat-label">Pinned</span>
+                
+                <div class="blog-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">${totalPosts}</span>
+                        <span class="stat-label">Total Posts</span>
+                    </div>
+                    ${pinnedPosts > 0 ? `
+                    <div class="stat-item">
+                        <span class="stat-number">${pinnedPosts}</span>
+                        <span class="stat-label">Pinned</span>
+                    </div>
+                    ` : ''}
+                    ${featuredPosts > 0 ? `
+                    <div class="stat-item">
+                        <span class="stat-number">${featuredPosts}</span>
+                        <span class="stat-label">Featured</span>
+                    </div>
+                    ` : ''}
                 </div>
-                ` : ''}
-                ${featuredPosts > 0 ? `
-                <div class="stat-item">
-                    <span class="stat-number">${featuredPosts}</span>
-                    <span class="stat-label">Featured</span>
-                </div>
-                ` : ''}
-            </div>
 
-            <div class="blog-filter-section">
-                <div class="filter-title">Filter by Tags</div>
-                <div class="tag-filters">
-                    <button class="tag-filter active" data-tag="all">
-                        All (${totalPosts})
-                    </button>
-                    ${Array.from(allTags).map(tag => {
-                        const tagInfo = this.tags[tag] || { name: tag, color: 'var(--secondary)' };
-                        return `
-                            <button class="tag-filter" data-tag="${tag}" style="--tag-color: ${tagInfo.color}">
-                                ${tagInfo.name} (${tagCounts[tag]})
-                            </button>
-                        `;
-                    }).join('')}
+                <div class="blog-filter-section">
+                    <div class="filter-title">Filter by Tags</div>
+                    <div class="tag-filters">
+                        <button class="tag-filter active" data-tag="all">
+                            All (${totalPosts})
+                        </button>
+                        ${Array.from(allTags).map(tag => {
+                            const tagInfo = this.tags[tag] || { name: tag, color: 'var(--secondary)' };
+                            return `
+                                <button class="tag-filter" data-tag="${tag}" style="--tag-color: ${tagInfo.color}">
+                                    ${tagInfo.name} (${tagCounts[tag]})
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
-            </div>
+            </section>
         `;
 
         // 添加过滤事件监听器
         this.addNavigationEventListeners();
-        
-        // 触发渐入动画
-        if (shouldAnimate) {
-            // 使用requestAnimationFrame确保DOM更新后再触发动画
-            requestAnimationFrame(() => {
-                // 重新应用动画
-                navContainer.style.animation = 'slideInFromDown 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            });
-        }
     }
 
     /**
@@ -980,19 +644,6 @@ class BlogSystem {
     /**
      * 移除博客导航栏
      */
-    removeBlogNavigation() {
-        const navContainer = document.querySelector('.blog-navigation-card');
-        if (navContainer) {
-            // 添加淡出动画
-            navContainer.classList.add('fade-out');
-            // 等待动画完成后移除元素
-            setTimeout(() => {
-                if (navContainer.parentNode) {
-                    navContainer.remove();
-                }
-            }, 300);
-        }
-    }
 
     /**
      * 生成文章目录
@@ -1020,7 +671,7 @@ class BlogSystem {
                 element: heading
             });
         });
-        
+                
         // 返回更新后的HTML和目录数据
         return {
             html: tempDiv.innerHTML,
@@ -1037,34 +688,27 @@ class BlogSystem {
             return;
         }
         
-        console.log('[Blog] renderArticleTOC called with', toc.length, 'items');
-
-        // 查找或创建目录容器
-        let tocContainer = document.querySelector('.article-toc-card');
-        if (!tocContainer) {
-            const sidebar = document.querySelector('.sidebar');
-            if (!sidebar) {
-                console.log('[Blog] No sidebar found for TOC');
-                return;
-            }
-
-            tocContainer = document.createElement('section');
-            tocContainer.className = 'card article-toc-card';
-            sidebar.appendChild(tocContainer);
-            console.log('[Blog] Created new TOC container');
+        // 查找文章TOC组件容器
+        const tocComponent = document.getElementById('article-toc-card');
+        if (!tocComponent) {
+            console.warn('[Blog] Article TOC component not found');
+            return;
         }
 
         // 生成目录HTML
         const tocHTML = this.buildTOCHTML(toc);
         
-        tocContainer.innerHTML = `
-            <div class="toc-title">
-                <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
-                Contents
-            </div>
-            <div class="toc-content">
-                ${tocHTML}
-            </div>
+        // 直接在组件容器内渲染内容
+        tocComponent.innerHTML = `
+            <section class="card article-toc-card">
+                <div class="toc-title">
+                    <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
+                    Contents
+                </div>
+                <div class="toc-content">
+                    ${tocHTML}
+                </div>
+            </section>
         `;
 
         // 添加目录点击事件
@@ -1183,36 +827,11 @@ class BlogSystem {
     }
 
     /**
-     * 移除文章目录
-     */
-    removeArticleTOC() {
-        const tocContainer = document.querySelector('.article-toc-card');
-        if (tocContainer) {
-            // 添加淡出动画
-            tocContainer.classList.add('fade-out');
-            // 等待动画完成后移除元素
-            setTimeout(() => {
-                if (tocContainer.parentNode) {
-                    tocContainer.remove();
-                }
-            }, 300);
-        }
-        
-        // 清理滚动监听器
-        if (this.tocObserver) {
-            this.tocObserver.disconnect();
-            this.tocObserver = null;
-        }
-
-        // 清理目录位置调整
-        this.cleanupTOCPositionAdjustment();
-    }
-
-    /**
      * 初始化目录位置调整
      */
     initTOCPositionAdjustment() {
-        const tocCard = document.querySelector('.article-toc-card');
+        // 直接使用组件容器，因为它本身就是TOC卡片
+        const tocCard = document.getElementById('article-toc-card');
         if (!tocCard) return;
 
         this.tocPositionHandler = () => {
@@ -1252,59 +871,6 @@ class BlogSystem {
     }
 
     /**
-     * 清理目录位置调整
-     */
-    cleanupTOCPositionAdjustment() {
-        if (this.tocPositionHandler) {
-            window.removeEventListener('scroll', this.tocPositionHandler);
-            this.tocPositionHandler = null;
-        }
-    }
-
-    /**
-     * 初始化文章内容滚动跟随效果
-     */
-    initContentScrollFollow() {
-        const contentElement = document.getElementById('blog-post-content');
-        if (!contentElement) return;
-
-        // 设置初始状态
-        contentElement.style.transform = 'translateY(100px)';
-        contentElement.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
-
-        // 创建滚动监听器
-        this.contentScrollHandler = () => {
-            const scrollY = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight;
-
-            // 计算滚动进度 (0-1)
-            const scrollProgress = Math.min(scrollY / (documentHeight - windowHeight), 1);
-            
-            // 计算变换值：从 100px 向下偏移开始，随着滚动逐渐移动到正常位置
-            const translateY = Math.max(100 - (scrollProgress * 150), 0);
-            
-            contentElement.style.transform = `translateY(${translateY}px)`;
-        };
-
-        // 添加滚动事件监听器
-        window.addEventListener('scroll', this.contentScrollHandler);
-        
-        // 触发一次初始计算
-        this.contentScrollHandler();
-    }
-
-    /**
-     * 清理内容滚动跟随效果
-     */
-    cleanupContentScrollFollow() {
-        if (this.contentScrollHandler) {
-            window.removeEventListener('scroll', this.contentScrollHandler);
-            this.contentScrollHandler = null;
-        }
-    }
-
-    /**
      * 格式化日期
      */
     formatDate(dateString) {
@@ -1319,12 +885,8 @@ class BlogSystem {
     async init() {
         console.log('[Blog] Initializing blog system...');
         await this.loadPosts();
-        console.log('[Blog] Posts loaded, starting router...');
         
-        // 数据加载完成后启动路由系统
-        this.startRouter();
-        
-        console.log('[Blog] Blog system initialized');
+        console.log('[Blog] Blog system ready');
     }
 }
 
@@ -1333,29 +895,21 @@ let blogSystem = null;
 let blogSystemInitializing = false;
 
 // 初始化函数
-async function initBlogSystem() {
-    if (blogSystem) {
-        console.log('[Blog] Blog system already initialized');
-        return blogSystem;
-    }
+async function tryInitBlogSystem() {
+    if (blogSystem) return blogSystem;
     
-    if (blogSystemInitializing) {
-        console.log('[Blog] Blog system initialization already in progress');
-        return;
-    }
-    
+    if (blogSystemInitializing) return;
+
     blogSystemInitializing = true;
-    console.log('[Blog] Starting blog system initialization...');
     
     try {
         blogSystem = new BlogSystem();
         await blogSystem.init();
-        console.log('[Blog] Blog system initialization completed');
-        return blogSystem;
     } catch (error) {
         console.error('[Blog] Failed to initialize blog system:', error);
         blogSystem = null;
-    } finally {
-        blogSystemInitializing = false;
-    }
+    } 
+
+    window.blogSystem = blogSystem;
+    blogSystemInitializing = false;
 }

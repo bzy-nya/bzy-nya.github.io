@@ -20,9 +20,7 @@ Let's start with the basics - text formatting:
 
 You can also combine *italics* with **bold** text in the same sentence to create **_really emphasized_** content.
 
-## Headers Hierarchy
-
-# H1 Header - Main Title
+# H1 Header - Post Title
 ## H2 Header - Section Title  
 ### H3 Header - Subsection
 
@@ -52,7 +50,7 @@ Here are different ways to create lists:
 3. Back to main level
 4. Final item
 
-### Task Lists (GitHub Style)
+### Task Lists
 
 - [x] Completed task
 - [x] Another completed item  
@@ -107,8 +105,6 @@ if __name__ == "__main__":
     success = lovasz_local_lemma_demo(events, dependencies)
 ```
 
-### Other Programming Languages
-
 JavaScript example:
 ```javascript
 // Modern JavaScript with async/await
@@ -152,9 +148,9 @@ The Lovász Local Lemma states that if each event $A_i$ has probability at most 
 
 ### Display Mathematics
 
-Here's the full statement of the Lovász Local Lemma:
+Here's the full equation of the Lovász Local Lemma:
 
-$$\Pr\left[\bigcap_{i=1}^n \overline{A_i}\right] \geq \prod_{i=1}^n (1 - p_i)$$
+$$\begin{equation}\Pr\left[\bigcap_{i=1}^n \overline{A_i}\right] \geq \prod_{i=1}^n (1 - p_i)\end{equation}\tag{LLL}$$
 
 More complex mathematical expressions:
 
@@ -165,26 +161,24 @@ $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 Matrix notation:
 $$
 \begin{pmatrix}
-a & b \\
+a & b \cr
 c & d
 \end{pmatrix}
 \begin{pmatrix}
-x \\
+x \cr
 y
-\end{pmatrix}
-=
+\end{pmatrix}=
 \begin{pmatrix}
-ax + by \\
+ax + by \cr
 cx + dy
 \end{pmatrix}
 $$
 
-### Algorithm Complexity
+Multiple line equation:
 
-- Time complexity: $O(n \log n)$
-- Space complexity: $O(n)$  
-- Best case: $\Omega(n)$
-- Average case: $\Theta(n \log n)$
+$$
+\begin{align*}\mathbb{E}[\gamma_i]&=\sum_{j=0}^\infty \frac{1}{n}\sum_{r=0}^{n-1}\omega_n^{(j-i)r}[z^{j}]G(z)\\ &=\frac{1}{n}\sum_{r=0}^{n-1}\omega_n^{-ri}\sum_{j=0}^\infty\omega_n^{rj}[z^j]G(z)\\ &=\frac{1}{n}\sum_{r=0}^{n-1}\omega_n^{-ri} G(\omega_n^r)\end{align*}
+$$
 
 ## Tables
 
@@ -197,10 +191,10 @@ $$
 | Heap Sort | $O(n \log n)$ | $O(1)$ | No |
 | Bubble Sort | $O(n^2)$ | $O(1)$ | Yes |
 
-### Complex Table with Alignment
+### Table with Alignment
 
 | Left Aligned | Center Aligned | Right Aligned | Description |
-|:------------|:-------------:|-------------:|-------------|
+|:------------|:-------------:|-------------:|:-------------:|
 | Data Structure | Performance | Memory | Use Case |
 | Array | $O(1)$ access | Low | Random access needed |
 | Linked List | $O(n)$ search | Medium | Frequent insertions |
@@ -213,21 +207,12 @@ $$
 
 > "The best way to learn algorithms is to implement them yourself, make mistakes, debug them, and understand why they work."
 
-### Nested Blockquotes
-
-> This is a first-level blockquote.
->
-> > This is a nested blockquote inside the first one.
-> >
-> > > And this is a third level of nesting!
->
-> Back to the first level of blockquote.
-
 ### Academic Citation Style
 
 > "The probabilistic method is a nonconstructive method, primarily used in combinatorics and pioneered by Paul Erdős, for proving the existence of a prescribed kind of mathematical object."
->
+> ::align(right)
 > — *The Probabilistic Method*, Noga Alon and Joel H. Spencer
+> ::
 
 ## Links and References
 
@@ -256,9 +241,13 @@ This is [a reference link][ref1] and here's [another one][ref2].
 ![Placeholder Image](https://picsum.photos/200 "A placeholder image 200x200")
 ![Placeholder Image](https://picsum.photos/200/300 "A placeholder image 200x300")
 
-## Horizontal Rules
+### Video
 
-You can create dividers using horizontal rules:
+::video[3Blue1Brown : Transformers, the tech behind LLMs | Deep Learning Chapter 5 ](https://www.youtube.com/watch?v=wjZofJX0v4M)
+
+::video[Bad apple!!!](https://www.bilibili.com/video/BV1xx411c79H)
+
+## Horizontal Rules
 
 ---
 
@@ -266,16 +255,53 @@ You can create dividers using horizontal rules:
 
 ___
 
-## Special Characters and Escaping
+## Alignment
 
-Sometimes you need to display special Markdown characters literally:
+::align(right)
+✨ Text from the right, so sparkly and cute! ✨
+::
 
-- \*This is not italic\*
-- \`This is not code\`
-- \# This is not a header
-- \[This is not a link\]
+::align(center)
+(｡♥‿♥｡) Text in the center, super kawaii!
+::
 
-## Advanced Features
+::align(left)
+UwU~ Text from the left, overflowing with cuteness!
+::
+
+::align(right){dir=rtl,text=1}
+هذا نص عربي مع اتجاه RTL
+::
+
+::align(center){writing=vertical-rl,orient=upright,text=1}
+金樽清酒斗十千，玉盘珍羞直万钱。
+
+停杯投箸不能食，拔剑四顾心茫然。
+
+欲渡黄河冰塞川，将登太行雪满山。
+
+闲来垂钓碧溪上，忽复乘舟梦日边。
+
+行路难，行路难，
+
+多歧路，今安在？
+
+长风破浪会有时，直挂云帆济沧海。 
+
+李白《行路难》
+::
+
+::align(right){width=60%}
+五月雨を
+::
+::align(right){width=55%}
+集めて涼し 
+::
+::align(right){width=45%}
+最上川
+::
+
+## Further Features
 
 ### Footnotes
 

@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Bzy — Academic Homepage / Research Interests / Projects" />
+    <meta name="description" content="Cirno Nya — 魔法みたいな算法で☆世界を変えるよ！Cat-powered academic homepage." />
     <meta name="theme-color" content="#F5A9B8" />
     <title>Cirno Nya</title>
-    
+
+    <!-- Open Graph meta tags for social and search preview -->
+    <meta property="og:title" content="Cirno Nya — Academic Homepage" />
+    <meta property="og:description" content="Cirno Nya — 魔法みたいな算法で☆世界を変えるよ！Cat-powered academic homepage." />
+    <meta property="og:image" content="https://bzy.moe/asset/image/头像.jpeg" />
+    <meta name="keywords" content="Cirno Nya, NJU, 学术，算法，数学" />
+
     <!-- KaTeX CSS for math rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    <link href="https://cdn.bootcdn.net/ajax/libs/KaTeX/0.12.0/contrib/copy-tex.css" rel="stylesheet" />
     
     <!-- Marked.js for markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
@@ -17,219 +24,58 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+
+    <!-- Main styles -->
     <link rel="stylesheet" href="asset/css/main.css">
     <link rel="stylesheet" href="blogs/blog.css">
 
-    <link rel="shortcut icon" href="asset/image/favicon.ico" type="image/x-icon">
-</head>
+    <link rel="icon" type="image/x-icon" href="asset/image/favicon.ico">
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/copy-tex.min.js" integrity="sha384-HORx6nWi8j5/mYA+y57/9/CZc5z8HnEw4WUZWy5yOn9ToKBv1l58vJaufFAn9Zzi" crossorigin="anonymous"></script></head>
 <body>
     <!-- Subtle pixel grid background -->
     <div class="bg-grid"></div>
-    <!-- Pixel SVG definitions -->
+    <!-- External SVG icons -->
     <svg width="0" height="0" style="position:absolute">
         <defs>
-            <!-- Pixel cat (16x16) -->
-            <symbol id="px-cat" viewBox="0 0 16 16">
-                <defs>
-                    <!-- Define a mask for transparent eyes -->
-                    <mask id="cat-eye-mask">
-                        <!-- White areas will be visible, black areas will be transparent -->
-                        <rect x="0" y="0" width="16" height="16" fill="white"/>
-                        <!-- Cut out eye holes -->
-                        <rect x="5" y="6" width="2" height="2" fill="black"/>
-                        <rect x="9" y="6" width="2" height="2" fill="black"/>
-                    </mask>
-                </defs>
-                <g fill="currentColor" shape-rendering="crispEdges" mask="url(#cat-eye-mask)">
-                    <!-- outer ears -->
-                    <rect x="3" y="1" width="2" height="2"/>
-                    <rect x="11" y="1" width="2" height="2"/>
-                    <!-- inner ears -->
-                    <rect x="4" y="2" width="1" height="1"/>
-                    <rect x="11" y="2" width="1" height="1"/>
-                    <!-- head outline -->
-                    <rect x="2" y="3" width="12" height="9"/>
-                    <!-- face (eyes will be cut out by mask) -->
-                    <rect x="3" y="4" width="10" height="7"/>
-                    <!-- nose -->
-                    <rect x="7" y="8" width="2" height="1"/>
-                    <!-- mouth -->
-                    <rect x="6" y="9" width="1" height="1"/>
-                    <rect x="9" y="9" width="1" height="1"/>
-                    <rect x="7" y="10" width="2" height="1"/>
-                    <!-- whiskers -->
-                    <rect x="1" y="7" width="2" height="1"/>
-                    <rect x="13" y="7" width="2" height="1"/>
-                    <rect x="1" y="9" width="2" height="1"/>
-                    <rect x="13" y="9" width="2" height="1"/>
-                    <!-- chin -->
-                    <rect x="5" y="11" width="6" height="1"/>
-                </g>
-            </symbol>
-
-            <!-- Email icon -->
-            <symbol id="px-email" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M22 4H2v16h20V4zM4 18V6h16v12H4zM8 8H6v2h2v2h2v2h4v-2h2v-2h2V8h-2v2h-2v2h-4v-2H8V8z" fill="currentColor"/> </svg>
-                </g>
-            </symbol>
-
-            <!-- GitHub icon -->
-            <symbol id="px-github" viewBox="0 0 16 16">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path fill="currentColor" d="M6 2h12v2H6V2Zm4 12H8v-2h2v2Zm4 0v2h-4v-2h4Zm0 0v-2h2v2h-2Z"/> <path fill="currentColor" d="M6 6V4H4v2H2v12h2v2h2v2h12v-2h2v-2h2V6h-2V4h-2v2h-2v2H8V6H6Zm2 6v-2h8v2h2V6h2v12h-2v2h-2v-4h-2v4h-4v-4H6v2h2v2H6v-2H4v-2h2v-2H4V6h2v6h2Z"/> </svg>
-            </symbol>
-
-            <!-- Google Scholar icon -->
-            <symbol id="px-scholar" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM14 7h-4v4h4V7zm1 6H9v2H7v2h2v-2h6v2h2v-2h-2v-2z" fill="currentColor"/> </svg>
-                </g>
-            </symbol>
-
-            <!-- CV/Resume icon -->
-            <symbol id="px-cv" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M3 3h18v18H3V3zm16 2H5v14h14V5zM7 12h2v5H7v-5zm10-5h-2v10h2V7zm-6 3h2v2h-2v-2zm2 4h-2v3h2v-3z" fill="currentColor"/> </svg>
-                </g>
-            </symbol>
-
-            <!-- Pixel sparkle icon -->
-            <symbol id="px-sparkle" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <rect x="7" y="0" width="2" height="3"/>
-                    <rect x="7" y="13" width="2" height="3"/>
-                    <rect x="0" y="7" width="3" height="2"/>
-                    <rect x="13" y="7" width="3" height="2"/>
-                    <rect x="5" y="5" width="6" height="6"/>
-                </g>
-            </symbol>
-            
-            <!-- Pixel sun icon -->
-            <symbol id="px-sun" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <!-- Center -->
-                    <rect x="6" y="6" width="4" height="4"/>
-                    <!-- Rays -->
-                    <rect x="7" y="0" width="2" height="2"/>
-                    <rect x="7" y="14" width="2" height="2"/>
-                    <rect x="0" y="7" width="2" height="2"/>
-                    <rect x="14" y="7" width="2" height="2"/>
-                    <!-- Diagonal rays -->
-                    <rect x="2" y="2" width="2" height="2"/>
-                    <rect x="12" y="2" width="2" height="2"/>
-                    <rect x="2" y="12" width="2" height="2"/>
-                    <rect x="12" y="12" width="2" height="2"/>
-                </g>
-            </symbol>
-            
-            <!-- Pixel moon icon -->
-            <symbol id="px-moon" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <!-- Moon crescent -->
-                    <rect x="4" y="2" width="8" height="2"/>
-                    <rect x="2" y="4" width="10" height="2"/>
-                    <rect x="2" y="6" width="8" height="2"/>
-                    <rect x="2" y="8" width="6" height="2"/>
-                    <rect x="2" y="10" width="8" height="2"/>
-                    <rect x="4" y="12" width="6" height="2"/>
-                    <!-- Stars -->
-                    <rect x="12" y="3" width="1" height="1"/>
-                    <rect x="14" y="5" width="1" height="1"/>
-                    <rect x="13" y="8" width="1" height="1"/>
-                </g>
-            </symbol>
-            
-            <!-- Pixel star icon -->
-            <symbol id="px-star" viewBox="0 0 16 16">
-               <g fill="currentColor" shape-rendering="crispEdges">
-                    <rect x="7" y="0" width="2" height="3"/>
-                    <rect x="7" y="13" width="2" height="3"/>
-                    <rect x="0" y="7" width="3" height="2"/>
-                    <rect x="13" y="7" width="3" height="2"/>
-                    <rect x="5" y="5" width="6" height="6"/>
-                </g>
-            </symbol>
-
-            <!-- Pixel heart icon -->
-            <symbol id="px-heart" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <rect x="2" y="2" width="4" height="2"/>
-                    <rect x="10" y="2" width="4" height="2"/>
-                    <rect x="1" y="4" width="6" height="2"/>
-                    <rect x="9" y="4" width="6" height="2"/>
-                    <rect x="2" y="6" width="12" height="2"/>
-                    <rect x="3" y="8" width="10" height="2"/>
-                    <rect x="4" y="10" width="8" height="2"/>
-                    <rect x="5" y="12" width="6" height="2"/>
-                    <rect x="6" y="14" width="4" height="2"/>
-                    <rect x="7" y="16" width="2" height="2"/>
-                </g>
-            </symbol>
-            
-            <!-- Pixel triangle (expand indicator) -->
-            <symbol id="px-triangle" viewBox="0 0 12 12">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <rect x="2" y="2" width="2" height="2"/>
-                    <rect x="2" y="4" width="2" height="2"/>
-                    <rect x="4" y="4" width="2" height="2"/>
-                    <rect x="2" y="6" width="2" height="2"/>
-                    <rect x="4" y="6" width="2" height="2"/>
-                    <rect x="6" y="6" width="2" height="2"/>
-                    <rect x="2" y="8" width="2" height="2"/>
-                    <rect x="4" y="8" width="2" height="2"/>
-                    <rect x="2" y="10" width="2" height="2"/>
-                </g>
-            </symbol>
-            
-            <!-- Game controller icon -->
-            <symbol id="px-dino" viewBox="0 0 24 24">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <rect x="8" y="6" width="8" height="6" fill="#535353"/>
-                    <rect x="6" y="12" width="12" height="6" fill="#535353"/>
-                    <rect x="4" y="18" width="4" height="2" fill="#535353"/>
-                    <rect x="16" y="18" width="4" height="2" fill="#535353"/>
-                    <rect x="10" y="8" width="2" height="2" fill="white"/>
-                    <rect x="14" y="8" width="2" height="2" fill="white"/>
-                    <rect x="16" y="10" width="2" height="2" fill="#535353"/>
-                    <rect x="2" y="14" width="4" height="2" fill="#535353"/>
-                </g>
-            </symbol>
-            
-            <!-- Strategy/Map icon -->
-            <symbol id="px-gen" viewBox="0 0 24 24">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <path d="M4 20 L4 9 L8 13 L12 7 L16 13 L20 9 L20 20 Z" />
-                        <!-- 中央小门 -->
-                        <rect x="10" y="15" width="4" height="5" />
-                        <!-- 两侧旗帜 -->
-                        <line x1="8" y1="9" x2="8" y2="6" />
-                        <line x1="16" y1="9" x2="16" y2="6" />
-                </g>
-            </symbol>
-            
-            <!-- Bullet hell icon -->
-            <symbol id="px-bullet" viewBox="0 0 16 16">
-                <g fill="currentColor" shape-rendering="crispEdges">
-                    <!-- Player -->
-                    <rect x="7" y="12" width="2" height="2"/>
-                    <rect x="6" y="13" width="4" height="1"/>
-                    <!-- Bullets -->
-                    <rect x="3" y="2" width="1" height="1"/>
-                    <rect x="7" y="1" width="1" height="1"/>
-                    <rect x="11" y="3" width="1" height="1"/>
-                    <rect x="1" y="5" width="1" height="1"/>
-                    <rect x="13" y="6" width="1" height="1"/>
-                    <rect x="5" y="4" width="1" height="1"/>
-                    <rect x="9" y="5" width="1" height="1"/>
-                    <rect x="2" y="8" width="1" height="1"/>
-                    <rect x="12" y="9" width="1" height="1"/>
-                    <rect x="6" y="7" width="1" height="1"/>
-                    <rect x="10" y="8" width="1" height="1"/>
-                </g>
-            </symbol>
+            <!-- Icons will be loaded here -->
         </defs>
     </svg>
+    
+    <script>
+        // Load external SVG icons
+        fetch('asset/image/icons.svg')
+            .then(response => response.text())
+            .then(svgText => {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const defs = svgDoc.querySelector('defs');
+                
+                if (defs) {
+                    // Find our placeholder SVG and its defs
+                    const placeholderSvg = document.querySelector('svg[width="0"][height="0"] defs');
+                    if (placeholderSvg) {
+                        // Copy all symbols from the external SVG
+                        placeholderSvg.innerHTML = defs.innerHTML;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading SVG icons:', error);
+                // Fallback: try to load SVG directly in place
+                const svgContainer = document.querySelector('svg[width="0"][height="0"]');
+                if (svgContainer) {
+                    fetch('asset/image/icons.svg')
+                        .then(r => r.text())
+                        .then(text => {
+                            svgContainer.outerHTML = text;
+                        });
+                }
+            });
+    </script>
 
     <!-- Background pixel cats -->
     <div class="bg-layer">
@@ -240,7 +86,7 @@
     </div>
 
     <!-- Top navigation -->
-    <header class="topbar">
+    <header class="topbar component" id="topbar" style="display: none;">
         <div class="topbar-inner">
             <a class="brand" href="." aria-label="home">
                 <svg class="icon" aria-hidden="true"><use href="#px-cat"/></svg>
@@ -261,8 +107,8 @@
 
     <main id="top" class="page">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <section class="card">
+        <aside class="sidebar component" id="sidebar" style="display: none;">
+            <section class="card component" id="profile-card" style="display: none;">
                 <div class="avatar" title="avatar">
                     <img id="avatar-face" src="asset/image/头像.jpeg" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
@@ -287,12 +133,22 @@
                     </span>
                 </div>
             </section>
+
+            <!-- Blog Navigation Component -->
+            <div class="component" id="blog-navigation" style="display: none;">
+                <!-- Blog navigation will be dynamically populated by blog.js -->
+            </div>
+
+            <!-- Article TOC Component -->
+            <div class="component" id="article-toc-card" style="display: none;">
+                <!-- Article table of contents will be dynamically populated by blog.js -->
+            </div>
         </aside>
 
         <!-- Main content -->
-        <div class="main">
+        <div class="main component" id="main-content" style="display: none;">
             <!-- Home Page -->
-            <div class="page-content active" id="home">
+            <div class="page-content component" id="home" style="display: none;">
                 <section class="section">
                     <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Biography <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
                     <div class="content">
@@ -349,7 +205,7 @@
             </div>
 
             <!-- Blog Page -->
-            <div class="page-content" id="blog">
+            <div class="page-content component" id="blog" style="display: none;">
                 <!-- 博客内容将由 blog.js 动态加载 -->
                 <section class="section">
                     <h2 class="section-title">
@@ -371,21 +227,21 @@
             </div>
 
             <!-- Fun Page -->
-            <div class="page-content" id="fun">
+            <div class="page-content component" id="fun" style="display: none;">
                 <section class="section">
                     <h2 class="section-title"><svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> Something Fun <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg></h2>
                     <div class="pixel-divider"></div>
                     <div class="fun-grid">
-                        <a class="fun-item" href="dino/index.html" target="_self">
+                        <a class="fun-item" href="dino" target="_self">
                             <svg class="fun-icon" aria-hidden="true"><use href="#px-dino"/></svg>
                             <div class="fun-title">Dino GA</div>
                         </a>
-                        <a class="fun-item" href="gen/index.html" target="_self">
+                        <a class="fun-item" href="gen" target="_self">
                             <svg class="fun-icon" aria-hidden="true"><use href="#px-gen"/></svg>
                             <div class="fun-title">generals?</div>
                         </a>
-                        <a class="fun-item" href="th00/index.html" target="_self">
-                            <svg class="fun-icon" aria-hidden="true"><use href="#px-bullet"/></svg>
+                        <a class="fun-item" href="th00" target="_self">
+                            <svg class="fun-icon" aria-hidden="true"><use href="#px-touhou"/></svg>
                             <div class="fun-title">Touhou00</div>
                         </a>
                     </div>
@@ -395,7 +251,7 @@
             <!-- Global footer moved outside main content -->
         </div>
 
-        <footer class="footer">
+        <footer class="footer component" id="footer" style="display: none;">
             <div>Made with love and lots of cats</div>
             <div>© 2025 Cirno. All rights reserved.</div>
         </footer>
@@ -404,547 +260,12 @@
     <!-- KaTeX JavaScript for math rendering -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
-
-    <!-- Blog System -->
-    <!-- Router system -->
     <!-- Scripts -->
     <script src="asset/js/router.js"></script>
-    <script src="blogs/blog.js"></script>    <script>
-        // Global page transition state
-        let isTransitioning = false;
+    <script src="blogs/blog.js"></script>    
+    <script src="asset/js/main.js"></script>
 
-        // Global page navigation function
-        function showPage(pageId) {
-                console.log('[Main] showPage called with:', pageId);
-                if (isTransitioning) {
-                    console.log('[Main] Transition in progress, ignoring showPage call');
-                    return; // Prevent rapid clicking
-                }
-                
-                isTransitioning = true;
-                const currentPage = document.querySelector('.page-content.active');
-                const targetPage = document.getElementById(pageId);
-                
-                console.log('[Main] Current page:', currentPage?.id || 'none');
-                console.log('[Main] Target page:', targetPage?.id || 'not found');
-                
-                if (!targetPage || currentPage === targetPage) {
-                    console.log('[Main] Target page not found or already active');
-                    isTransitioning = false;
-                    return;
-                }
-
-                // Fade out current page
-                if (currentPage) {
-                    currentPage.classList.add('fade-out');
-                    setTimeout(() => {
-                        currentPage.classList.remove('active', 'fade-out');
-                        currentPage.style.display = 'none';
-                        
-                        // Clean up blog navigation when leaving blog page
-                        if (currentPage.id === 'blog' && typeof blogSystem !== 'undefined' && blogSystem) {
-                            blogSystem.removeBlogNavigation();
-                            blogSystem.removeArticleTOC();
-                        }
-                        
-                        // Fade in new page
-                        targetPage.style.display = 'block';
-                        // Force reflow to ensure display change takes effect
-                        targetPage.offsetHeight;
-                        targetPage.classList.add('active');
-                        
-                        // Initialize blog system if switching to blog page
-                        if (pageId === 'blog' && typeof blogSystem !== 'undefined') {
-                            if (!blogSystem && !blogSystemInitializing) {
-                                console.log('[Main] Initializing blog system...');
-                                // 不等待初始化完成，让路由系统处理
-                                initBlogSystem();
-                            }
-                            // 不要强制显示博客列表，让路由系统处理
-                        }
-                        
-                        setTimeout(() => {
-                            isTransitioning = false;
-                        }, 50);
-                    }, 200);
-                } else {
-                    // First load
-                    targetPage.style.display = 'block';
-                    targetPage.offsetHeight;
-                    targetPage.classList.add('active');
-                    
-                    // Initialize blog system if switching to blog page
-                    if (pageId === 'blog' && typeof blogSystem !== 'undefined') {
-                        if (!blogSystem && !blogSystemInitializing) {
-                            console.log('[Main] Initializing blog system (first load)...');
-                            // 不等待初始化完成，让路由系统处理
-                            initBlogSystem();
-                        }
-                        // 不要强制显示博客列表，让路由系统处理
-                    }
-                    
-                    isTransitioning = false;
-                }
-                
-                // Note: Navigation state sync is handled by handleHashChange when triggered by hash
-                // or by syncNavigationState() when called directly
-            }
-
-            // Initialize navigation system
-            function initNavigation() {
-                const navBtns = document.querySelectorAll('.nav-btn');
-                const pages = document.querySelectorAll('.page-content');
-
-                // Add click listeners
-                navBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const pageId = btn.getAttribute('data-page');
-                        
-                        console.log('[Main] Navigation button clicked:', pageId);
-                        
-                        // Prevent default behavior and handle navigation manually
-                        e.preventDefault();
-                        
-                        // Set appropriate hash for each page and let hash change handle the rest
-                        if (pageId === 'home') {
-                            console.log('[Main] Setting home hash');
-                            // Clear hash for home page
-                            history.replaceState(null, '', window.location.pathname + window.location.search);
-                            // Manually trigger page change since hash won't change
-                            showPage('home');
-                            syncNavigationState();
-                        } else if (pageId === 'fun') {
-                            console.log('[Main] Setting fun hash');
-                            // Clean up blog state when leaving
-                            if (window.blogSystem) {
-                                window.blogSystem.removeBlogNavigation();
-                                window.blogSystem.removeArticleTOC();
-                            }
-                            location.hash = '#fun';
-                            // handleHashChange will take care of the rest
-                        } else if (pageId === 'blog') {
-                            console.log('[Main] Setting blog hash');
-                            location.hash = '#blog';
-                            // handleHashChange will take care of the rest
-                        }
-                    });
-                });
-            }
-
-            // Background cats mouse follow effect
-        function initCatAnimation() {
-            const cats = Array.from(document.querySelectorAll('.cat-bg'));
-            let mx = 0, my = 0;
-            
-            document.addEventListener('mousemove', (e) => { 
-                mx = e.clientX; 
-                my = e.clientY; 
-            });
-            
-            setInterval(() => {
-                cats.forEach((el, i) => {
-                    const strength = 0.008 + i * 0.002;
-                    const centerX = window.innerWidth / 2;
-                    const centerY = window.innerHeight / 2;
-                    const deltaX = (mx - centerX) * strength;
-                    const deltaY = (my - centerY) * strength;
-                    el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-                });
-            }, 100);
-        }
-
-        // Avatar click interaction
-        function initAvatarInteraction() {
-            const avatar = document.getElementById('avatar-face');
-            let isClicked = false;
-            
-            avatar?.addEventListener('click', () => {
-                isClicked = !isClicked;
-                avatar.style.transform = isClicked ? 'scale(1.1) rotate(5deg)' : 'scale(1) rotate(0deg)';
-                setTimeout(() => {
-                    avatar.style.transform = 'scale(1) rotate(0deg)';
-                }, 200);
-            });
-        }
-
-        // Initialize everything when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initNavigation();
-            initCatAnimation();
-            initAvatarInteraction();
-            initPublicationExpand();
-            initThemeSwitcher();
-            
-            // Initialize KaTeX math rendering
-            renderMathInHtml();
-            
-            // Sync navigation state based on current page and hash
-            syncNavigationState();
-        });
-
-        // Function to sync navigation state with current page
-        function syncNavigationState() {
-            const currentPage = document.querySelector('.page-content.active');
-            const hash = location.hash;
-            
-            console.log('[Main] Syncing navigation state - page:', currentPage?.id, 'hash:', hash);
-            
-            // Update nav buttons based on current hash and page state
-            const navBtns = document.querySelectorAll('.nav-btn');
-            navBtns.forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Determine which nav button should be active based on hash and current page
-            let activePageId = 'home'; // default
-            
-            if (hash.startsWith('#/') || hash === '#blog') {
-                // Any blog-related hash should activate blog button
-                activePageId = 'blog';
-            } else if (hash === '#fun') {
-                activePageId = 'fun';
-            } else if (!hash || hash === '#' || hash === '#home') {
-                activePageId = 'home';
-            } else if (currentPage) {
-                // Fallback to current page if hash doesn't match known patterns
-                activePageId = currentPage.id;
-            }
-            
-            const activeBtn = document.querySelector(`[data-page="${activePageId}"]`);
-            if (activeBtn) {
-                activeBtn.classList.add('active');
-                console.log('[Main] Activated nav button for:', activePageId);
-            }
-        }
-
-        // Theme switching functionality
-        function initThemeSwitcher() {
-            const themeBtn = document.getElementById('theme-btn');
-            const themeIcon = themeBtn.querySelector('.theme-icon use');
-            const body = document.body;
-            
-            // Function to detect system theme preference
-            function getSystemTheme() {
-                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            }
-            
-            // Load saved theme from localStorage or use system preference
-            let currentTheme = localStorage.getItem('theme') || getSystemTheme();
-            
-            // Listen for system theme changes
-            if (window.matchMedia) {
-                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                mediaQuery.addEventListener('change', (e) => {
-                    // Only auto-switch if user hasn't manually set a preference
-                    if (!localStorage.getItem('theme')) {
-                        currentTheme = e.matches ? 'dark' : 'light';
-                        applyTheme(currentTheme);
-                    }
-                });
-            }
-            
-            function applyTheme(theme) {
-                // Apply theme to body
-                if (theme === 'dark') {
-                    body.setAttribute('data-theme', 'dark');
-                } else {
-                    body.removeAttribute('data-theme');
-                }
-                
-                // Update theme icon with gentle transition
-                if (themeIcon) {
-                    themeIcon.style.transition = 'opacity 0.3s ease';
-                    themeIcon.style.opacity = '0';
-                    setTimeout(() => {
-                        themeIcon.setAttribute('href', theme === 'light' ? '#px-sun' : '#px-moon');
-                        themeIcon.style.opacity = '1';
-                    }, 150);
-                }
-                
-                // Save to localStorage
-                localStorage.setItem('theme', theme);
-                
-                // Update button title
-                themeBtn.title = `Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`;
-                
-                // Console log for fun
-                console.log(`🎨 Theme switched to: ${theme === 'light' ? '☀️ Light' : '🌙 Dark'} Mode`);
-            }
-            
-            // Theme switch event listener
-            themeBtn.addEventListener('click', () => {
-                currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-                applyTheme(currentTheme);
-                
-                // Add a little sparkle effect
-                createSparkleEffect(themeBtn);
-            });
-            
-            // Create pixel particle effect when switching themes
-            function createSparkleEffect(element) {
-                const rect = element.getBoundingClientRect();
-                const particleCount = 8;
-                
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.style.position = 'fixed';
-                    particle.style.left = rect.left + rect.width / 2 + 'px';
-                    particle.style.top = rect.top + rect.height / 2 + 'px';
-                    particle.style.width = '4px';
-                    particle.style.height = '4px';
-                    particle.style.background = 'var(--secondary)';
-                    particle.style.pointerEvents = 'none';
-                    particle.style.zIndex = '9999';
-                    particle.style.transition = 'all 1s ease-out';
-                    particle.style.opacity = '1';
-                    particle.style.borderRadius = '0'; // Keep it square/pixel-like
-                    
-                    document.body.appendChild(particle);
-                    
-                    // Animate pixels with different directions
-                    setTimeout(() => {
-                        const angle = (i / particleCount) * 2 * Math.PI;
-                        const distance = 60 + Math.random() * 30;
-                        particle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
-                        particle.style.opacity = '0';
-                        particle.style.width = '2px';
-                        particle.style.height = '2px';
-                    }, 10);
-                    
-                    // Remove particle
-                    setTimeout(() => {
-                        particle.remove();
-                    }, 1000);
-                }
-            }
-            
-            // Initialize theme
-            applyTheme(currentTheme);
-        }
-
-        // Publication expand/collapse functionality
-        function initPublicationExpand() {
-            const publications = document.querySelectorAll('.item.publication');
-            
-            publications.forEach(item => {
-                const abstract = item.querySelector('.abstract');
-                
-                item.addEventListener('click', (e) => {
-                    // Don't expand if clicking on links
-                    if (e.target.tagName === 'A') return;
-                    
-                    const isExpanded = item.classList.contains('expanded');
-                    
-                    // Close all other publications
-                    publications.forEach(pub => {
-                        if (pub !== item && pub.classList.contains('expanded')) {
-                            collapseAbstract(pub);
-                        }
-                    });
-                    
-                    // Toggle current publication
-                    if (isExpanded) {
-                        collapseAbstract(item);
-                    } else {
-                        expandAbstract(item);
-                    }
-                });
-            });
-            
-            function expandAbstract(item) {
-                const abstract = item.querySelector('.abstract');
-                
-                // Clear any inline styles first
-                abstract.style.height = '';
-                abstract.style.maxHeight = '';
-                abstract.style.opacity = '';
-                abstract.style.transform = '';
-                abstract.style.marginTop = '';
-                
-                // Add expanded class to get target values
-                item.classList.add('expanded');
-                
-                // Measure the natural height and other target values
-                const targetHeight = abstract.scrollHeight;
-                
-                // Set initial collapsed state with inline styles
-                abstract.style.height = '0px';
-                abstract.style.maxHeight = 'none';
-                abstract.style.opacity = '0';
-                abstract.style.transform = 'translateY(-8px)';
-                abstract.style.marginTop = '0px';
-                
-                // Force reflow
-                abstract.offsetHeight;
-                
-                // Animate to expanded state
-                requestAnimationFrame(() => {
-                    abstract.style.height = targetHeight + 'px';
-                    abstract.style.opacity = '1';
-                    abstract.style.transform = 'translateY(0)';
-                    abstract.style.marginTop = '12px';
-                    
-                    // Clean up after animation - let CSS take over
-                    setTimeout(() => {
-                        if (item.classList.contains('expanded')) {
-                            abstract.style.height = '';
-                            abstract.style.maxHeight = '';
-                            abstract.style.opacity = '';
-                            abstract.style.transform = '';
-                            abstract.style.marginTop = '';
-                        }
-                    }, 400);
-                });
-            }
-            
-            function collapseAbstract(item) {
-                const abstract = item.querySelector('.abstract');
-                
-                // Get current height and set it explicitly
-                const currentHeight = abstract.scrollHeight;
-                abstract.style.height = currentHeight + 'px';
-                abstract.style.maxHeight = 'none';
-                
-                // Force reflow
-                abstract.offsetHeight;
-                
-                // Start collapse animation - animate height, opacity, and transform together
-                requestAnimationFrame(() => {
-                    abstract.style.height = '0px';
-                    abstract.style.opacity = '0';
-                    abstract.style.transform = 'translateY(-8px)';
-                    abstract.style.marginTop = '0px';
-                    
-                    // Remove expanded class immediately to let CSS transitions handle other properties
-                    item.classList.remove('expanded');
-                    
-                    // Clean up inline styles after animation
-                    setTimeout(() => {
-                        abstract.style.height = '';
-                        abstract.style.maxHeight = '';
-                        abstract.style.opacity = '';
-                        abstract.style.transform = '';
-                        abstract.style.marginTop = '';
-                    }, 400);
-                });
-            }
-        }
-
-        // Math rendering function
-        function renderMathInHtml() {
-            // Auto-render KaTeX for inline and display math
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError: false,
-                errorColor: '#cc0000',
-                strict: false
-            });
-            
-            // Also manually render elements with .math class
-            document.querySelectorAll('.math').forEach(element => {
-                const mathText = element.textContent;
-                if (mathText.startsWith('$') && mathText.endsWith('$')) {
-                    const cleanText = mathText.slice(1, -1); // Remove $ delimiters
-                    try {
-                        katex.render(cleanText, element, {
-                            throwOnError: false,
-                            displayMode: false,
-                            errorColor: '#cc0000',
-                            strict: false
-                        });
-                    } catch (e) {
-                        console.warn('KaTeX rendering error:', e);
-                    }
-                }
-            });
-        }
-        
-        // 监听hash变化，用于博客路由
-        function handleHashChange() {
-            const hash = location.hash;
-            console.log('[Main] Hash changed:', hash, 'type:', typeof hash, 'length:', hash.length);
-            
-            // 详细的条件检查
-            console.log('[Main] Hash conditions:', {
-                startsWith: hash.startsWith('#/'),
-                isBlog: hash === '#blog',
-                isFun: hash === '#fun',
-                isEmpty: !hash || hash === '#' || hash === '#home'
-            });
-            
-            // 如果hash指向博客相关页面，自动切换到blog页面
-            if (hash.startsWith('#/') || hash === '#blog') {
-                console.log('[Main] Handling blog routes');
-                handleBlogRoutes(hash);
-            } else if (hash === '#fun') {
-                console.log('[Main] Handling fun route');
-                // 如果hash为#fun，切换到fun页面
-                const currentPage = document.querySelector('.page-content.active');
-                if (currentPage && currentPage.id !== 'fun') {
-                    console.log('[Main] Hash points to fun page, switching...');
-                    showPage('fun');
-                }
-            } else if (!hash || hash === '#' || hash === '#home') {
-                console.log('[Main] Handling home route');
-                // 如果hash为空、#或#home，切换到主页
-                const currentPage = document.querySelector('.page-content.active');
-                if (currentPage && currentPage.id !== 'home') {
-                    console.log('[Main] Hash cleared or points to home, returning to home page');
-                    showPage('home');
-                }
-            }
-            
-            // 确保导航状态同步
-            syncNavigationState();
-        }
-
-        // 处理博客相关的路由
-        async function handleBlogRoutes(hash) {
-            const currentPage = document.querySelector('.page-content.active');
-            console.log('[Main] Current active page:', currentPage?.id || 'none');
-            
-            // 无论当前在哪个页面，都需要确保切换到blog页面
-            if (!currentPage || currentPage.id !== 'blog') {
-                console.log('[Main] Auto-switching to blog page due to hash:', hash);
-                
-                // 确保博客系统在页面切换前就被初始化
-                if (typeof blogSystem !== 'undefined' && !blogSystem && !blogSystemInitializing) {
-                    console.log('[Main] Pre-initializing blog system for hash route...');
-                    await initBlogSystem();
-                }
-                
-                showPage('blog');
-            } else if (currentPage && currentPage.id === 'blog' && !blogSystem && !blogSystemInitializing) {
-                // 如果已经在blog页面但blogSystem未初始化
-                console.log('[Main] Blog page active but system not initialized, initializing...');
-                await initBlogSystem();
-            } else if (!currentPage) {
-                // 没有活跃页面，直接切换到blog
-                console.log('[Main] No active page found, switching to blog...');
-                
-                // 确保博客系统在页面切换前就被初始化
-                if (typeof blogSystem !== 'undefined' && !blogSystem && !blogSystemInitializing) {
-                    console.log('[Main] Pre-initializing blog system for no active page...');
-                    await initBlogSystem();
-                }
-                
-                showPage('blog');
-            }
-        }
-        
-        // 监听hash变化事件
-        window.addEventListener('hashchange', handleHashChange);
-        
-        // 页面加载时也检查一次hash
-        window.addEventListener('load', handleHashChange);
-        
-        // 立即检查当前hash
-        handleHashChange();
-    </script>
+    <script src="blogs/marked_video_extension.js"></script>
+    <script src="blogs/marked_align_extension.js"></script>
 </body>
 </html>
