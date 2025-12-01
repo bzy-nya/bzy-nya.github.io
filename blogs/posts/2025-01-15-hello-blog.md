@@ -310,10 +310,3 @@ This text has a footnote[^1] and another one[^2].
 [^1]: This is the first footnote content. You can write multiple paragraphs here.
 
 [^2]: This is the second footnote. Footnotes are automatically numbered and linked.
-
-### Abbreviations
-
-The HTML specification is maintained by the W3C.
-
-*[HTML]: Hyper Text Markup Language
-*[W3C]: World Wide Web Consortium

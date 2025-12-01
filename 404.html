@@ -1,80 +1,132 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>页面不见了喵~</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 · 喵咪迷路了</title>
+    <link rel="icon" type="image/x-icon" href="asset/image/favicon.ico" />
+    <link rel="stylesheet" href="asset/css/main.css" />
+    
     <style>
+        /* 404 specific styles */
         body {
-            font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
-            background-color: #ff80ab;
-            color: #333;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            flex-direction: column;
-            overflow: hidden; /* 防止猫咪图标溢出 */
-            position: relative; /* 为了绝对定位子元素 */
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select:none;
         }
+
         .container {
-            background-color: rgba(0,0,0,0);
-            padding: 40px;
-            border-radius: 15px;
-            z-index: 1; /* 确保内容在猫咪图标之上 */
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 40px 20px;
         }
+
         h1 {
-            font-size: 6em;
-            color: #ffffff;
-            margin: 0;
+            font-size: clamp(48px, 12vw, 120px);
+            margin-bottom: 24px;
+            line-height: 1.2;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
         }
+
         p {
-            font-size: 1.2em;
-            color: #ffffff; /* 改为白色 */
-            margin-top: 10px;
-        }
-        /* 新增猫咪图标样式 */
-        .cat-icon {
-            position: absolute;
-            color: #ffffff;
-            font-size: 2em; /* 可以调整大小 */
-            opacity: 0.6; /* 可以调整透明度 */
-            user-select: none; /* 防止用户选中 */
-            z-index: 0; /* 确保在内容之下 */
-            /* 应用新的可爱动画 */
-            animation: cute-bounce 2s ease-in-out infinite;
+            font-size: clamp(10px, 3vw, 14px);
+            line-height: 1.8;
+            margin-bottom: 16px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
         }
 
-        /* 移除或注释掉之前的 float 动画 */
-        /* @keyframes float { ... } */
+        .nav-btn,
+        .back-home-btn {
+            display: inline-block;
+            color: var(--text);
+            text-decoration: none;
+            border: 2px solid var(--text);
+            padding: 12px 24px;
+            font-size: clamp(8px, 2.5vw, 12px);
+            transition: all 0.3s ease;
+            margin: 8px;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            cursor: pointer;
+            user-select: auto;
+        }
 
-        /* 定义新的可爱弹跳动画 */
-        @keyframes cute-bounce {
-            0%, 100% {
-                transform: translateY(0) scale(1) rotate(0deg);
-            }
-            50% {
-                transform: translateY(-10px) scale(1.1) rotate(5deg); /* 向上移动、放大并轻微旋转 */
+        .nav-btn:hover,
+        .back-home-btn:hover {
+            background: var(--text);
+            color: var(--primary);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 16px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- 为每个图标添加不同的动画延迟，使其看起来更自然 -->
-    <div class="cat-icon" style="top: 10%; left: 15%; animation-delay: 0.5s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 70%; left: 80%; font-size: 3em; animation-delay: 1.2s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 40%; left: 5%; opacity: 0.4; animation-delay: 2s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 85%; left: 40%; font-size: 1.5em; animation-delay: 0.2s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 25%; left: 70%; opacity: 0.7; animation-delay: 1.5s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 55%; left: 90%; animation-delay: 0.8s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 5%; left: 50%; font-size: 2.5em; opacity: 0.5; animation-delay: 2.5s;">=(^.^)=</div>
-    <div class="cat-icon" style="top: 90%; left: 10%; animation-delay: 1.8s;">=(^.^)=</div>
+    <div class="bg-grid"></div>
+
+    <svg width="0" height="0" style="position:absolute">
+        <defs></defs>
+    </svg>
+
+    <script>
+        // Load SVG icons
+        fetch('asset/image/icons.svg')
+            .then(response => response.text())
+            .then(svgText => {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const defs = svgDoc.querySelector('defs');
+                const placeholderDefs = document.querySelector('svg[width="0"][height="0"] defs');
+                if (defs && placeholderDefs) {
+                    placeholderDefs.innerHTML = defs.innerHTML;
+                }
+            })
+            .catch(error => console.error('Error loading SVG icons:', error));
+    </script>
+
+    <div class="bg-layer">
+        <svg class="cat-bg cat-1 icon large" aria-hidden="true"><use href="#px-cat" /></svg>
+        <svg class="cat-bg cat-2 icon large" aria-hidden="true"><use href="#px-cat" /></svg>
+        <svg class="cat-bg cat-3 icon large" aria-hidden="true"><use href="#px-cat" /></svg>
+        <svg class="cat-bg cat-4 icon large" aria-hidden="true"><use href="#px-cat" /></svg>
+    </div>
 
     <div class="container">
         <h1>404</h1>
-        <p>呜喵~ 你要找的页面好像迷路了...</p>
-        </div>
+        <p>~ (=^w^=) ~</p>
+        <a class="back-home-btn" href="/">back to home</a>
+    </div>
+
+    <script src="asset/js/main.js"></script>
+    <script>
+        // Initialize components for 404 page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply saved theme
+            const body = document.body;
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+            
+            if (currentTheme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+            } else if (currentTheme === 'halloween') {
+                body.setAttribute('data-theme', 'halloween');
+            } else {
+                body.removeAttribute('data-theme');
+            }
+            
+            // Initialize cat animation
+            initCatAnimation();
+        });
+    </script>
 </body>
 </html>
