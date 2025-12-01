@@ -148,16 +148,18 @@ function initThemeSwitcher() {
             }
         });
     }
-        // 只允许代码调用的 Halloween 主题切换
+    
+    // 只允许代码调用的 Halloween 主题切换
     window.setHalloweenTheme = function() {
         body.setAttribute('data-theme', 'halloween');
         localStorage.setItem('theme', 'halloween');
         if (themeIcon) {
-            themeIcon.setAttribute('href', '#px-pumpkin'); // 你可以自定义南瓜icon
+            themeIcon.setAttribute('href', '#px-pumpkin');
         }
         themeBtn.title = 'Happy Halloween!';
         console.log('🎃 Halloween theme activated!');
     }
+    
     
     function applyTheme(theme) {
         // Apply theme to body

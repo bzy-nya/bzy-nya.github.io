@@ -500,10 +500,20 @@ p {
 .item.publication:hover .expand-indicator {
     opacity: 1;
 }
-
 .item.publication.expanded .expand-indicator {
     transform: rotate(90deg);
     opacity: 1;
+}
+
+.item.publication:hover .item-title {
+    color: var(--accent);
+}
+.item.publication.expanded .item-title {
+    color: var(--accent);
+}
+.item.publication .item-title {
+    font-family: Roboto, 'Inter', system-ui, sans-serif;
+    font-size: 18px;
 }
 
 .item.publication .abstract {
@@ -517,6 +527,7 @@ p {
     padding-bottom: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    font-size: 14px;
 }
 
 .item.publication.expanded .abstract {
@@ -527,7 +538,7 @@ p {
     transform: translateY(0);
     padding-top: 0;
     padding-bottom: 0;
-    overflow-y: auto; /* 如果内容太长，允许垂直滚动 */
+    text-align:justify;
 }
 .item-title{ 
     font-family: 'Press Start 2P', 'Courier New', monospace;
@@ -638,8 +649,8 @@ p {
 }
 .timeline-head .timeline-org { margin: 0; }
 .timeline-head .timeline-date { margin: 0; }
-.timeline-title { 
-    font-size: 16px; 
+.timeline-detail { 
+    font-size: 15px; 
     margin: 0;
     transition: color 0.6s ease;
 }
@@ -652,7 +663,6 @@ p {
 }
 .timeline-date {
     font-size: 14px;
-    opacity: 0.8;
     margin-bottom: 10px;
     transition: color 0.6s ease;
 }
@@ -804,8 +814,7 @@ svg, svg * {
 .math {
     display: inline-block;
     color: var(--accent);
-    font-weight: 600;
-    padding: 2px 6px;
+    font-weight: 200;
     border: 1px var(--accent);
     background: transparent;
     transition: color 0.6s ease, border-color 0.6s ease;
@@ -813,7 +822,7 @@ svg, svg * {
 
 .katex {
     color: var(--accent) !important;
-    font-size: 0.95em !important;
+    font-size: 1em !important;
     transition: color 0.6s ease !important;
 }
 
@@ -825,11 +834,6 @@ svg, svg * {
 .katex .mord, .katex .mop, .katex .mbin, .katex .mrel, .katex .mpunct {
     color: var(--accent) !important;
     transition: color 0.6s ease !important;
-}
-
-/* Make math expressions slightly less intrusive */
-.katex-display {
-    margin: 0.5em 0 !important;
 }
 
 /* Responsive */
@@ -988,12 +992,6 @@ svg, svg * {
         word-break: break-word;
         overflow-wrap: break-word;
         /* 移除固定 font-size，让 clamp 生效 */
-    }
-    .item-desc, .abstract, .item-meta {
-        font-size: clamp(12px, 3.5vw, 16px); /* 自适应字体 */
-        line-height: 1.6;
-        word-break: break-word;
-        overflow-wrap: break-word;
     }
 }
 

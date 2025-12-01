@@ -197,18 +197,9 @@ class BlogSystem {
                 </div>
             `;
         }).join('');
-
-        // 添加点击事件
-        this.addBlogListEventListeners();
         
         // 渲染博客目录导航
         this.renderBlogNavigation();
-    }
-
-    /**
-     * 添加博客列表事件监听器
-     */
-    addBlogListEventListeners() {
     }
 
     /**
@@ -226,8 +217,6 @@ class BlogSystem {
         this.showLoading();
 
         try {
-            // 路由系统会自动处理历史记录，这里不需要手动推送
-
             // 加载 markdown 文件
             const response = await fetch(`blogs/posts/${post.file}`);
             let markdown = await response.text();
@@ -433,12 +422,6 @@ class BlogSystem {
         // 处理脚注
         markdown = this.processFootnotes(markdown);
         
-        // 处理定义列表
-        markdown = this.processDefinitionLists(markdown);
-        
-        // 处理缩写
-        markdown = this.processAbbreviations(markdown);
-        
         return markdown;
     }
 
@@ -474,44 +457,6 @@ class BlogSystem {
                 const numId = id.substring(1);
                 markdown += `<div id="footnote-${numId}"><sup>${numId}</sup> ${content} <a href="#ref-${numId}">↩</a></div>\n\n`;
             }
-        }
-        
-        return markdown;
-    }
-
-    /**
-     * 处理定义列表语法
-     */
-    processDefinitionLists(markdown) {
-        // 匹配定义列表模式
-        const definitionPattern = /^([^\n:]+)\n:\s+(.+)/gm;
-        
-        return markdown.replace(definitionPattern, (match, term, definition) => {
-            return `<dl><dt>${term.trim()}</dt><dd>${definition.trim()}</dd></dl>`;
-        });
-    }
-
-    /**
-     * 处理缩写语法
-     */
-    processAbbreviations(markdown) {
-        // 收集缩写定义
-        const abbreviations = {};
-        const abbrPattern = /^\*\[([^\]]+)\]:\s*(.+)$/gm;
-        let match;
-        
-        // 提取缩写定义
-        while ((match = abbrPattern.exec(markdown)) !== null) {
-            abbreviations[match[1]] = match[2];
-        }
-        
-        // 移除原始的缩写定义
-        markdown = markdown.replace(abbrPattern, '');
-        
-        // 替换缩写
-        for (const [abbr, title] of Object.entries(abbreviations)) {
-            const regex = new RegExp(`\\b${abbr}\\b`, 'g');
-            markdown = markdown.replace(regex, `<abbr title="${title}">${abbr}</abbr>`);
         }
         
         return markdown;
