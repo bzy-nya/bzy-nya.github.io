@@ -145,8 +145,8 @@ function initThemeSwitcher() {
     // Load saved theme from localStorage or use system preference
     let currentTheme = localStorage.getItem('theme') || getSystemTheme();
     
-    // Auto-activate Christmas theme if it's Christmas season and no saved preference
-    if (isChristmasSeason() && !localStorage.getItem('theme')) {
+    // Auto-activate Christmas theme if it's Christmas season (override any saved preference)
+    if (isChristmasSeason()) {
         currentTheme = 'christmas';
     }
     
