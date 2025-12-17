@@ -142,12 +142,14 @@ function initThemeSwitcher() {
         return month === 11 && day >= 15; // December (11) and day >= 15
     }
     
-    // Load saved theme from localStorage or use system preference
-    let currentTheme = localStorage.getItem('theme') || getSystemTheme();
-    
-    // Auto-activate Christmas theme if it's Christmas season (override any saved preference)
+    // Check if it's Christmas season first
+    let currentTheme;
     if (isChristmasSeason()) {
+        // During Christmas season, always use Christmas theme
         currentTheme = 'christmas';
+    } else {
+        // Outside Christmas season, use saved preference or system theme
+        currentTheme = localStorage.getItem('theme') || getSystemTheme();
     }
     
     // Listen for system theme changes
@@ -603,6 +605,13 @@ function initThemeSwitcher() {
     
     // Theme switch event listener
     themeBtn.addEventListener('click', () => {
+        // During Christmas season, don't allow switching away from Christmas theme
+        if (isChristmasSeason()) {
+            console.log('🎄 Christmas theme is locked during the holiday season!');
+            createSparkleEffect(themeBtn);
+            return;
+        }
+        
         currentTheme = currentTheme === 'light' ? 'dark' : 'light';
         applyTheme(currentTheme);
         
