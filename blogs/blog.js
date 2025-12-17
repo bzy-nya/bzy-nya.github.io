@@ -104,8 +104,6 @@ class BlogSystem {
                 mangle: false,
                 tables: true
             });
-
-            console.log(marked.parse('::video[https://www.youtube.com/embed/Sh5S3OxiE-s]'));
         }
     }
 

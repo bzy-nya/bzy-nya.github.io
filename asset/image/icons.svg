@@ -220,31 +220,22 @@
         </symbol>
         <symbol id="px-pumpkin" viewBox="0 0 16 16">
   <defs>
-    <!-- 白色可见，黑色挖空（五官透明） -->
     <mask id="pumpkin-face-mask">
       <rect x="0" y="0" width="16" height="16" fill="white"/>
-      <!-- eyes (pixel-triangle style) -->
       <rect x="4"  y="7" width="3" height="1" fill="black"/>
       <rect x="5"  y="6" width="1" height="1" fill="black"/>
       <rect x="9"  y="7" width="3" height="1" fill="black"/>
       <rect x="10" y="6" width="1" height="1" fill="black"/>
-      <!-- nose -->
       <rect x="7" y="8" width="2" height="1" fill="black"/>
-      <!-- mouth (jagged) -->
       <rect x="4" y="10" width="8" height="1" fill="black"/>
       <rect x="5" y="11" width="6" height="1" fill="black"/>
-      <!-- teeth (restore pixels) -->
       <rect x="6" y="10" width="1" height="1" fill="white"/>
       <rect x="9" y="10" width="1" height="1" fill="white"/>
     </mask>
   </defs>
-
   <g fill="currentColor" shape-rendering="crispEdges" mask="url(#pumpkin-face-mask)">
-    <!-- stem -->
     <rect x="7" y="2" width="2" height="1"/>
     <rect x="6" y="3" width="4" height="1"/>
-
-    <!-- pumpkin body (oval by rows) -->
     <rect x="4" y="4" width="8"  height="1"/>
     <rect x="3" y="5" width="10" height="1"/>
     <rect x="2" y="6" width="12" height="4"/>
@@ -252,5 +243,121 @@
     <rect x="4" y="11" width="8"  height="1"/>
   </g>
 </symbol>
+
+        <!-- Pixel snowflake icon -->
+        <symbol id="px-snowflake" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+                <!-- Center -->
+                <rect x="7" y="7" width="2" height="2"/>
+                <!-- Vertical line -->
+                <rect x="7" y="2" width="2" height="3"/>
+                <rect x="7" y="11" width="2" height="3"/>
+                <!-- Horizontal line -->
+                <rect x="2" y="7" width="3" height="2"/>
+                <rect x="11" y="7" width="3" height="2"/>
+                <!-- Diagonal branches (top-left to bottom-right) -->
+                <rect x="4" y="4" width="2" height="2"/>
+                <rect x="10" y="10" width="2" height="2"/>
+                <!-- Diagonal branches (top-right to bottom-left) -->
+                <rect x="10" y="4" width="2" height="2"/>
+                <rect x="4" y="10" width="2" height="2"/>
+                <!-- Branch tips -->
+                <rect x="6" y="1" width="1" height="1"/>
+                <rect x="9" y="1" width="1" height="1"/>
+                <rect x="6" y="14" width="1" height="1"/>
+                <rect x="9" y="14" width="1" height="1"/>
+                <rect x="1" y="6" width="1" height="1"/>
+                <rect x="1" y="9" width="1" height="1"/>
+                <rect x="14" y="6" width="1" height="1"/>
+                <rect x="14" y="9" width="1" height="1"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel Christmas tree icon -->
+        <symbol id="px-tree" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+                <!-- Star on top -->
+                <rect x="7" y="1" width="2" height="1"/>
+                <rect x="6" y="2" width="4" height="1"/>
+                <!-- Tree layers -->
+                <rect x="6" y="3" width="4" height="1"/>
+                <rect x="5" y="4" width="6" height="1"/>
+                <rect x="5" y="5" width="6" height="1"/>
+                <rect x="4" y="6" width="8" height="1"/>
+                <rect x="4" y="7" width="8" height="1"/>
+                <rect x="3" y="8" width="10" height="1"/>
+                <rect x="3" y="9" width="10" height="1"/>
+                <rect x="2" y="10" width="12" height="1"/>
+                <rect x="2" y="11" width="12" height="1"/>
+                <!-- Trunk -->
+                <rect x="6" y="12" width="4" height="2"/>
+                <!-- Base -->
+                <rect x="5" y="14" width="6" height="1"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel gift box icon -->
+        <symbol id="px-gift" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+                <!-- Bow -->
+                <rect x="3" y="2" width="3" height="2"/>
+                <rect x="10" y="2" width="3" height="2"/>
+                <rect x="6" y="1" width="4" height="1"/>
+                <rect x="7" y="2" width="2" height="2"/>
+                <!-- Ribbon vertical -->
+                <rect x="7" y="4" width="2" height="10"/>
+                <!-- Box top -->
+                <rect x="2" y="6" width="12" height="2"/>
+                <!-- Box body -->
+                <rect x="3" y="8" width="10" height="5"/>
+                <!-- Box bottom -->
+                <rect x="2" y="13" width="12" height="1"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel bell icon -->
+        <symbol id="px-bell" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+                <!-- Top hook -->
+                <rect x="7" y="2" width="2" height="1"/>
+                <!-- Bell body -->
+                <rect x="6" y="3" width="4" height="1"/>
+                <rect x="5" y="4" width="6" height="1"/>
+                <rect x="4" y="5" width="8" height="1"/>
+                <rect x="4" y="6" width="8" height="1"/>
+                <rect x="3" y="7" width="10" height="1"/>
+                <rect x="3" y="8" width="10" height="1"/>
+                <rect x="2" y="9" width="12" height="1"/>
+                <rect x="2" y="10" width="12" height="1"/>
+                <rect x="3" y="11" width="10" height="1"/>
+                <!-- Bell opening -->
+                <rect x="4" y="12" width="8" height="1"/>
+                <!-- Clapper -->
+                <rect x="7" y="13" width="2" height="2"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel candy cane icon -->
+        <symbol id="px-candy" viewBox="0 0 16 16">
+            <g fill="currentColor" shape-rendering="crispEdges">
+                <!-- Hook top -->
+                <rect x="5" y="2" width="6" height="1"/>
+                <rect x="4" y="3" width="2" height="1"/>
+                <rect x="10" y="3" width="2" height="1"/>
+                <rect x="4" y="4" width="2" height="1"/>
+                <rect x="10" y="4" width="2" height="1"/>
+                <rect x="5" y="5" width="2" height="1"/>
+                <rect x="9" y="5" width="2" height="1"/>
+                <!-- Straight part with stripes -->
+                <rect x="7" y="6" width="2" height="1"/>
+                <rect x="7" y="8" width="2" height="1"/>
+                <rect x="7" y="10" width="2" height="1"/>
+                <rect x="7" y="12" width="2" height="1"/>
+                <rect x="7" y="14" width="2" height="1"/>
+                <!-- Candy outline -->
+                <rect x="6" y="6" width="1" height="9"/>
+                <rect x="9" y="6" width="1" height="9"/>
+            </g>
+        </symbol>
     </defs>
 </svg>
