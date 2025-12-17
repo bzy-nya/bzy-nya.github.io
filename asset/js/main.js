@@ -151,18 +151,7 @@ function initThemeSwitcher() {
         // Outside Christmas season, use saved preference or system theme
         currentTheme = localStorage.getItem('theme') || getSystemTheme();
     }
-    
-    // Listen for system theme changes
-    if (window.matchMedia) {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', (e) => {
-            // Only auto-switch if user hasn't manually set a preference
-            if (!localStorage.getItem('theme')) {
-                currentTheme = e.matches ? 'dark' : 'light';
-                applyTheme(currentTheme);
-            }
-        });
-    }
+    console.log('[theme] Initial theme:', currentTheme);
     
     // 只允许代码调用的 Halloween 主题切换
     window.setHalloweenTheme = function() {
@@ -203,9 +192,6 @@ function initThemeSwitcher() {
     let clickCount = 0;
     let nextFireworkClick = Math.floor(Math.random() * 5) + 3; // 3-7次点击后触发烟花
     
-    // Christmas Easter Eggs 全局变量
-    let mouseLightElement = null;
-    
     function startChristmasEasterEggs() {
         // 停止之前的效果
         stopChristmasEasterEggs();
@@ -224,8 +210,6 @@ function initThemeSwitcher() {
         // 启动网格光源效果
         document.addEventListener('mousemove', updateMouseLight);
         initGridLightEffect();
-        
-        console.log('✨ Christmas Easter Eggs activated! Click anywhere to see sparkles! ❄️');
     }
     
     // 鼠标位置追踪
@@ -475,7 +459,6 @@ function initThemeSwitcher() {
         if (clickCount === nextFireworkClick) {
             createFireworkExplosion(e.clientX, e.clientY);
             nextFireworkClick += Math.floor(Math.random() * 5) + 3; // 下一次3-7次点击后
-            console.log('🎆 FIREWORK! Next one in', nextFireworkClick - clickCount, 'clicks!');
             return;
         }
         
@@ -559,8 +542,8 @@ function initThemeSwitcher() {
         }
     }
     
-    
     function applyTheme(theme) {
+        console.log('[theme] Applying theme:', theme);
         // Handle Christmas theme
         if (theme === 'christmas') {
             window.setChristmasTheme();
@@ -600,18 +583,11 @@ function initThemeSwitcher() {
         themeBtn.title = `Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`;
         
         // Console log for fun
-        console.log(`🎨 Theme switched to: ${theme === 'light' ? '☀️ Light' : '🌙 Dark'} Mode`);
+        //console.log(`🎨 Theme switched to: ${theme === 'light' ? '☀️ Light' : '🌙 Dark'} Mode`);
     }
     
     // Theme switch event listener
-    themeBtn.addEventListener('click', () => {
-        // During Christmas season, don't allow switching away from Christmas theme
-        if (isChristmasSeason()) {
-            console.log('🎄 Christmas theme is locked during the holiday season!');
-            createSparkleEffect(themeBtn);
-            return;
-        }
-        
+    themeBtn.addEventListener('click', () => {    
         currentTheme = currentTheme === 'light' ? 'dark' : 'light';
         applyTheme(currentTheme);
         
