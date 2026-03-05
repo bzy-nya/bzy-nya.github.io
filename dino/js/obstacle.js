@@ -49,19 +49,19 @@ class Obstacle {
                 this.width = 46;
                 this.height = 40;
                 this.isFlying = true;
-                this.flyingHeight = 150; // 高鸟，只能下蹲通过
+                this.flyingHeight = 100; // 高鸟：跳起更危险（站立一般可过）
                 break;
             case 'bird_medium':
                 this.width = 46;
                 this.height = 40;
                 this.isFlying = true;
-                this.flyingHeight = 100; // 中鸟，可以跳跃或下蹲通过
+                this.flyingHeight = 70; // 中鸟：需要躲避（蹲下可过）
                 break;
             case 'bird_low':
                 this.width = 46;
                 this.height = 40;
                 this.isFlying = true;
-                this.flyingHeight = 50; // 低鸟，只能跳跃通过
+                this.flyingHeight = 55; // 低鸟：必须跳
                 break;
             case 'bird': // 保持兼容性，默认为中等高度
                 this.width = 46;
@@ -100,7 +100,12 @@ class Obstacle {
     
     // 绘制障碍物
     draw(ctx) {
-        ctx.fillStyle = '#535353';
+        // 根据模式设置颜色
+        if (document.body.classList.contains('rl-mode')) {
+            ctx.fillStyle = '#f7f7f7';
+        } else {
+            ctx.fillStyle = '#535353';
+        }
         
         switch (this.type) {
             case 'cactus_small':
@@ -323,6 +328,7 @@ class ObstacleManager {
         this.lastObstacleX = canvasWidth;
         this.minDistance = 400; // 增加最小距离，降低密度
         this.maxDistance = 700; // 增加最大距离
+        this.nextSpawnDistance = this.getRandomDistance();
         
         // 障碍物类型权重 - 增加鸟类出现频率
         this.obstacleTypes = [
@@ -331,9 +337,9 @@ class ObstacleManager {
             { type: 'cactus_double', weight: 15 },
             { type: 'cactus_triple', weight: 12 },
             { type: 'cactus_quad', weight: 8 },
-            { type: 'bird_high', weight: 10 },   // 高鸟：只能下蹲通过
-            { type: 'bird_medium', weight: 12 }, // 中鸟：可跳跃或下蹲
-            { type: 'bird_low', weight: 8 }      // 低鸟：只能跳跃通过
+            { type: 'bird_high', weight: 5 },    // 高鸟：跳起反而危险
+            { type: 'bird_medium', weight: 12 }, // 中鸟：跳/蹲都可过
+            { type: 'bird_low', weight: 8 }      // 低鸟：必须跳
         ];
     }
     
@@ -356,7 +362,7 @@ class ObstacleManager {
     // 生成新障碍物
     spawnObstacles() {
         if (this.obstacles.length === 0 || 
-            this.obstacles[this.obstacles.length - 1].x < this.canvasWidth - this.getRandomDistance()) {
+            this.obstacles[this.obstacles.length - 1].x < this.canvasWidth - this.nextSpawnDistance) {
             
             const obstacleType = this.getRandomObstacleType();
             const x = this.canvasWidth + 50;
@@ -364,6 +370,7 @@ class ObstacleManager {
             
             this.obstacles.push(obstacle);
             this.lastObstacleX = x;
+            this.nextSpawnDistance = this.getRandomDistance();
         }
     }
     
@@ -416,16 +423,17 @@ class ObstacleManager {
     reset() {
         this.obstacles = [];
         this.lastObstacleX = this.canvasWidth;
+        this.nextSpawnDistance = this.getRandomDistance();
     }
     
     // 调整难度
     adjustDifficulty(gameSpeed) {
-        // 根据游戏速度调整障碍物间距
-        const speedFactor = gameSpeed / 6; // 基础速度6
-        this.minDistance = Math.max(300, 400 - speedFactor * 40); // 允许更紧密的间距
-        this.maxDistance = Math.max(450, 700 - speedFactor * 60); // 调整最大间距
-        
-        // 高速时进一步增加鸟类概率
+        // 根据游戏速度调整障碍物间距：速度越快，间距越大，避免出现“无解”场景。
+        const t = Math.max(0, gameSpeed - 6);
+        this.minDistance = 400 + t * 55;
+        this.maxDistance = 700 + t * 95;
+
+        // 随速度适度增加鸟类概率，但只生成中鸟/低鸟，保证可解。
         if (gameSpeed > 9) {
             this.obstacleTypes = [
                 { type: 'cactus_small', weight: 12 },
@@ -433,8 +441,8 @@ class ObstacleManager {
                 { type: 'cactus_double', weight: 12 },
                 { type: 'cactus_triple', weight: 10 },
                 { type: 'cactus_quad', weight: 8 },
-                { type: 'bird_high', weight: 16 },   // 高速时更多高鸟
-                { type: 'bird_medium', weight: 20 }, // 最常见的鸟类
+                { type: 'bird_high', weight: 6 },
+                { type: 'bird_medium', weight: 22 },
                 { type: 'bird_low', weight: 12 }
             ];
         } else if (gameSpeed > 7) {
@@ -444,19 +452,18 @@ class ObstacleManager {
                 { type: 'cactus_double', weight: 15 },
                 { type: 'cactus_triple', weight: 12 },
                 { type: 'cactus_quad', weight: 8 },
-                { type: 'bird_high', weight: 12 },
+                { type: 'bird_high', weight: 5 },
                 { type: 'bird_medium', weight: 16 },
                 { type: 'bird_low', weight: 10 }
             ];
         } else {
-            // 低速时也保持一定的鸟类频率
             this.obstacleTypes = [
                 { type: 'cactus_small', weight: 22 },
                 { type: 'cactus_large', weight: 18 },
                 { type: 'cactus_double', weight: 18 },
                 { type: 'cactus_triple', weight: 15 },
                 { type: 'cactus_quad', weight: 5 },
-                { type: 'bird_high', weight: 8 },
+                { type: 'bird_high', weight: 3 },
                 { type: 'bird_medium', weight: 10 },
                 { type: 'bird_low', weight: 4 }
             ];

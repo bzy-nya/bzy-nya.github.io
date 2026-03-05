@@ -127,6 +127,16 @@ class NeuralNetwork {
         return result;
     }
     
+    // 清零输出层偏置（用于 RL 和 GA 中去除先验偏向）
+    neutralizeOutputBias() {
+        if (!this.biasOutput || !Array.isArray(this.biasOutput)) return;
+        for (let i = 0; i < this.biasOutput.length; i++) {
+            if (this.biasOutput[i] && this.biasOutput[i].length > 0) {
+                this.biasOutput[i][0] = 0;
+            }
+        }
+    }
+    
     // 复制神经网络
     copy() {
         const copy = new NeuralNetwork(this.inputNodes, this.hiddenNodes, this.outputNodes);
@@ -164,14 +174,14 @@ class NeuralNetwork {
                 if (Math.random() < mutationRate) {
                     const mutationType = Math.random();
                     
-                    if (mutationType < 0.8) {
-                        // 80% 概率：小幅调整（更保守）
-                        matrix[i][j] += (Math.random() * 2 - 1) * 0.05;
-                    } else if (mutationType < 0.95) {
-                        // 15% 概率：中等调整
-                        matrix[i][j] += (Math.random() * 2 - 1) * 0.15;
+                    if (mutationType < 0.6) {
+                        // 60% 概率：小幅调整（增强至 ±0.2）
+                        matrix[i][j] += (Math.random() * 2 - 1) * 0.2;
+                    } else if (mutationType < 0.9) {
+                        // 30% 概率：中等调整（增强至 ±0.5）
+                        matrix[i][j] += (Math.random() * 2 - 1) * 0.5;
                     } else {
-                        // 5% 概率：重新随机化
+                        // 10% 概率：重新随机化
                         const limit = Math.sqrt(6 / (matrix.length + matrix[0].length));
                         matrix[i][j] = (Math.random() * 2 - 1) * limit;
                     }
@@ -196,17 +206,41 @@ class NeuralNetwork {
         return child;
     }
     
-    // 矩阵交叉
+    // 矩阵交叉（混合策略：单点/均匀/算术）
     crossoverMatrix(matrix1, matrix2) {
         const result = [];
+        const crossoverType = Math.random();
         
-        for (let i = 0; i < matrix1.length; i++) {
-            result[i] = [];
-            for (let j = 0; j < matrix1[0].length; j++) {
-                // 每个权重位置独立随机选择父母之一
-                result[i][j] = Math.random() < 0.5 ? matrix1[i][j] : matrix2[i][j];
+        if (crossoverType < 0.4) {
+            // 40% 概率：单点交叉（保留父母基因片段）
+            const crossoverPoint = Math.floor(Math.random() * matrix1.length);
+            for (let i = 0; i < matrix1.length; i++) {
+                result[i] = [];
+                for (let j = 0; j < matrix1[0].length; j++) {
+                    result[i][j] = (i < crossoverPoint) ? matrix1[i][j] : matrix2[i][j];
+                }
+            }
+        } else if (crossoverType < 0.7) {
+            // 30% 概率：均匀交叉（每个权重随机选父母）
+            for (let i = 0; i < matrix1.length; i++) {
+                result[i] = [];
+                for (let j = 0; j < matrix1[0].length; j++) {
+                    result[i][j] = (Math.random() < 0.5) ? matrix1[i][j] : matrix2[i][j];
+                }
+            }
+        } else {
+            // 30% 概率：算术交叉（线性插值）
+            const alpha = 0.3 + Math.random() * 0.4;
+            for (let i = 0; i < matrix1.length; i++) {
+                result[i] = [];
+                for (let j = 0; j < matrix1[0].length; j++) {
+                    result[i][j] = alpha * matrix1[i][j] + (1 - alpha) * matrix2[i][j];
+                    // 限制范围
+                    result[i][j] = Math.max(-2, Math.min(2, result[i][j]));
+                }
             }
         }
+        
         return result;
     }
     
