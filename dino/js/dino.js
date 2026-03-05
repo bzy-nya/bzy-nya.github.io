@@ -1,7 +1,8 @@
 class Dino {
     constructor(x, groundY, brain = null, yOffset = 0) {
         this.x = x;
-        this.groundY = groundY + yOffset;
+        this.standardGroundY = groundY; // 保存标准地面高度（用于神经网络计算）
+        this.groundY = groundY + yOffset; // 实际渲染位置
         this.width = 44;
         this.height = 47;
         
@@ -30,7 +31,8 @@ class Dino {
         this.fitness = 0;
         this.obstaclesPassed = 0; // 成功跳过的障碍物数量
         this.invalidJumps = 0; // 无效跳跃数量（没有障碍物时跳跃）
-        this.lastObstaclePassedX = -1; // 最后跳过的障碍物X位置，避免重复计数
+        this.crouchAvoids = 0; // 成功蹲下躲避（主要针对飞行障碍）
+        this.invalidCrouches = 0; // 无效下蹲数量（附近没有需要下蹲的飞行障碍）
         
         // 动画属性
         this.animationFrame = 0;
@@ -46,9 +48,10 @@ class Dino {
         // 绘制颜色（用于区分AI）
         this.color = this.isAI ? '#666' : '#535353';
         this.alpha = this.isAI ? 0.7 : 1.0;
-        
-        // 计算初始适应度
-        this.calculateFitness();
+
+        // 为通过障碍计数提供稳定ID（避免把对象引用塞进障碍物上导致潜在内存问题）
+        Dino._nextUid = (Dino._nextUid || 1);
+        this.uid = Dino._nextUid++;
     }
     
     // 更新恐龙状态
@@ -62,11 +65,9 @@ class Dino {
         this.aliveTime += 1/60; // 假设60FPS
         this.score += gameSpeed * 0.1;
         
-        // AI决策
-        if (this.isAI && this.brain) {
-            const action = this.makeDecision(gameSpeed, obstacles);
-            this.executeAction(action, obstacles);
-        }
+        // AI 决策由 game.js 调度：
+        // - GA: GeneticAlgorithmController
+        // - RL: ReinforcementLearning/RLDinoController
         
         // 检测跳过的障碍物
         this.checkPassedObstacles(obstacles);
@@ -74,156 +75,113 @@ class Dino {
         // 物理更新
         this.updatePhysics();
         
-        // 实时更新适应度
-        this.calculateFitness();
-        
         // 动画更新
         if (!this.isJumping) {
             this.animationFrame += this.animationSpeed * gameSpeed;
         }
     }
     
-    // AI决策
-    makeDecision(gameSpeed, obstacles) {
-        if (!this.brain) return 'idle';
-        
+    // 统一的“状态特征提取”：GA 和 RL 共用
+    getNetworkInputs(gameSpeed, obstacles) {
         // 获取最近的障碍物
         let nearestObstacle = null;
         let minDistance = Infinity;
-        
+
         for (let obstacle of obstacles) {
-            // 使用恐龙前沿与障碍物的左侧距离
-            const frontDistance = (obstacle.x) - (this.x + this.width);
+            const frontDistance = obstacle.x - (this.x + this.width);
             if (frontDistance > 0 && frontDistance < minDistance) {
                 minDistance = frontDistance;
                 nearestObstacle = obstacle;
             }
         }
-        
-        // 准备神经网络输入
+
         const inputs = [];
-        
-        // 输入1: 恐龙当前高度（归一化，0=地面，1=最大跳高）
-        const maxJumpHeight = 120; // 增加范围以覆盖所有可能高度
-        const heightAboveGround = Math.max(0, this.groundY - (this.y + this.height));
-        const normalizedY = Math.max(0, Math.min(1, heightAboveGround / maxJumpHeight));
-        inputs.push(normalizedY);
-        
-        // 输入2: 垂直速度（-15..15 映射到 0..1）
-        const normalizedVelocity = Math.max(0, Math.min(1, (this.velocityY + 15) / 30));
-        inputs.push(normalizedVelocity);
-        
-        // 输入3: 到最近障碍物的水平距离（归一化）
-        if (nearestObstacle) {
-            const normalizedDistance = Math.max(0, Math.min(1, minDistance / 600)); // 增加距离范围以适应新的障碍物间距
-            inputs.push(normalizedDistance);
+
+        // 输入1: 恐龙当前高度（相对于标准地面，归一化）
+        const maxJumpHeight = 120;
+        const heightAboveGround = Math.max(0, this.standardGroundY - (this.y + this.height));
+        inputs.push(Math.max(0, Math.min(1, heightAboveGround / maxJumpHeight)));
+
+        // 输入2: 垂直速度
+        inputs.push(Math.max(0, Math.min(1, (this.velocityY + 15) / 30)));
+
+        // 输入3: 到最近障碍物的水平距离
+        inputs.push(nearestObstacle ? Math.max(0, Math.min(1, minDistance / 600)) : 1);
+
+        // 输入4: 最近障碍物高度
+        inputs.push(nearestObstacle ? Math.max(0, Math.min(1, nearestObstacle.height / 80)) : 0);
+
+        // 输入5: 最近障碍物宽度
+        inputs.push(nearestObstacle ? Math.max(0, Math.min(1, nearestObstacle.width / 100)) : 0);
+
+        // 输入6: 最近障碍物下边缘高度
+        if (nearestObstacle && nearestObstacle.isFlying) {
+            const obstacleBottom = nearestObstacle.y + nearestObstacle.height;
+            const bottomHeightAboveGround = Math.max(0, this.standardGroundY - obstacleBottom);
+            inputs.push(Math.max(0, Math.min(1, bottomHeightAboveGround / 80)));
         } else {
-            inputs.push(1); // 没有障碍物，距离最远
+            inputs.push(nearestObstacle ? Math.max(0, Math.min(1, nearestObstacle.height / 50)) : 0);
         }
-        
-        // 输入4: 最近障碍物高度（归一化）
-        if (nearestObstacle) {
-            const normalizedHeight = Math.max(0, Math.min(1, nearestObstacle.height / 80)); // 增加高度范围
-            inputs.push(normalizedHeight);
-        } else {
-            inputs.push(0); // 没有障碍物
-        }
-        
-        // 输入5: 最近障碍物宽度（归一化）
-        if (nearestObstacle) {
-            const normalizedWidth = Math.max(0, Math.min(1, nearestObstacle.width / 100)); // 宽度范围0-100像素
-            inputs.push(normalizedWidth);
-        } else {
-            inputs.push(0); // 没有障碍物
-        }
-        
-        // 输入6: 最近障碍物下边缘高度（归一化）- 改进计算！
-        if (nearestObstacle) {
-            if (nearestObstacle.isFlying) {
-                // 飞行障碍物：计算下边缘距地面的高度
-                const obstacleBottom = nearestObstacle.y + nearestObstacle.height;
-                const groundLevel = this.groundY;
-                const bottomHeightAboveGround = Math.max(0, groundLevel - obstacleBottom);
-                const normalizedBottomHeight = Math.max(0, Math.min(1, bottomHeightAboveGround / 80));
-                inputs.push(normalizedBottomHeight);
-            } else {
-                // 地面障碍物：使用障碍物高度作为特征
-                const normalizedObstacleHeight = Math.max(0, Math.min(1, nearestObstacle.height / 50));
-                inputs.push(normalizedObstacleHeight);
-            }
-        } else {
-            inputs.push(0); // 没有障碍物
-        }
-        
-        // 输入7: 游戏速度（归一化，6-13映射到0-1）
-        const normalizedSpeed = Math.max(0, Math.min(1, (gameSpeed - 6) / 7));
-        inputs.push(normalizedSpeed);
-        
-        // 验证输入长度
+
+        // 输入7: 游戏速度
+        inputs.push(Math.max(0, Math.min(1, (gameSpeed - 6) / 7)));
+
         if (inputs.length !== 7) {
             console.error(`错误：神经网络期望7个输入，但收到${inputs.length}个:`, inputs);
-            return 'idle';
         }
-        
-        const outputs = this.brain.predict(inputs);
-        
-        // 验证输出长度
-        if (!Array.isArray(outputs) || outputs.length !== 3) {
-            console.error(`错误：神经网络期望3个输出，但收到:`, outputs);
-            return 'idle';
-        }
-        
-        // 选择输出值最大的动作
-        const actions = ['jump', 'idle', 'crouch'];
-        const maxIndex = outputs.indexOf(Math.max(...outputs));
-        const selectedAction = actions[maxIndex];
-        
-        // 检查是否应该考虑采取行动（基于距离）
-        const baseDistance = 160;
-        const speedBonus = gameSpeed * 12;
-        const widthBonus = nearestObstacle ? nearestObstacle.width * 2 : 0;
-        const dynamicDistance = Math.max(180, Math.min(350, baseDistance + speedBonus + widthBonus));
-        const shouldConsiderAction = !!nearestObstacle && minDistance < dynamicDistance;
-        
-        // 调试输出和决策
-        if (Math.random() < 0.01) {
-            console.log(`AI[恐龙${this.dinoId || 0}]: 输入=[${inputs.map(x => x.toFixed(2)).join(',')}]`);
-            console.log(`  输出=[${outputs.map(x => x.toFixed(3)).join(',')}] -> ${selectedAction}`);
-            console.log(`  距离=${minDistance.toFixed(1)}, 阈值=${dynamicDistance.toFixed(1)}, 考虑行动=${shouldConsiderAction}`);
-            if (nearestObstacle) {
-                console.log(`  障碍物: x=${nearestObstacle.x}, w=${nearestObstacle.width}, h=${nearestObstacle.height}, type=${nearestObstacle.type}`);
-                console.log(`  障碍物位置: y=${nearestObstacle.y}, bottom=${nearestObstacle.y + nearestObstacle.height}, groundY=${this.groundY}`);
-                console.log(`  下边缘高度: ${Math.max(0, this.groundY - (nearestObstacle.y + nearestObstacle.height))}`);
-            }
-            console.log(`  游戏速度: ${gameSpeed}, 归一化: ${inputs[6]}`);
-        }
-        
-        // 如果太远就保持idle，避免无效动作
-        if (!shouldConsiderAction) {
-            return 'idle';
-        }
-        
-        return selectedAction;
+
+        return { inputs, nearestObstacle, minDistance };
+    }
+
+    isCrouchRelevantFlyingObstacle(obstacle) {
+        if (!obstacle || !obstacle.isFlying) return false;
+
+        // Prefer explicit obstacle types when available.
+        if (obstacle.type === 'bird_medium' || obstacle.type === 'bird') return true;
+        if (obstacle.type === 'bird_high' || obstacle.type === 'bird_low') return false;
+
+        // Fallback: infer by bottom height above ground (standing would collide, crouch would pass).
+        const obstacleBottom = obstacle.y + obstacle.height;
+        const bottomHeightAboveGround = Math.max(0, this.standardGroundY - obstacleBottom);
+        return bottomHeightAboveGround >= 22 && bottomHeightAboveGround <= 40;
     }
     
     // 执行AI决策的动作
     executeAction(action, obstacles) {
+        // Return a structured result so trainers (especially RL) can shape rewards.
+        // For non-jump actions, wasInvalid is always false.
         switch (action) {
             case 'jump':
                 if (!this.isJumping) {
-                    this.jump(obstacles);
+                    const result = this.jump(obstacles);
+                    this.stopCrouch(); // 停止蹲下
+                    return result;
                 }
                 this.stopCrouch(); // 停止蹲下
-                break;
+                return { didJump: false, wasInvalid: false };
             case 'crouch':
                 if (!this.isJumping) { // 只有在地面时才能蹲下
+                    // 判定“无效下蹲”：前方一段距离内没有“确实需要蹲”的飞行障碍
+                    const hasNearbyCrouchRelevantBird = (obstacles || []).some(obstacle => {
+                        if (!this.isCrouchRelevantFlyingObstacle(obstacle)) return false;
+                        const distance = obstacle.x - (this.x + this.width);
+                        if (!(distance > -50 && distance < 400)) return false;
+                        return true;
+                    });
                     this.crouch();
+                    if (!hasNearbyCrouchRelevantBird) {
+                        this.invalidCrouches++;
+                    }
+                    this.lastCrouchWasInvalid = !hasNearbyCrouchRelevantBird;
+                    return { didCrouch: true, wasInvalid: false, wasInvalidCrouch: !hasNearbyCrouchRelevantBird };
                 }
-                break;
+                this.lastCrouchWasInvalid = false;
+                return { didCrouch: false, wasInvalid: false, wasInvalidCrouch: false };
             case 'idle':
             default:
                 this.stopCrouch(); // 停止蹲下，回到正常状态
-                break;
+                this.lastCrouchWasInvalid = false;
+                return { didJump: false, wasInvalid: false, wasInvalidCrouch: false };
         }
     }
     
@@ -231,10 +189,18 @@ class Dino {
     checkPassedObstacles(obstacles) {
         for (let obstacle of obstacles) {
             // 如果障碍物已经完全被恐龙超越，且之前没有计数过
-            if (obstacle.x + obstacle.width < this.x && 
-                obstacle.x > this.lastObstaclePassedX) {
-                this.obstaclesPassed++;
-                this.lastObstaclePassedX = obstacle.x;
+            if (obstacle.x + obstacle.width < this.x) {
+                // 以 uid 标记“这只恐龙是否已经对这个障碍计数过”
+                if (!obstacle.passedByDinos) obstacle.passedByDinos = new Set();
+                if (!obstacle.passedByDinos.has(this.uid)) {
+                    obstacle.passedByDinos.add(this.uid);
+                    this.obstaclesPassed++;
+
+                    // 额外统计：只在“确实需要蹲下”的飞行障碍上计为有效躲避。
+                    if (this.isCrouching && this.isCrouchRelevantFlyingObstacle(obstacle)) {
+                        this.crouchAvoids++;
+                    }
+                }
             }
         }
     }
@@ -279,12 +245,17 @@ class Dino {
             
             if (!hasNearbyObstacle) {
                 this.invalidJumps++;
-                // 调试无效跳跃
-                if (Math.random() < 0.1) {
-                    console.log(`恐龙${this.dinoId || 0} 无效跳跃! 附近没有障碍物`);
-                }
             }
+
+            // 供 RL 奖励函数使用
+            this.lastJumpWasInvalid = !hasNearbyObstacle;
+
+            return { didJump: true, wasInvalid: !hasNearbyObstacle };
         }
+
+        // 没有执行 jump（例如正在空中）
+        this.lastJumpWasInvalid = false;
+        return { didJump: false, wasInvalid: false };
     }
     
     // 蹲下
@@ -306,6 +277,11 @@ class Dino {
             // 调整Y位置保持底部在地面
             this.y = this.groundY - this.height;
         }
+    }
+    
+    // 站立（用于RL，确保不蹲下）
+    stand() {
+        this.stopCrouch();
     }
     
     // 碰撞检测
@@ -352,7 +328,8 @@ class Dino {
         this.fitness = 0;
         this.obstaclesPassed = 0;
         this.invalidJumps = 0;
-        this.lastObstaclePassedX = -1;
+        this.crouchAvoids = 0;
+        this.invalidCrouches = 0;
         this.animationFrame = 0;
         this.runAnimation = true;
     }
@@ -498,24 +475,4 @@ class Dino {
         };
     }
     
-    // 计算适应度
-    calculateFitness() {
-        // 基础分数：游戏得分和存活时间
-        this.fitness = this.score + this.aliveTime * 10;
-        
-        // 障碍物通过奖励
-        this.fitness += this.obstaclesPassed * 50;
-        
-        // 动作效率惩罚（轻微惩罚，鼓励精准行动）
-        const jumpPenalty = this.jumpCount * 2; // 每次跳跃-2分
-        const crouchPenalty = this.crouchCount * 1; // 每次蹲下-1分
-        this.fitness -= jumpPenalty + crouchPenalty;
-        
-        // 无效跳跃重度惩罚
-        this.fitness -= this.invalidJumps * 20;
-        
-        this.fitness = Math.max(1, this.fitness); // 最小适应度为1，避免0值
-        
-        return this.fitness;
-    }
 }

@@ -1,53 +1,207 @@
 // 全局变量
 let game;
-let isEvolutionRunning = false;
 let currentSpeedMultiplier = 1;
-let networkVisualization;
+
+// DOM元素缓存
+const dom = {};
+
+// 模式配置：统一管理 UI 文案与参数滑动条映射，减少分支重复
+const MODE_CONFIG = {
+    GA: {
+        toggleText: 'GA → RL',
+        bodyClass: '',
+        title: ' Dino Game - 进化算法演示',
+        evolutionTitle: '进化统计',
+        evolutionIcon: 'evolution',
+        startBtnText: '开始进化',
+        individualText: '最佳个体',
+        generationLabel: '当前世代:',
+        avgScoreLabel: '平均分数:',
+        params: ['种群大小:', '变异率:', '交叉率:', '精英保留:'],
+        sliderRanges: {
+            population: { min: 10, max: 50, step: 1, defaultValue: 20 },
+            mutation:   { min: 0.01, max: 0.5, step: 0.01, defaultValue: 0.1 },
+            crossover:  { min: 0.1, max: 1.0, step: 0.1, defaultValue: 0.8 },
+            elitism:    { min: 1, max: 10, step: 1, defaultValue: 2 }
+        },
+        sliders: {
+            population: {
+                display: (v) => Math.round(v),
+                trainerValue: (v) => Math.round(v),
+                format: (v) => Math.round(v).toString(),
+                apply: (t, v) => t.setPopulationSize(v),
+                fromTrainer: (s) => s.populationSize
+            },
+            mutation: {
+                display: (v) => v,
+                trainerValue: (v) => v,
+                format: (v) => v.toFixed(3),
+                apply: (t, v) => t.setMutationRate(v),
+                fromTrainer: (s) => s.mutationRate
+            },
+            crossover: {
+                display: (v) => v,
+                trainerValue: (v) => v,
+                format: (v) => v.toFixed(2),
+                apply: (t, v) => t.setCrossoverRate(v),
+                fromTrainer: (s) => s.crossoverRate
+            },
+            elitism: {
+                display: (v) => Math.round(v),
+                trainerValue: (v) => Math.round(v),
+                format: (v) => Math.round(v).toString(),
+                apply: (t, v) => t.setElitismCount(v),
+                fromTrainer: (s) => s.elitismCount
+            }
+        }
+    },
+    RL: {
+        toggleText: 'RL → GA',
+        bodyClass: 'rl-mode',
+        title: ' Dino Game - 强化学习演示',
+        evolutionTitle: '学习统计',
+        evolutionIcon: 'trophy',
+        startBtnText: '开始学习',
+        individualText: '当前个体',
+        generationLabel: '回合数:',
+        avgScoreLabel: '当前分数:',
+        params: ['Agent数量:', '学习速度:', '奖励系数:', '折扣因子γ:'],
+        sliderRanges: {
+            population: { min: 1, max: 20, step: 1, defaultValue: 8 },
+            mutation:   { min: 0.01, max: 0.5, step: 0.01, defaultValue: 0.15 },
+            crossover:  { min: 0.1, max: 1.0, step: 0.1, defaultValue: 1.0 },
+            elitism:    { min: 1, max: 10, step: 1, defaultValue: 9 }
+        },
+        sliders: {
+            population: {
+                display: (v) => Math.round(v),
+                trainerValue: (v) => Math.round(v),
+                format: (v) => Math.round(v).toString(),
+                apply: (t, v) => t.setPopulationSize(v),
+                fromTrainer: (s) => s.populationSize
+            },
+            mutation: {
+                display: (v) => v * 0.2,
+                trainerValue: (v) => v * 0.2,
+                format: (v) => v.toFixed(4),
+                apply: (t, v) => t.setLearningRate(v),
+                fromTrainer: (s) => (s.learningRate || 0) / 0.2
+            },
+            crossover: {
+                display: (v) => v * 0.2,
+                trainerValue: (v) => v * 0.2,
+                format: (v) => v.toFixed(3),
+                apply: (t, v) => t.setRewardScale(v),
+                fromTrainer: (s) => (s.rewardScale || 0) / 0.2
+            },
+            elitism: {
+                display: (v) => 0.9 + (v - 1) * 0.01,
+                trainerValue: (v) => 0.9 + (v - 1) * 0.01,
+                format: (v) => v.toFixed(2),
+                apply: (t, v) => t.setGamma(v),
+                fromTrainer: (s) => 1 + ((s.gamma || 0.9) - 0.9) / 0.01
+            }
+        }
+    }
+};
+
+let currentModeConfig = MODE_CONFIG.GA;
+const sliderStateByMode = { GA: {}, RL: {} };
+const sliderActiveState = { population: false, mutation: false, crossover: false, elitism: false };
+
+// 滑动条 DOM 映射（值显示与输入元素）
+const SLIDER_VALUE_FIELDS = {
+    population: 'populationSize',
+    mutation: 'mutationRate',
+    crossover: 'crossoverRate',
+    elitism: 'elitismCount'
+};
+
+const SLIDER_INPUT_FIELDS = {
+    population: 'populationSlider',
+    mutation: 'mutationSlider',
+    crossover: 'crossoverSlider',
+    elitism: 'elitismSlider'
+};
 
 // 初始化游戏
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('开始初始化游戏...');
+    // 缓存DOM元素
+    cacheDOMElements();
     
     // 初始化SVG图标
     initSVGIcons();
     
     // 创建游戏实例
     game = new DinoGame('gameCanvas');
-    
-    // 初始化神经网络可视化
-    initNetworkVisualization();
-    
+
+    applyModeConfig(game.aiMode);
+
     // 设置控制按钮
     setupControls();
     
     // 设置参数滑动条
     setupParameterControls();
+
+    // 按当前模式刷新参数展示并同步到 trainer
+    refreshParameterDisplay(true);
     
     // 开始UI更新循环
     startUIUpdateLoop();
-    
-    // 添加导出按钮事件监听器
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'e' || e.key === 'E') {
-            exportEvolutionData();
-        }
-    });
-    
-    console.log('Dino进化算法游戏已初始化');
 });
+
+// 缓存所有DOM元素
+function cacheDOMElements() {
+    // 按钮
+    dom.startBtn = document.getElementById('startBtn');
+    dom.pauseBtn = document.getElementById('pauseBtn');
+    dom.resetBtn = document.getElementById('resetBtn');
+    dom.speedBtn = document.getElementById('speedBtn');
+    dom.manualBtn = document.getElementById('manualBtn');
+    dom.modeToggle = document.getElementById('modeToggle');
+    
+    // 统计显示
+    dom.generation = document.getElementById('generation');
+    dom.alive = document.getElementById('alive');
+    dom.highScore = document.getElementById('highScore');
+    dom.avgScore = document.getElementById('avgScore');
+    dom.generationProgress = document.getElementById('generationProgress');
+    
+    // 参数显示
+    dom.populationSize = document.getElementById('populationSize');
+    dom.mutationRate = document.getElementById('mutationRate');
+    dom.crossoverRate = document.getElementById('crossoverRate');
+    dom.elitismCount = document.getElementById('elitismCount');
+    
+    // Canvas
+    dom.bestIndividualCanvas = document.getElementById('bestIndividualCanvas');
+    dom.geneticTreeCanvas = document.getElementById('geneticTreeCanvas');
+    
+    // 标题和文本
+    dom.mainTitle = document.getElementById('main-title');
+    dom.evolutionTitle = document.getElementById('evolution-title');
+    dom.individualTitleText = document.getElementById('individual-title-text');
+    
+    // 参数标签
+    dom.param1Label = document.getElementById('param1-label');
+    dom.param2Label = document.getElementById('param2-label');
+    dom.param3Label = document.getElementById('param3-label');
+    dom.param4Label = document.getElementById('param4-label');
+    
+    // 参数滑动条
+    dom.populationSlider = document.getElementById('populationSlider');
+    dom.mutationSlider = document.getElementById('mutationSlider');
+    dom.crossoverSlider = document.getElementById('crossoverSlider');
+    dom.elitismSlider = document.getElementById('elitismSlider');
+}
 
 // 初始化SVG图标
 function initSVGIcons() {
-    // 添加恐龙图标到标题
-    const mainTitle = document.getElementById('main-title');
-    if (mainTitle) {
-        mainTitle.innerHTML = createSVGIcon('dino', 'title-icon') + ' ' + mainTitle.textContent;
+    if (dom.mainTitle) {
+        dom.mainTitle.innerHTML = createSVGIcon('dino', 'title-icon') + ' ' + dom.mainTitle.textContent;
     }
-    
-    // 添加图标到统计面板标题
-    const evolutionTitle = document.getElementById('evolution-title');
-    if (evolutionTitle) {
-        evolutionTitle.innerHTML = createSVGIcon('evolution', 'panel-icon') + ' ' + evolutionTitle.textContent;
+    if (dom.evolutionTitle) {
+        dom.evolutionTitle.innerHTML = createSVGIcon('evolution', 'panel-icon') + ' ' + dom.evolutionTitle.textContent;
     }
     
     const bestTitle = document.getElementById('best-title');
@@ -66,12 +220,147 @@ function initSVGIcons() {
     }
 }
 
+// 应用模式配置：统一更新文案/主题，并重算滑动条显示
+function applyModeConfig(mode) {
+    currentModeConfig = MODE_CONFIG[mode] || MODE_CONFIG.GA;
+    const cfg = currentModeConfig;
+
+    if (dom.modeToggle) dom.modeToggle.textContent = cfg.toggleText;
+    document.body.className = cfg.bodyClass;
+
+    if (dom.mainTitle) dom.mainTitle.innerHTML = createSVGIcon('dino', 'title-icon') + cfg.title;
+    if (dom.evolutionTitle) dom.evolutionTitle.innerHTML = createSVGIcon(cfg.evolutionIcon, 'panel-icon') + ' ' + cfg.evolutionTitle;
+    if (dom.startBtn) dom.startBtn.textContent = cfg.startBtnText;
+    if (dom.individualTitleText) dom.individualTitleText.textContent = cfg.individualText;
+
+    const genLabel = dom.evolutionTitle?.parentElement?.querySelector('.stat-item:nth-child(2) span:first-child');
+    const avgLabel = dom.evolutionTitle?.parentElement?.querySelector('.stat-item:nth-child(5) span:first-child');
+    if (genLabel) genLabel.textContent = cfg.generationLabel;
+    if (avgLabel) avgLabel.textContent = cfg.avgScoreLabel;
+
+    [dom.param1Label, dom.param2Label, dom.param3Label, dom.param4Label].forEach((label, i) => {
+        if (label && cfg.params[i]) label.textContent = cfg.params[i];
+    });
+
+    // 恢复该模式上次的滑动条值（若无记录则使用默认值）
+    const saved = sliderStateByMode[mode] || {};
+    Object.keys(SLIDER_INPUT_FIELDS).forEach((key) => {
+        const slider = dom[SLIDER_INPUT_FIELDS[key]];
+        if (!slider) return;
+        const range = cfg.sliderRanges ? cfg.sliderRanges[key] : null;
+        const savedValue = saved[key];
+        if (Number.isFinite(savedValue)) {
+            slider.value = savedValue;
+        } else if (range && range.defaultValue !== undefined) {
+            slider.value = range.defaultValue;
+        }
+    });
+
+    // 根据模式调整滑动条可选范围，避免 UI 显示与实际生效上限不一致
+    if (cfg.sliderRanges) {
+        Object.entries(cfg.sliderRanges).forEach(([key, range]) => {
+            const slider = dom[SLIDER_INPUT_FIELDS[key]];
+            if (!slider) return;
+            if (range.min !== undefined) slider.min = range.min;
+            if (range.max !== undefined) slider.max = range.max;
+            if (range.step !== undefined) slider.step = range.step;
+
+            // 如果当前值越界则回落到范围内的默认值/边界值
+            const current = parseFloat(slider.value);
+            let clamped = current;
+            if (!Number.isFinite(current)) clamped = range.defaultValue ?? range.min ?? 0;
+            if (range.min !== undefined) clamped = Math.max(range.min, clamped);
+            if (range.max !== undefined) clamped = Math.min(range.max, clamped);
+            if (current !== clamped) slider.value = clamped;
+        });
+    }
+
+    // 切换模式后立即刷新滑动条展示（并可选择同步到 trainer）
+    refreshParameterDisplay(true);
+}
+
+// 统一处理滑动条值的显示与应用
+function handleSliderChange(key, rawValue, applyToTrainer = true) {
+    const cfg = currentModeConfig.sliders[key];
+    const valueEl = dom[SLIDER_VALUE_FIELDS[key]];
+    const numeric = Number(rawValue);
+    if (!cfg || !Number.isFinite(numeric)) return;
+
+    const displayValue = cfg.display(numeric);
+    if (valueEl) {
+        valueEl.textContent = cfg.format ? cfg.format(displayValue) : (Number.isFinite(displayValue) ? displayValue.toString() : '0');
+    }
+
+    if (applyToTrainer && game && game.trainer && typeof cfg.apply === 'function') {
+        const trainerValue = cfg.trainerValue ? cfg.trainerValue(numeric) : displayValue;
+        cfg.apply(game.trainer, trainerValue);
+    }
+}
+
+function refreshParameterDisplay(applyToTrainer = false) {
+    Object.keys(SLIDER_INPUT_FIELDS).forEach((key) => {
+        const slider = dom[SLIDER_INPUT_FIELDS[key]];
+        if (!slider) return;
+        handleSliderChange(key, parseFloat(slider.value), applyToTrainer);
+    });
+}
+
+function persistSliderValues(mode) {
+    const bag = sliderStateByMode[mode] || {};
+    Object.keys(SLIDER_INPUT_FIELDS).forEach((key) => {
+        const slider = dom[SLIDER_INPUT_FIELDS[key]];
+        if (!slider) return;
+        const v = parseFloat(slider.value);
+        if (Number.isFinite(v)) bag[key] = v;
+    });
+    sliderStateByMode[mode] = bag;
+}
+
+function syncSlidersFromTrainer(trainerStats) {
+    if (!trainerStats) return;
+    Object.keys(SLIDER_INPUT_FIELDS).forEach((key) => {
+        if (sliderActiveState[key]) return;
+        const cfg = currentModeConfig.sliders[key];
+        if (!cfg || typeof cfg.fromTrainer !== 'function') return;
+        const slider = dom[SLIDER_INPUT_FIELDS[key]];
+        if (!slider) return;
+
+        const range = currentModeConfig.sliderRanges ? currentModeConfig.sliderRanges[key] : null;
+        let nextValue = Number(cfg.fromTrainer(trainerStats));
+        if (!Number.isFinite(nextValue)) return;
+
+        if (range && range.min !== undefined) nextValue = Math.max(range.min, nextValue);
+        if (range && range.max !== undefined) nextValue = Math.min(range.max, nextValue);
+
+        const current = Number(slider.value);
+        if (!Number.isFinite(current) || Math.abs(current - nextValue) > 1e-6) {
+            slider.value = nextValue;
+            handleSliderChange(key, nextValue, false);
+        }
+    });
+}
+
+function syncSpeedDisplay() {
+    if (!dom.speedBtn || !game) return;
+    const actual = Number(game.speedMultiplier);
+    if (!Number.isFinite(actual)) return;
+    if (actual !== currentSpeedMultiplier) {
+        currentSpeedMultiplier = actual;
+        dom.speedBtn.textContent = `速度: ${currentSpeedMultiplier}x`;
+    }
+}
+
 // 设置控制按钮
 function setupControls() {
+    // 模式切换按钮
+    document.getElementById('modeToggle').addEventListener('click', function() {
+        toggleAIMode();
+    });
+    
     // 开始进化按钮
     document.getElementById('startBtn').addEventListener('click', function() {
-        if (!isEvolutionRunning) {
-            startEvolution();
+        if (!game.isRunning) {
+            startSimulation();
         }
     });
     
@@ -115,73 +404,62 @@ function setupControls() {
     });
 }
 
-// 开始进化
-function startEvolution() {
-    game.startEvolution();
-    isEvolutionRunning = true;
-    
-    // 更新按钮状态
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('pauseBtn').disabled = false;
-    document.getElementById('manualBtn').disabled = true;
-    
-    console.log('开始进化算法训练');
+// 开始模拟（AI训练：GA 或 RL）
+function startSimulation() {
+    game.startSimulation();
+    dom.startBtn.disabled = true;
+    dom.pauseBtn.disabled = false;
+    dom.manualBtn.disabled = true;
 }
 
 // 开始手动游戏
 function startManualGame() {
     game.startManualGame();
-    isEvolutionRunning = false;
-    
-    // 更新按钮状态
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('pauseBtn').disabled = false;
-    document.getElementById('manualBtn').disabled = true;
-    
-    console.log('开始手动游戏');
+    dom.startBtn.disabled = true;
+    dom.pauseBtn.disabled = false;
+    dom.manualBtn.disabled = true;
+}
+
+// 切换AI模式
+function toggleAIMode() {
+    persistSliderValues(game.aiMode);
+    const newMode = game.aiMode === 'GA' ? 'RL' : 'GA';
+    game.setAIMode(newMode);
+
+    applyModeConfig(newMode);
+
+    if (game.isRunning && game.gameMode === 'AI') resetGame();
 }
 
 // 切换暂停状态
 function togglePause() {
     game.togglePause();
-    
-    const pauseBtn = document.getElementById('pauseBtn');
-    if (game.isPaused) {
-        pauseBtn.textContent = '继续';
-    } else {
-        pauseBtn.textContent = '暂停';
-    }
+    dom.pauseBtn.textContent = game.isPaused ? '继续' : '暂停';
 }
 
 // 重置游戏
 function resetGame() {
     game.reset();
-    isEvolutionRunning = false;
     currentSpeedMultiplier = 1;
     
-    // 重置按钮状态
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('pauseBtn').disabled = true;
-    document.getElementById('pauseBtn').textContent = '暂停';
-    document.getElementById('manualBtn').disabled = false;
-    document.getElementById('speedBtn').textContent = '速度: 1x';
-    
-    // 重置统计显示
+    dom.startBtn.disabled = false;
+    dom.pauseBtn.disabled = true;
+    dom.pauseBtn.textContent = '暂停';
+    dom.manualBtn.disabled = false;
+    dom.speedBtn.textContent = '速度: 1x';
+
+    // 新 trainer 会在 reset 内重建，确保参数沿用当前滑动条设定
+    refreshParameterDisplay(true);
+
     updateStatsDisplay();
-    
-    console.log('游戏已重置');
 }
 
 // 循环切换速度
 function cycleSpeed() {
     const speeds = [1, 2, 4, 8];
-    const currentIndex = speeds.indexOf(currentSpeedMultiplier);
-    const nextIndex = (currentIndex + 1) % speeds.length;
-    
-    currentSpeedMultiplier = speeds[nextIndex];
+    currentSpeedMultiplier = speeds[(speeds.indexOf(currentSpeedMultiplier) + 1) % speeds.length];
     game.setSpeedMultiplier(currentSpeedMultiplier);
-    
-    document.getElementById('speedBtn').textContent = `速度: ${currentSpeedMultiplier}x`;
+    dom.speedBtn.textContent = `速度: ${currentSpeedMultiplier}x`;
 }
 
 // UI更新循环
@@ -197,50 +475,51 @@ function startUIUpdateLoop() {
 // 更新统计显示
 function updateStatsDisplay() {
     const stats = game.getStats();
-    const geneticStats = game.getGeneticStats();
-    
-    // 进化统计
-    document.getElementById('generation').textContent = stats.currentGeneration;
-    document.getElementById('alive').textContent = stats.aliveCount;
-    document.getElementById('highScore').textContent = Math.floor(stats.highScore);
-    document.getElementById('avgScore').textContent = Math.floor(stats.averageScore);
-    
-    // 世代进度
-    const progress = game.gameMode === 'AI' ? 
-        ((geneticStats.populationSize - stats.aliveCount) / geneticStats.populationSize * 100) : 0;
-    document.getElementById('generationProgress').style.width = progress + '%';
-    
-    // 最佳个体 - 只在AI模式下显示  
-    if (game.gameMode === 'AI' && game && game.dinos && game.dinos.length > 0) {
-        // 找到当前适应度最高的恐龙，优先选择活着的
-        let bestDino = null;
-        
-        // 首先尝试从活着的恐龙中选择
-        const aliveDinos = game.dinos.filter(dino => !dino.isDead);
-        if (aliveDinos.length > 0) {
-            bestDino = aliveDinos.reduce((best, current) => {
-                return current.fitness > best.fitness ? current : best;
-            });
-        } else {
-            // 如果没有活着的，从所有恐龙中选择
-            bestDino = game.dinos.reduce((best, current) => {
-                return current.fitness > best.fitness ? current : best;
-            });
-        }
-        
-        if (bestDino) {
-            // 绘制合并的最佳个体预览（恐龙+神经网络）
-            const gameSpeed = game.gameSpeed || 8;
-            const obstacles = game.obstacleManager ? game.obstacleManager.getObstacles() : [];
-            drawBestIndividualPreview(bestDino, gameSpeed, obstacles);
-        }
+    const trainerStats = game.trainer ? game.trainer.getStats() : null;
+    syncSpeedDisplay();
+    if (!trainerStats) return;
+
+    // 通用统计
+    dom.generation.textContent = stats.iteration || 0;
+    dom.alive.textContent = game.dinos.filter(d => !d.isDead).length;
+    dom.highScore.textContent = Math.floor(stats.highScore || 0);
+
+    if (game.aiMode === 'GA') {
+        renderGAStats(stats, trainerStats);
+    } else {
+        renderRLStats(stats, trainerStats);
     }
+
+    syncSlidersFromTrainer(trainerStats);
     
-    // 算法参数（保持滑动条同步）
-    document.getElementById('populationSize').textContent = geneticStats.populationSize;
-    document.getElementById('mutationRate').textContent = geneticStats.mutationRate.toFixed(3);
-    document.getElementById('crossoverRate').textContent = geneticStats.crossoverRate.toFixed(2);
-    document.getElementById('elitismCount').textContent = geneticStats.elitismCount;
+    // 绘制个体预览
+    if (game.gameMode === 'AI' && game.dinos.length > 0) {
+        const dino = game.aiMode === 'GA' 
+            ? game.dinos.reduce((best, d) => d.fitness > best.fitness ? d : best)
+            : game.dinos[0];
+        drawIndividualPreview(dino);
+    }
+}
+
+function renderGAStats(stats, trainerStats) {
+    dom.avgScore.textContent = Math.floor(Number.isFinite(stats.averageScore) ? stats.averageScore : 0);
+    if (game.gameMode === 'AI' && dom.generationProgress) {
+        const population = Math.max(1, trainerStats.populationSize || 1);
+        const completed = Math.max(0, population - stats.aliveCount);
+        dom.generationProgress.style.width = (completed / population * 100) + '%';
+    }
+    dom.populationSize.textContent = trainerStats.populationSize;
+    dom.mutationRate.textContent = trainerStats.mutationRate.toFixed(3);
+    dom.crossoverRate.textContent = trainerStats.crossoverRate.toFixed(2);
+    dom.elitismCount.textContent = trainerStats.elitismCount;
+}
+
+function renderRLStats(stats, trainerStats) {
+    dom.avgScore.textContent = Math.floor(trainerStats.currentMaxScore || 0);
+    dom.populationSize.textContent = trainerStats.populationSize;
+    dom.mutationRate.textContent = trainerStats.learningRate.toFixed(4);
+    dom.crossoverRate.textContent = trainerStats.rewardScale.toFixed(3);
+    dom.elitismCount.textContent = trainerStats.gamma.toFixed(2);
 }
 
 // 确保Canvas的CSS尺寸在首次使用时固定，避免因修改width/height属性导致显示尺寸不断变化
@@ -259,12 +538,11 @@ function ensureCanvasCSSSize(canvas, defaultW, defaultH) {
     if (canvas.dataset) canvas.dataset.cssSized = '1';
 }
 
-// 绘制最佳个体预览（恐龙+神经网络合并）
-function drawBestIndividualPreview(bestDino, gameSpeed, obstacles) {
-    const canvas = document.getElementById('bestIndividualCanvas');
-    if (!canvas || !bestDino) return;
+// 绘制个体预览（统一的GA/RL预览）
+function drawIndividualPreview(dino) {
+    const canvas = dom.bestIndividualCanvas;
+    if (!canvas || !dino) return;
 
-    // 将默认高度改为200，避免布局未完成时被锁到120px
     ensureCanvasCSSSize(canvas, 200, 200);
 
     const rect = canvas.getBoundingClientRect();
@@ -284,44 +562,25 @@ function drawBestIndividualPreview(bestDino, gameSpeed, obstacles) {
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, displayWidth, displayHeight);
 
-    // 左：恐龙区域 右：网络区域
     const dinoWidth = Math.floor(displayWidth * 0.4);
     const networkWidth = displayWidth - dinoWidth;
 
-    // 恐龙垂直居中
+    // 绘制恐龙
     const dinoSize = 1.5;
-    const scaledDinoWidth = Math.round(44 * dinoSize);
-    const scaledDinoHeight = Math.round(47 * dinoSize);
-    const dinoX = Math.floor((dinoWidth - scaledDinoWidth) / 2);
-    const dinoY = Math.floor((displayHeight - scaledDinoHeight) / 2);
-
+    const dinoX = Math.floor((dinoWidth - 44 * dinoSize) / 2);
+    const dinoY = Math.floor((displayHeight - 47 * dinoSize) / 2);
+    
     ctx.save();
     ctx.translate(0.5, 0.5);
     ctx.scale(dinoSize, dinoSize);
-    
-    // 绘制恐龙，显示当前动作状态
-    drawPreviewDinoBody(ctx, dinoX / dinoSize, dinoY / dinoSize, bestDino.color, bestDino.isJumping, bestDino.isCrouching, bestDino.isDead);
+    drawPreviewDinoBody(ctx, dinoX / dinoSize, dinoY / dinoSize, dino.color, dino.isJumping, dino.isCrouching, dino.isDead);
     ctx.restore();
 
-    // 神经网络在整个画布高度内垂直居中（而不是子区域），更容易和恐龙对齐
-    if (bestDino.brain) {
-        const networkPaddingX = 6;
-        
-        // 获取当前神经网络的激活值
-        let networkActivations = null;
-        if (gameSpeed && obstacles) {
-            networkActivations = getBestDinoNetworkActivations(bestDino, gameSpeed, obstacles);
-        }
-        
-        drawDinoStyleNetwork(
-            ctx,
-            bestDino.brain,
-            dinoWidth + networkPaddingX,
-            0, // 从顶部开始
-            Math.max(0, networkWidth - networkPaddingX * 2),
-            displayHeight, // 使用全高以保证垂直居中
-            networkActivations // 传递激活值
-        );
+    // 绘制神经网络
+    if (dino.brain) {
+        const extracted = dino.getNetworkInputs(game.gameSpeed, game.obstacleManager.getObstacles());
+        const activations = dino.brain.getDetailedActivations(extracted.inputs);
+        drawDinoStyleNetwork(ctx, dino.brain, dinoWidth + 6, 0, networkWidth - 12, displayHeight, activations);
     }
 }
 
@@ -335,53 +594,67 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activat
 
     const nodeSize = 8;
     const weightThreshold = 0.12; // 过滤弱连接，降低密度
-    // 更宽的层间距，拉开布局
-    const layerSpacing = Math.max(24, Math.floor(width * 0.42));
+
+    // Use the actual network architecture for layout.
+    const inputCount = Number.isFinite(brain.inputNodes) ? brain.inputNodes : 7;
+    const hiddenCount = Number.isFinite(brain.hiddenNodes) ? brain.hiddenNodes : 12;
+    const outputCount = Number.isFinite(brain.outputNodes) ? brain.outputNodes : 3;
+
+    // Place layers within the provided width (avoid spilling out when width is narrow).
+    const xInput = Math.floor(startX + nodeSize);
+    const xHidden = Math.floor(startX + Math.max(nodeSize * 2, width * 0.5));
+    const xOutput = Math.floor(startX + Math.max(nodeSize * 3, width - nodeSize * 2));
+
+    const clamp01 = (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.min(1, n));
+    };
+
+    // Encode weight sign via grayscale: positive => darker, negative => lighter.
+    const weightToGray = (w) => {
+        const n = Number(w);
+        if (!Number.isFinite(n)) return 180;
+        const abs = Math.abs(n);
+        const mag = Math.max(0, Math.min(1, abs / 1.5));
+
+        if (n >= 0) {
+            // strong positive => darker
+            return Math.floor(200 - mag * 140); // 60..200
+        }
+        // strong negative => lighter
+        return Math.floor(200 + mag * 40); // 200..240
+    };
 
     const inputNodes = [];
     const hiddenNodes = [];
     const outputNodes = [];
 
-    // 输入层（7个）- 高度、速度、距离、障碍物高度、障碍物宽度、障碍物下边缘、游戏速度
-    const inputCount = 7;
-    const inputSpacing = Math.floor(height / 7.5); // 调整间距
-    const inputStartY = Math.floor((height - inputSpacing * (inputCount - 1)) / 2);
+    // Input layer
     for (let i = 0; i < inputCount; i++) {
-        inputNodes.push({
-            x: Math.floor(startX + nodeSize),
-            y: Math.floor(startY + inputStartY + inputSpacing * i)
-        });
+        const yCenter = startY + Math.floor(((i + 1) * height) / (inputCount + 1));
+        inputNodes.push({ x: xInput, y: Math.floor(yCenter - nodeSize / 2) });
     }
 
-    // 隐藏层（12个）- 更新为新架构
-    const hiddenCount = 12;
-    const hiddenSpacing = Math.floor(height / 13);
-    const hiddenStartY = Math.floor((height - hiddenSpacing * (hiddenCount - 1)) / 2);
+    // Hidden layer
     for (let i = 0; i < hiddenCount; i++) {
-        hiddenNodes.push({
-            x: Math.floor(startX + layerSpacing),
-            y: Math.floor(startY + hiddenStartY + hiddenSpacing * i)
-        });
+        const yCenter = startY + Math.floor(((i + 1) * height) / (hiddenCount + 1));
+        hiddenNodes.push({ x: xHidden, y: Math.floor(yCenter - nodeSize / 2) });
     }
 
-    // 输出层（3个）- 跳跃、不动、蹲下
-    const outputCount = 3;
-    const outputSpacing = Math.floor(height / 4);
-    const outputStartY = Math.floor((height - outputSpacing * (outputCount - 1)) / 2);
+    // Output layer
     for (let i = 0; i < outputCount; i++) {
-        outputNodes.push({
-            x: Math.floor(startX + layerSpacing * 2),
-            y: Math.floor(startY + outputStartY + outputSpacing * i)
-        });
+        const yCenter = startY + Math.floor(((i + 1) * height) / (outputCount + 1));
+        outputNodes.push({ x: xOutput, y: Math.floor(yCenter - nodeSize / 2) });
     }
 
     // 输入->隐藏 连接（跳过极弱权重）
     for (let i = 0; i < inputNodes.length; i++) {
         for (let j = 0; j < hiddenNodes.length; j++) {
-            const weight = brain.weightsInputHidden[j][i];
-            const absWeight = Math.abs(weight);
+            const weight = (brain.weightsInputHidden && brain.weightsInputHidden[j]) ? brain.weightsInputHidden[j][i] : 0;
+            const absWeight = Math.abs(weight || 0);
             if (absWeight < weightThreshold) continue;
-            const grayValue = Math.floor(absWeight * 128 + 96); // 稍淡
+            const grayValue = weightToGray(weight);
             ctx.strokeStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
             ctx.lineWidth = absWeight > 0.6 ? 2 : 1;
             ctx.beginPath();
@@ -394,10 +667,10 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activat
     // 隐藏->输出 连接
     for (let i = 0; i < hiddenNodes.length; i++) {
         for (let j = 0; j < outputNodes.length; j++) {
-            const weight = brain.weightsHiddenOutput[j][i];
-            const absWeight = Math.abs(weight);
+            const weight = (brain.weightsHiddenOutput && brain.weightsHiddenOutput[j]) ? brain.weightsHiddenOutput[j][i] : 0;
+            const absWeight = Math.abs(weight || 0);
             if (absWeight < weightThreshold) continue;
-            const grayValue = Math.floor(absWeight * 128 + 96);
+            const grayValue = weightToGray(weight);
             ctx.strokeStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
             ctx.lineWidth = absWeight > 0.6 ? 2 : 1;
             ctx.beginPath();
@@ -411,7 +684,7 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activat
     if (activations) {
         // 输入节点
         for (let i = 0; i < inputNodes.length; i++) {
-            const activation = activations.inputs[i] || 0;
+            const activation = clamp01(activations.inputs && activations.inputs[i]);
             const intensity = Math.floor(activation * 255);
             ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
             ctx.fillRect(inputNodes[i].x, inputNodes[i].y, nodeSize, nodeSize);
@@ -419,20 +692,18 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activat
         
         // 隐藏层节点
         for (let i = 0; i < hiddenNodes.length; i++) {
-            const activation = activations.hidden[i] || 0;
+            const activation = clamp01(activations.hidden && activations.hidden[i]);
             const intensity = Math.floor(activation * 255);
             ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
             ctx.fillRect(hiddenNodes[i].x, hiddenNodes[i].y, nodeSize, nodeSize);
         }
         
         // 输出节点 - 最大值为粉色渐变，其他为天蓝色
-        const actions = ['jump', 'idle', 'crouch'];
-        
         // 找到最大值的索引
         let maxIndex = 0;
-        let maxValue = activations.outputs[0] || 0;
+        let maxValue = clamp01(activations.outputs && activations.outputs[0]);
         for (let i = 1; i < outputNodes.length; i++) {
-            const value = activations.outputs[i] || 0;
+            const value = clamp01(activations.outputs && activations.outputs[i]);
             if (value > maxValue) {
                 maxValue = value;
                 maxIndex = i;
@@ -440,7 +711,7 @@ function drawDinoStyleNetwork(ctx, brain, startX, startY, width, height, activat
         }
         
         for (let i = 0; i < outputNodes.length; i++) {
-            const activation = activations.outputs[i] || 0;
+            const activation = clamp01(activations.outputs && activations.outputs[i]);
             
             if (i === maxIndex) {
                 // 最大值输出节点：从 #f5abb9 到 #ffffff 的插值
@@ -569,132 +840,80 @@ function drawPreviewDinoBody(ctx, x, y, color, isJumping = false, isCrouching = 
     }
 }
 
-// 初始化遗传树可视化
-function initNetworkVisualization() {
-    const canvas = document.getElementById('geneticTreeCanvas');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    // 首次固定CSS显示尺寸
-    ensureCanvasCSSSize(canvas, 600, 300);
-
-    networkVisualization = {
-        canvas: canvas,
-        ctx: ctx,
-        generations: [],
-        maxGenerations: 10
-    };
-}
-
 // 更新遗传树可视化
 function updateNetworkVisualization() {
-    if (!game || game.gameMode !== 'AI') return;
-
-    const canvas = document.getElementById('geneticTreeCanvas');
+    if (game.gameMode !== 'AI' || game.aiMode !== 'GA') return;
+    
+    const canvas = dom.geneticTreeCanvas;
     if (!canvas) return;
 
-    // 首次固定CSS显示尺寸，避免正反馈放大
     ensureCanvasCSSSize(canvas, 600, 300);
 
-    const ctx = canvas.getContext('2d');
-    const stats = game.getGeneticStats();
+    const stats = game.trainer.getStats();
+    if (!stats || !stats.lineageHistory || stats.lineageHistory.length === 0) return;
 
-    // 获取Canvas的CSS显示尺寸
     const rect = canvas.getBoundingClientRect();
-    const displayWidth = rect.width || 600;  // 默认宽度
-    const displayHeight = rect.height || 300; // 默认高度
+    const displayWidth = rect.width || 600;
+    const displayHeight = rect.height || 300;
 
-    // 设置Canvas高分辨率（仅设置绘图缓冲大小，不改CSS尺寸）
     const dpr = window.devicePixelRatio || 1;
-    const targetW = Math.round(displayWidth * dpr);
-    const targetH = Math.round(displayHeight * dpr);
-    if (canvas.width !== targetW || canvas.height !== targetH) {
-        canvas.width = targetW;
-        canvas.height = targetH;
-    }
+    canvas.width = Math.round(displayWidth * dpr);
+    canvas.height = Math.round(displayHeight * dpr);
 
-    // 重置变换矩阵，防止累积缩放
+    const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = false;
-
-    // 清空画布
     ctx.clearRect(0, 0, displayWidth, displayHeight);
 
-    // 绘制遗传树
     drawGeneticTree(ctx, stats, displayWidth, displayHeight);
 }
 
 // 绘制遗传树
 function drawGeneticTree(ctx, stats, canvasWidth, canvasHeight) {
     const padding = 20;
-    const colWidth = Math.max(20, Math.floor((canvasWidth - padding * 2) / Math.max(1, stats.populationSize)));
-    const rowHeight = Math.max(18, Math.floor((canvasHeight - padding * 2) / Math.max(2, stats.lineageHistory.length + 1)));
+    const generations = stats.lineageHistory;
+    const colWidth = Math.max(20, Math.floor((canvasWidth - padding * 2) / stats.populationSize));
+    const rowHeight = Math.max(18, Math.floor((canvasHeight - padding * 2) / (generations.length + 1)));
     const startX = padding;
     const startY = padding;
 
     ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    const generations = stats.lineageHistory;
-    if (!generations || generations.length === 0) {
-        // 没有谱系信息，保持空
-        return;
-    }
-
-    // 每一列对应一个个体索引（保持代内的索引位置），每一行对应一代
-    // 在行y画方块，在行y与y+1画连线
-
-    // 绘制网格点（淡灰）
+    // 绘制网格点
     ctx.fillStyle = '#e0e0e0';
     for (let c = 0; c < stats.populationSize; c++) {
         const x = startX + Math.floor(colWidth * (c + 0.5));
         for (let r = 0; r <= generations.length; r++) {
-            const y = startY + Math.floor(rowHeight * r);
-            ctx.fillRect(x, y, 1, 1);
+            ctx.fillRect(x, startY + Math.floor(rowHeight * r), 1, 1);
         }
     }
 
-    // 颜色
-    const nodeColor = '#535353';
-    const eliteColor = '#757575';
-    const crossColor = '#999999';
-
     const nodeSize = 4;
-
-    // 绘制节点和边
     for (let gen = 0; gen < generations.length; gen++) {
         const lineage = generations[gen];
         for (let i = 0; i < lineage.length; i++) {
             const nodeX = startX + Math.floor(colWidth * (i + 0.5)) - Math.floor(nodeSize / 2);
             const nodeY = startY + Math.floor(rowHeight * gen) - Math.floor(nodeSize / 2);
 
-            // 节点
-            ctx.fillStyle = nodeColor;
+            ctx.fillStyle = '#535353';
             ctx.fillRect(nodeX, nodeY, nodeSize, nodeSize);
 
-            // 到下一代连线
             if (gen < generations.length - 1) {
                 const child = generations[gen + 1][i];
-                if (!child) continue;
-                const from = child.from;
-                const method = child.method;
-                if (from && from[0] != null) {
-                    const pIndex = from[0];
-                    const x1 = startX + Math.floor(colWidth * (pIndex + 0.5));
-                    const y1 = startY + Math.floor(rowHeight * gen);
-                    const x2 = startX + Math.floor(colWidth * (i + 0.5));
-                    const y2 = startY + Math.floor(rowHeight * (gen + 1));
+                if (!child || !child.from || child.from[0] == null) continue;
+                
+                const pIndex = child.from[0];
+                const x1 = startX + Math.floor(colWidth * (pIndex + 0.5));
+                const y1 = startY + Math.floor(rowHeight * gen);
+                const x2 = startX + Math.floor(colWidth * (i + 0.5));
+                const y2 = startY + Math.floor(rowHeight * (gen + 1));
 
-                    const color = method === 'elite' ? eliteColor : (method === 'crossover' ? crossColor : nodeColor);
-                    drawPixelLine(ctx, x1, y1, x2, y2, color);
+                const colors = {elite: '#757575', crossover: '#999999'};
+                drawPixelLine(ctx, x1, y1, x2, y2, colors[child.method] || '#535353');
 
-                    // 若交叉且有第二父母，画一条更浅的线
-                    if (method === 'crossover' && from[1] != null) {
-                        const p2 = from[1];
-                        const x1b = startX + Math.floor(colWidth * (p2 + 0.5));
-                        drawPixelLine(ctx, x1b, y1, x2, y2, '#b0b0b0');
-                    }
+                if (child.method === 'crossover' && child.from[1] != null) {
+                    const x1b = startX + Math.floor(colWidth * (child.from[1] + 0.5));
+                    drawPixelLine(ctx, x1b, y1, x2, y2, '#b0b0b0');
                 }
             }
         }
@@ -733,141 +952,27 @@ function drawPixelLine(ctx, x1, y1, x2, y2, color) {
 
 // 设置参数滑动条
 function setupParameterControls() {
-    // 种群大小
-    const populationSlider = document.getElementById('populationSlider');
-    populationSlider.addEventListener('input', function() {
-        const value = parseInt(this.value);
-        document.getElementById('populationSize').textContent = value;
-        if (game && game.geneticAlgorithm) {
-            game.geneticAlgorithm.populationSize = value;
-        }
-    });
-    
-    // 变异率
-    const mutationSlider = document.getElementById('mutationSlider');
-    mutationSlider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        document.getElementById('mutationRate').textContent = value.toFixed(3);
-        if (game && game.geneticAlgorithm) {
-            game.geneticAlgorithm.mutationRate = value;
-        }
-    });
-    
-    // 交叉率
-    const crossoverSlider = document.getElementById('crossoverSlider');
-    crossoverSlider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        document.getElementById('crossoverRate').textContent = value.toFixed(1);
-        if (game && game.geneticAlgorithm) {
-            game.geneticAlgorithm.crossoverRate = value;
-        }
-    });
-    
-    // 精英保留
-    const elitismSlider = document.getElementById('elitismSlider');
-    elitismSlider.addEventListener('input', function() {
-        const value = parseInt(this.value);
-        document.getElementById('elitismCount').textContent = value;
-        if (game && game.geneticAlgorithm) {
-            game.geneticAlgorithm.elitismCount = value;
-        }
-    });
-}
+    Object.keys(SLIDER_INPUT_FIELDS).forEach((key) => {
+        const slider = dom[SLIDER_INPUT_FIELDS[key]];
+        if (!slider) return;
+        slider.addEventListener('input', function() {
+            handleSliderChange(key, parseFloat(this.value), true);
+        });
 
-// 导出数据功能
-function exportEvolutionData() {
-    const stats = game.getGeneticStats();
-    const data = {
-        timestamp: new Date().toISOString(),
-        generation: stats.generation,
-        bestFitness: stats.bestFitness,
-        averageFitness: stats.averageFitness,
-        history: stats.history,
-        parameters: {
-            populationSize: stats.populationSize,
-            mutationRate: stats.mutationRate,
-            crossoverRate: stats.crossoverRate,
-            elitismCount: stats.elitismCount
-        }
-    };
-}
+        const setActive = (active) => {
+            sliderActiveState[key] = active;
+            if (!active) {
+                persistSliderValues(game.aiMode);
+            }
+        };
 
-// 获取最佳恐龙的神经网络激活值
-function getBestDinoNetworkActivations(bestDino, gameSpeed, obstacles) {
-    if (!bestDino.brain) return null;
-    
-    // 复制恐龙的makeDecision逻辑来获取输入
-    let nearestObstacle = null;
-    let minDistance = Infinity;
-    
-    for (let obstacle of obstacles) {
-        const frontDistance = (obstacle.x) - (bestDino.x + bestDino.width);
-        if (frontDistance > 0 && frontDistance < minDistance) {
-            minDistance = frontDistance;
-            nearestObstacle = obstacle;
-        }
-    }
-    
-    // 准备神经网络输入
-    const inputs = [];
-    
-    // 输入1: 恐龙当前高度
-    const maxJumpHeight = 120;
-    const heightAboveGround = Math.max(0, bestDino.groundY - (bestDino.y + bestDino.height));
-    const normalizedY = Math.max(0, Math.min(1, heightAboveGround / maxJumpHeight));
-    inputs.push(normalizedY);
-    
-    // 输入2: 垂直速度
-    const normalizedVelocity = Math.max(0, Math.min(1, (bestDino.velocityY + 15) / 30));
-    inputs.push(normalizedVelocity);
-    
-    // 输入3: 到最近障碍物的水平距离
-    if (nearestObstacle) {
-        const normalizedDistance = Math.max(0, Math.min(1, minDistance / 600));
-        inputs.push(normalizedDistance);
-    } else {
-        inputs.push(1);
-    }
-    
-    // 输入4: 最近障碍物高度
-    if (nearestObstacle) {
-        const normalizedHeight = Math.max(0, Math.min(1, nearestObstacle.height / 80));
-        inputs.push(normalizedHeight);
-    } else {
-        inputs.push(0);
-    }
-    
-    // 输入5: 最近障碍物宽度
-    if (nearestObstacle) {
-        const normalizedWidth = Math.max(0, Math.min(1, nearestObstacle.width / 100));
-        inputs.push(normalizedWidth);
-    } else {
-        inputs.push(0);
-    }
-    
-    // 输入6: 最近障碍物下边缘高度（与恐龙逻辑一致）
-    if (nearestObstacle) {
-        if (nearestObstacle.isFlying) {
-            // 飞行障碍物：计算下边缘距地面的高度
-            const obstacleBottom = nearestObstacle.y + nearestObstacle.height;
-            const groundLevel = bestDino.groundY;
-            const bottomHeightAboveGround = Math.max(0, groundLevel - obstacleBottom);
-            const normalizedBottomHeight = Math.max(0, Math.min(1, bottomHeightAboveGround / 80));
-            inputs.push(normalizedBottomHeight);
-        } else {
-            // 地面障碍物：使用障碍物高度作为特征
-            const normalizedObstacleHeight = Math.max(0, Math.min(1, nearestObstacle.height / 50));
-            inputs.push(normalizedObstacleHeight);
-        }
-    } else {
-        inputs.push(0);
-    }
-    
-    // 输入7: 游戏速度
-    const normalizedSpeed = Math.max(0, Math.min(1, (gameSpeed - 6) / 7));
-    inputs.push(normalizedSpeed);
-    
-    // 计算神经网络的所有层激活值
-    const activations = bestDino.brain.getDetailedActivations(inputs);
-    return activations;
+        slider.addEventListener('pointerdown', () => setActive(true));
+        slider.addEventListener('pointerup', () => setActive(false));
+        slider.addEventListener('pointercancel', () => setActive(false));
+        slider.addEventListener('mousedown', () => setActive(true));
+        slider.addEventListener('mouseup', () => setActive(false));
+        slider.addEventListener('touchstart', () => setActive(true), { passive: true });
+        slider.addEventListener('touchend', () => setActive(false));
+        slider.addEventListener('change', () => setActive(false));
+    });
 }

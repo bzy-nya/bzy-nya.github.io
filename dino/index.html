@@ -75,6 +75,102 @@
             cursor: not-allowed;
         }
         
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border: 2px solid #535353;
+            background: white;
+            color: #535353;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .mode-toggle:hover {
+            transform: scale(1.05);
+        }
+        
+        /* RL模式下整体反色 */
+        body.rl-mode {
+            background: #1a1a1a;
+            color: #f7f7f7;
+        }
+        
+        body.rl-mode h1 {
+            color: #f7f7f7;
+        }
+        
+        body.rl-mode .btn {
+            background: #1a1a1a;
+            color: #f7f7f7;
+            border-color: #f7f7f7;
+        }
+        
+        body.rl-mode .btn:hover {
+            background: #f7f7f7;
+            color: #1a1a1a;
+        }
+        
+        body.rl-mode .stat-panel,
+        body.rl-mode .neural-network,
+        body.rl-mode .game-container {
+            background: #2a2a2a;
+            border-color: #f7f7f7;
+        }
+        
+        body.rl-mode .stat-panel h3,
+        body.rl-mode .neural-network h3 {
+            color: #f7f7f7;
+            border-bottom-color: #555;
+        }
+        
+        body.rl-mode .mode-toggle {
+            background: #1a1a1a;
+            color: #f7f7f7;
+            border-color: #f7f7f7;
+        }
+        
+        body.rl-mode .progress-bar {
+            background: #1a1a1a;
+            border-color: #f7f7f7;
+        }
+        
+        body.rl-mode .progress-fill {
+            background: #f7f7f7;
+        }
+        
+        body.rl-mode .dino-slider {
+            background: #1a1a1a;
+            border-color: #f7f7f7;
+        }
+        
+        body.rl-mode .dino-slider::-webkit-slider-thumb {
+            background: #f7f7f7;
+        }
+        
+        body.rl-mode .dino-slider::-moz-range-thumb {
+            background: #f7f7f7;
+        }
+        
+        /* 游戏窗口暗色主题 */
+        body.rl-mode #gameCanvas {
+            background: #1a1a1a;
+        }
+        
+        body.rl-mode .game-container {
+            border-color: #f7f7f7;
+        }
+        
+        /* 隐藏RL模式下不需要的UI */
+        body.rl-mode .ga-only {
+            display: none;
+        }
+        
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -290,6 +386,8 @@
             <button class="btn" id="manualBtn">手动游戏</button>
         </div>
         
+        <button class="mode-toggle" id="modeToggle">GA → RL</button>
+        
         <div class="game-container">
             <canvas id="gameCanvas" width="800" height="200"></canvas>
         </div>
@@ -301,7 +399,7 @@
                     <span>当前世代:</span>
                     <span id="generation">0</span>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item ga-only">
                     <span>存活数量:</span>
                     <span id="alive">0</span>
                 </div>
@@ -313,16 +411,16 @@
                     <span>平均分数:</span>
                     <span id="avgScore">0</span>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item ga-only">
                     <span>世代进度:</span>
                 </div>
-                <div class="progress-bar">
+                <div class="progress-bar ga-only">
                     <div class="progress-fill" id="generationProgress"></div>
                 </div>
             </div>
             
             <div class="stat-panel">
-                <h3 id="best-title">最佳个体</h3>
+                <h3 id="best-title"><span id="individual-title-text">最佳个体</span></h3>
                 <div class="best-individual-preview">
                     <canvas id="bestIndividualCanvas" width="200" height="200"></canvas>
                 </div>
@@ -331,28 +429,28 @@
             <div class="stat-panel">
                 <h3 id="params-title">算法参数</h3>
                 <div class="param-control">
-                    <span>种群大小:</span>
+                    <span id="param1-label">种群大小:</span>
                     <div class="slider-container">
                         <input type="range" id="populationSlider" min="10" max="50" value="20" class="dino-slider">
                         <span id="populationSize" class="param-value">20</span>
                     </div>
                 </div>
                 <div class="param-control">
-                    <span>变异率:</span>
+                    <span id="param2-label">变异率:</span>
                     <div class="slider-container">
                         <input type="range" id="mutationSlider" min="0.01" max="0.5" step="0.01" value="0.1" class="dino-slider">
                         <span id="mutationRate" class="param-value">0.1</span>
                     </div>
                 </div>
                 <div class="param-control">
-                    <span>交叉率:</span>
+                    <span id="param3-label">交叉率:</span>
                     <div class="slider-container">
                         <input type="range" id="crossoverSlider" min="0.1" max="1.0" step="0.1" value="0.8" class="dino-slider">
                         <span id="crossoverRate" class="param-value">0.8</span>
                     </div>
                 </div>
                 <div class="param-control">
-                    <span>精英保留:</span>
+                    <span id="param4-label">精英保留:</span>
                     <div class="slider-container">
                         <input type="range" id="elitismSlider" min="1" max="10" value="2" class="dino-slider">
                         <span id="elitismCount" class="param-value">2</span>
@@ -365,8 +463,10 @@
     <script src="js/svgIcons.js"></script>
     <script src="js/neuralNetwork.js"></script>
     <script src="js/geneticAlgorithm.js"></script>
+    <script src="js/reinforcementLearning.js"></script>
     <script src="js/dino.js"></script>
     <script src="js/obstacle.js"></script>
+    <script src="js/training.js"></script>
     <script src="js/game.js"></script>
     <script src="js/main.js"></script>
 </body>

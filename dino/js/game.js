@@ -7,9 +7,15 @@ class DinoGame {
         this.isRunning = false;
         this.isPaused = false;
         this.gameMode = 'AI'; // 'AI' 或 'MANUAL'
+        this.aiMode = 'GA'; // 'GA' (遗传算法) 或 'RL' (强化学习)
         this.gameSpeed = 6;
         this.speedMultiplier = 1;
         this.frame = 0;
+
+        // Fixed-timestep simulation (render FPS independent)
+        this._fixedStepMs = 1000 / 60;
+        this._accumulatorMs = 0;
+        this._lastFrameTs = null;
         
         // 游戏尺寸
         this.groundY = this.canvas.height - 50;
@@ -17,7 +23,8 @@ class DinoGame {
         // 游戏对象
         this.dinos = [];
         this.obstacleManager = new ObstacleManager(this.groundY, this.canvas.width);
-        this.geneticAlgorithm = new GeneticAlgorithm(20); // 20个个体的种群
+        // 训练模式（GA/RL）通过统一接口解耦；game.js 不包含算法专用逻辑
+        this.trainer = (typeof createTrainerForMode === 'function') ? createTrainerForMode(this.aiMode) : null;
         
         // 手动游戏的恐龙
         this.manualDino = null;
@@ -32,7 +39,7 @@ class DinoGame {
         
         // 统计数据
         this.stats = {
-            currentGeneration: 0,
+            iteration: 0,
             aliveCount: 0,
             highScore: 0,
             averageScore: 0,
@@ -99,62 +106,68 @@ class DinoGame {
         });
     }
     
-    // 开始AI进化
-    startEvolution() {
-        this.gameMode = 'AI';
+    // 开始模拟（AI训练：GA 或 RL）
+    startSimulation() {
         this.isRunning = true;
         this.isPaused = false;
+        this.gameMode = 'AI';
+        this.manualDino = null;
         
-        // 创建初始种群
-        this.geneticAlgorithm.createInitialPopulation();
-        this.createDinosFromPopulation();
-        
-        console.log('开始进化算法，种群大小:', this.geneticAlgorithm.populationSize);
+        if (!this.trainer) {
+            this.trainer = createTrainerForMode(this.aiMode);
+        }
+
+        // 确保切换模式或从手动返回时环境是干净的
+        this.resetEnvironment();
+        this.dinos = this.trainer.start(this);
     }
-    
+
     // 开始手动游戏
     startManualGame() {
         this.gameMode = 'MANUAL';
         this.isRunning = true;
         this.isPaused = false;
-        
-        // 创建手动控制的恐龙
+        this.trainer = null;
+
         this.manualDino = new Dino(80, this.groundY);
         this.dinos = [this.manualDino];
-        
-        // 重置游戏环境
         this.resetEnvironment();
-        
-        console.log('开始手动游戏');
     }
-    
-    // 从种群创建恐龙
-    createDinosFromPopulation() {
-        this.dinos = [];
-        for (let i = 0; i < this.geneticAlgorithm.population.length; i++) {
-            // 让恐龙在X轴上有不同的起始位置，避免重叠
-            const offsetX = 80 + (i % 5) * 15; // 每5个恐龙一组，组内水平间距15像素
-            const offsetY = Math.floor(i / 5) * 3; // 不同组有轻微的垂直偏移
-            
-            const dino = new Dino(offsetX, this.groundY, this.geneticAlgorithm.population[i], offsetY);
-            
-            // 给每个恐龙分配不同的颜色/透明度
-            const hue = (i * 360 / this.geneticAlgorithm.population.length) % 360;
-            dino.color = `hsl(${hue}, 60%, 40%)`;
-            dino.alpha = 0.8;
-            dino.dinoId = i; // 添加ID用于追踪
-            
-            this.dinos.push(dino);
-        }
+
+    setAIMode(mode) {
+        this.aiMode = mode;
+        this.trainer = createTrainerForMode(this.aiMode);
     }
     
     // 游戏主循环
-    gameLoop() {
+    gameLoop(ts) {
+        const now = (typeof ts === 'number') ? ts : ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
+        if (this._lastFrameTs == null) this._lastFrameTs = now;
+
+        // Real time delta (cap to avoid huge catch-up after tab is hidden)
+        let deltaMs = now - this._lastFrameTs;
+        this._lastFrameTs = now;
+        if (!Number.isFinite(deltaMs) || deltaMs < 0) deltaMs = 0;
+        deltaMs = Math.min(deltaMs, 250);
+
         if (this.isRunning && !this.isPaused) {
-            this.update();
+            // speedMultiplier accelerates simulated time (training speed), not render FPS.
+            const simDeltaMs = deltaMs * Math.max(1, this.speedMultiplier | 0);
+            this._accumulatorMs += simDeltaMs;
+
+            // Avoid spiral-of-death in extreme cases
+            const maxStepsPerFrame = 300;
+            let steps = 0;
+            while (this._accumulatorMs >= this._fixedStepMs && steps < maxStepsPerFrame) {
+                this.update();
+                this._accumulatorMs -= this._fixedStepMs;
+                steps++;
+            }
         }
+
+        // Render once per RAF
         this.draw();
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame((nextTs) => this.gameLoop(nextTs));
     }
     
     // 更新游戏状态
@@ -165,9 +178,9 @@ class DinoGame {
         this.updateGameSpeed();
         
         // 更新障碍物
-        this.obstacleManager.update(this.gameSpeed * this.speedMultiplier);
-        this.obstacleManager.adjustDifficulty(this.gameSpeed * this.speedMultiplier);
-        
+        this.obstacleManager.update(this.gameSpeed);
+        this.obstacleManager.adjustDifficulty(this.gameSpeed);
+
         // 更新恐龙
         this.updateDinos();
         
@@ -175,21 +188,20 @@ class DinoGame {
         this.updateClouds();
         this.updateGroundPattern();
         
-        // 检查是否需要创建新一代
-        if (this.gameMode === 'AI') {
-            this.checkGenerationComplete();
-        }
-        
         // 更新统计数据
         this.updateStats();
     }
     
     // 更新游戏速度
     updateGameSpeed() {
-        // 随时间逐渐增加游戏速度 - 加快增长速度
+        // 随时间逐渐增加游戏速度，但需要保证可解：限制最高速度，并放缓增长。
         const baseSpeed = 6;
-        const speedIncrease = Math.floor(this.frame / 300) * 0.3; // 每5秒增加0.3（原来10秒0.5）
-        this.gameSpeed = Math.min(baseSpeed + speedIncrease, 13); // 最大速度13
+        const isRLTraining = this.aiMode === 'RL' && this.gameMode === 'AI';
+        const speedIncrease = isRLTraining
+            ? Math.floor(this.frame / 600) * 0.15 // RL：更慢的难度爬升
+            : Math.floor(this.frame / 420) * 0.2;  // ~7秒 +0.2
+        const maxSpeed = isRLTraining ? 10 : 12;
+        this.gameSpeed = Math.min(baseSpeed + speedIncrease, maxSpeed);
     }
     
     // 更新恐龙
@@ -198,14 +210,23 @@ class DinoGame {
         
         for (let i = this.dinos.length - 1; i >= 0; i--) {
             const dino = this.dinos[i];
+
+            // 训练模式：在物理更新前做一次决策/采样动作
+            if (this.trainer && !dino.isDead) {
+                this.trainer.beforeDinoUpdate(this, dino, obstacles);
+            }
             
-            dino.update(this.gameSpeed * this.speedMultiplier, obstacles);
+            dino.update(this.gameSpeed, obstacles);
             
             // 碰撞检测（只对活着的恐龙进行）
             if (!dino.isDead) {
                 for (let obstacle of obstacles) {
                     if (dino.checkCollision(obstacle)) {
                         dino.die();
+
+                        if (this.trainer) {
+                            this.trainer.onDinoDeath(this, dino);
+                        }
                         break;
                     }
                 }
@@ -216,12 +237,16 @@ class DinoGame {
                 this.dinos.splice(i, 1);
             }
         }
+
+        if (this.trainer) {
+            this.trainer.postUpdate(this);
+        }
     }
     
     // 更新云朵
     updateClouds() {
         for (let cloud of this.clouds) {
-            cloud.x -= cloud.speed * this.speedMultiplier;
+            cloud.x -= cloud.speed;
             if (cloud.x < -80) {
                 cloud.x = this.canvas.width + 40 + Math.random() * 120;
                 cloud.y = 20 + Math.random() * 80;
@@ -235,54 +260,16 @@ class DinoGame {
             }
         }
     }
-    
+
     // 更新地面图案
     updateGroundPattern() {
         for (let pattern of this.groundPattern) {
-            pattern.x -= this.gameSpeed * this.speedMultiplier * 0.5;
+            pattern.x -= this.gameSpeed * 0.5;
             if (pattern.x < -20) {
                 pattern.x = this.canvas.width;
                 pattern.type = Math.random() > 0.7 ? 'rock' : 'none';
             }
         }
-    }
-    
-    // 检查世代是否完成
-    checkGenerationComplete() {
-        const aliveCount = this.dinos.filter(dino => !dino.isDead).length;
-        
-        if (aliveCount === 0) {
-            // 所有恐龙都死了，创建新一代
-            this.createNextGeneration();
-        }
-    }
-    
-    // 创建下一代
-    createNextGeneration() {
-        // 收集适应度数据
-        const scores = this.dinos.map(dino => dino.score || 0);
-        const times = this.dinos.map(dino => dino.aliveTime || 0);
-        const jumps = this.dinos.map(dino => dino.jumpCount || 0);
-        const obstaclesPassed = this.dinos.map(dino => dino.obstaclesPassed || 0);
-        const invalidJumps = this.dinos.map(dino => dino.invalidJumps || 0);
-        const crouchCounts = this.dinos.map(dino => dino.crouchCount || 0);
-        
-        // 计算适应度
-        this.geneticAlgorithm.calculateFitness(scores, times, jumps, obstaclesPassed, invalidJumps, crouchCounts);
-        
-        // 自适应参数调整
-        this.geneticAlgorithm.adaptParameters();
-        
-        // 创建新一代
-        this.geneticAlgorithm.createNextGeneration();
-        
-        // 创建新的恐龙
-        this.createDinosFromPopulation();
-        
-        // 重置游戏环境
-        this.resetEnvironment();
-        
-        console.log(`第 ${this.geneticAlgorithm.generation} 代完成`);
     }
     
     // 重置游戏环境（保留遗传算法状态）
@@ -299,9 +286,11 @@ class DinoGame {
         this.isRunning = false;
         this.isPaused = false;
         this.obstacleManager.reset();
-        this.geneticAlgorithm.reset();
         this.dinos = [];
         this.manualDino = null;
+
+        // 重置 trainer（对应当前 aiMode）
+        this.trainer = (typeof createTrainerForMode === 'function') ? createTrainerForMode(this.aiMode) : null;
         
         // 重置装饰
         this.initClouds();
@@ -311,32 +300,33 @@ class DinoGame {
     // 更新统计数据
     updateStats() {
         if (this.gameMode === 'AI') {
-            this.stats.currentGeneration = this.geneticAlgorithm.generation;
-            this.stats.aliveCount = this.dinos.filter(dino => !dino.isDead).length;
+            if (this.trainer) {
+                this.stats.iteration = this.trainer.getProgressNumber();
+            }
             
-            const scores = this.dinos.map(dino => dino.score);
-            this.stats.averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-            
-            const currentHighScore = Math.max(...scores);
+            this.stats.aliveCount = this.dinos.filter(d => !d.isDead).length;
+
+            const scores = this.dinos.map(d => d.score);
+            const totalScore = scores.reduce((a, b) => a + b, 0);
+            this.stats.averageScore = scores.length ? totalScore / scores.length : 0;
+
+            const currentHighScore = scores.length ? Math.max(...scores) : 0;
             if (currentHighScore > this.stats.highScore) {
                 this.stats.highScore = currentHighScore;
             }
             
-            // 更新最佳个体信息
-            const bestDino = this.dinos.reduce((best, current) => 
-                current.score > best.score ? current : best
-            );
-            this.stats.bestIndividual = bestDino.getStateInfo();
-        } else {
-            // 手动游戏统计
-            if (this.manualDino) {
-                this.stats.aliveCount = this.manualDino.isDead ? 0 : 1;
-                this.stats.averageScore = this.manualDino.score;
-                if (this.manualDino.score > this.stats.highScore) {
-                    this.stats.highScore = this.manualDino.score;
-                }
-                this.stats.bestIndividual = this.manualDino.getStateInfo();
+            if (this.dinos.length) {
+                this.stats.bestIndividual = this.dinos.reduce((best, d) => 
+                    d.score > best.score ? d : best
+                ).getStateInfo();
             }
+        } else if (this.manualDino) {
+            this.stats.aliveCount = this.manualDino.isDead ? 0 : 1;
+            this.stats.averageScore = this.manualDino.score;
+            if (this.manualDino.score > this.stats.highScore) {
+                this.stats.highScore = this.manualDino.score;
+            }
+            this.stats.bestIndividual = this.manualDino.getStateInfo();
         }
     }
     
@@ -381,13 +371,21 @@ class DinoGame {
     
     // 绘制背景
     drawBackground() {
-        this.ctx.fillStyle = '#f7f7f7';
+        if (document.body.classList.contains('rl-mode')) {
+            this.ctx.fillStyle = '#1a1a1a';
+        } else {
+            this.ctx.fillStyle = '#f7f7f7';
+        }
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     // 绘制云朵
     drawClouds() {
-        this.ctx.fillStyle = '#d3d3d3';
+        if (document.body.classList.contains('rl-mode')) {
+            this.ctx.fillStyle = '#666666';
+        } else {
+            this.ctx.fillStyle = '#d3d3d3';
+        }
         for (let cloud of this.clouds) {
             this.drawCloud(cloud);
         }
@@ -397,7 +395,12 @@ class DinoGame {
     drawCloud(cloud) {
         const { x, y, size, shade, scale = 1 } = cloud;
         const ctx = this.ctx;
-        ctx.fillStyle = shade;
+        // 使用根据模式设置的颜色
+        if (document.body.classList.contains('rl-mode')) {
+            ctx.fillStyle = '#666666';
+        } else {
+            ctx.fillStyle = shade;
+        }
         
         // 更加 Dino 风的像素云模板（2px 高的台阶形）
         let rects;
@@ -452,11 +455,19 @@ class DinoGame {
         const groundHeight = this.canvas.height - this.groundY;
         
         // 地面基色
-        this.ctx.fillStyle = '#f7f7f7';
+        if (document.body.classList.contains('rl-mode')) {
+            this.ctx.fillStyle = '#1a1a1a';
+        } else {
+            this.ctx.fillStyle = '#f7f7f7';
+        }
         this.ctx.fillRect(0, this.groundY, this.canvas.width, groundHeight);
         
         // 地面线
-        this.ctx.strokeStyle = '#535353';
+        if (document.body.classList.contains('rl-mode')) {
+            this.ctx.strokeStyle = '#f7f7f7';
+        } else {
+            this.ctx.strokeStyle = '#535353';
+        }
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.moveTo(0, this.groundY);
@@ -464,7 +475,11 @@ class DinoGame {
         this.ctx.stroke();
         
         // 地面图案
-        this.ctx.fillStyle = '#d3d3d3';
+        if (document.body.classList.contains('rl-mode')) {
+            this.ctx.fillStyle = '#444444';
+        } else {
+            this.ctx.fillStyle = '#d3d3d3';
+        }
         for (let pattern of this.groundPattern) {
             if (pattern.type === 'rock') {
                 this.ctx.fillRect(pattern.x, this.groundY + 10, 3, 2);
@@ -490,16 +505,15 @@ class DinoGame {
         
         if (this.gameMode === 'AI') {
             // AI模式UI - 右上角
-            this.ctx.fillText(`世代: ${this.stats.currentGeneration}`, rightX, 25);
+            this.ctx.fillText(`轮次: ${this.stats.iteration}`, rightX, 25);
             this.ctx.fillText(`存活: ${this.stats.aliveCount}`, rightX, 45);
             this.ctx.fillText(`最高分: ${Math.floor(this.stats.highScore)}`, rightX, 65);
-            this.ctx.fillText(`速度: ${this.gameSpeed.toFixed(1)}x`, rightX, 85);
+            this.ctx.fillText(`速度: ${this.gameSpeed.toFixed(1)}m/s`, rightX, 85);
         } else {
             // 手动模式UI - 右上角
             if (this.manualDino) {
                 this.ctx.fillText(`分数: ${Math.floor(this.manualDino.score)}`, rightX, 25);
                 this.ctx.fillText(`最高分: ${Math.floor(this.stats.highScore)}`, rightX, 45);
-                this.ctx.fillText(`跳跃: ${this.manualDino.jumpCount}`, rightX, 65);
                 
                 if (this.manualDino.isDead) {
                     this.ctx.textAlign = 'center';
@@ -523,13 +537,7 @@ class DinoGame {
         this.ctx.fillText('已暂停', this.canvas.width/2 - 60, this.canvas.height/2);
     }
     
-    // 获取统计数据
     getStats() {
         return this.stats;
-    }
-    
-    // 获取遗传算法统计
-    getGeneticStats() {
-        return this.geneticAlgorithm.getStats();
     }
 }
