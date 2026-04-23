@@ -6,290 +6,635 @@
     <title>Dynamic Lab</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            width: 100vw; height: 100vh; overflow: hidden; background: #000; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            user-select: none; -webkit-user-select: none; -moz-user-select: none;
+
+        :root {
+            --panel-bg: rgba(10, 10, 15, 0.52);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+            --accent: #6496ff;
+            --accent-strong: #4e7dcc;
+            --muted: rgba(255, 255, 255, 0.56);
         }
-        #canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
-        
-        /* 控制面板 */
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(39, 67, 120, 0.28), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(181, 84, 45, 0.18), transparent 26%),
+                #020407;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #fluidCanvas {
+            cursor: crosshair;
+        }
+
+        #isingCanvas {
+            cursor: pointer;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        .floating-panel {
+            position: fixed;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-shadow);
+        }
+
+        .sim-switcher {
+            position: fixed;
+            top: 20px;
+            left: 126px;
+            min-width: 136px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-shadow);
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .sim-switcher select {
+            width: 100%;
+            height: 40px;
+            padding: 0 38px 0 14px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: background 0.2s ease;
+        }
+
+        .sim-switcher::after {
+            content: "";
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid rgba(216, 228, 255, 0.82);
+            border-bottom: 2px solid rgba(216, 228, 255, 0.82);
+            transform: translateY(-62%) rotate(45deg);
+            pointer-events: none;
+        }
+
+        .sim-switcher select:hover,
+        .sim-switcher select:focus {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .sim-switcher select option {
+            color: black;
+        }
+
+        #fps {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            min-height: 40px;
+            padding: 10px 16px;
+            font-family: "SF Mono", Monaco, monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            z-index: 11;
+        }
+
+        #fps .label {
+            opacity: 0.45;
+            margin-right: 8px;
+        }
+
+        #fps .number {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
         .controls {
-            position: fixed; top: 20px; right: 20px;
-            background: rgba(10, 10, 15, 0.5); backdrop-filter: blur(20px);
-            padding: 20px 24px; border-radius: 16px; color: white;
-            min-width: 240px; max-width: 280px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            top: 20px;
+            right: 20px;
+            padding: 20px 24px;
+            min-width: 256px;
+            max-width: 300px;
             transition: all 0.3s ease;
         }
-        .controls.collapsed {
-            padding: 12px 16px;
-            min-width: auto;
+
+        .controls:hover {
+            background: rgba(15, 15, 20, 0.7);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.42);
         }
+
+        .controls.collapsed {
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            min-height: 40px;
+            padding: 0;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-shadow);
+        }
+
         .controls.collapsed .controls-content {
             display: none;
         }
-        .controls:hover { 
-            background: rgba(15, 15, 20, 0.65);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12); 
-        }
-        
+
         .controls-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
+            min-height: 24px;
         }
+
         .controls.collapsed .controls-header {
             margin-bottom: 0;
+            min-height: 40px;
+            justify-content: center;
         }
-        
+
+        .controls.collapsed h3 {
+            display: none;
+        }
+
+        .controls h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0.45;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .toggle-panel {
             background: transparent;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.42);
             cursor: pointer;
-            font-size: 18px;
-            padding: 4px;
-            transition: all 0.2s;
+            font-size: 16px;
+            width: 40px;
+            height: 40px;
             line-height: 1;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: grid;
+            place-items: center;
+            transition: color 0.2s ease, background 0.2s ease;
         }
+
         .toggle-panel:hover {
-            color: rgba(255, 255, 255, 0.8);
-            transform: scale(1.1);
+            color: rgba(255, 255, 255, 0.72);
         }
-        
-        .controls h3 {
-            margin: 0; font-size: 14px; font-weight: 600;
-            opacity: 0.4; text-transform: uppercase; letter-spacing: 1px;
-            flex: 1;
+
+        .controls.collapsed .toggle-panel {
+            color: rgba(255, 255, 255, 0.48);
         }
-        
+
+        .controls.collapsed .toggle-panel:hover {
+            color: rgba(255, 255, 255, 0.72);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
         .section-title {
-            margin: 20px 0 12px 0; font-size: 11px; font-weight: 600;
-            opacity: 0.35; text-transform: uppercase; letter-spacing: 0.5px;
+            margin: 18px 0 12px;
+            padding-top: 14px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            opacity: 0.35;
         }
-        .section-title:first-of-type { margin-top: 0; border-top: none; padding-top: 0; }
-        
-        .control-group { margin-bottom: 18px; }
-        .control-group:last-child { margin-bottom: 0; }
-        
+
+        .section-title:first-of-type {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
         .control-group label {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px; font-size: 13px; font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
         }
-        .control-group label .value {
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 12px; opacity: 0.6; font-weight: 400;
+
+        .control-group .value {
+            font-family: "SF Mono", Monaco, monospace;
+            font-size: 12px;
+            opacity: 0.6;
+            font-weight: 400;
         }
-        
+
         .control-group input[type="range"] {
-            width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
-            background: linear-gradient(90deg, rgba(100, 150, 255, 0.3) 0%, rgba(100, 150, 255, 0.1) 100%);
-            border-radius: 3px; outline: none; cursor: pointer;
-            transition: background 0.2s ease;
+            width: 100%;
+            height: 6px;
+            appearance: none;
+            background: linear-gradient(90deg, rgba(100, 150, 255, 0.34), rgba(100, 150, 255, 0.12));
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
         }
-        .control-group input[type="range"]:hover {
-            background: linear-gradient(90deg, rgba(100, 150, 255, 0.4) 0%, rgba(100, 150, 255, 0.15) 100%);
-        }
-        
+
         .control-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 16px; height: 16px;
-            background: linear-gradient(135deg, #6496ff 0%, #4e7dcc 100%);
-            border-radius: 50%; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(100, 150, 255, 0.4);
-            transition: all 0.2s ease;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            box-shadow: 0 2px 8px rgba(100, 150, 255, 0.45);
         }
-        .control-group input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.15);
-            box-shadow: 0 3px 12px rgba(100, 150, 255, 0.6);
-        }
-        
+
         .control-group input[type="range"]::-moz-range-thumb {
-            width: 16px; height: 16px;
-            background: linear-gradient(135deg, #6496ff 0%, #4e7dcc 100%);
-            border-radius: 50%; cursor: pointer; border: none;
-            box-shadow: 0 2px 8px rgba(100, 150, 255, 0.4);
-            transition: all 0.2s ease;
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            box-shadow: 0 2px 8px rgba(100, 150, 255, 0.45);
         }
-        .control-group input[type="range"]::-moz-range-thumb:hover {
-            transform: scale(1.15);
-            box-shadow: 0 3px 12px rgba(100, 150, 255, 0.6);
+
+        .slider-shell {
+            position: relative;
         }
-        
-        /* 开关按钮 */
+
+        .slider-shell input[type="range"] {
+            margin: 0;
+        }
+
+        .slider-mark {
+            position: absolute;
+            left: var(--mark-pos, 50%);
+            top: 16px;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            width: 18px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .slider-mark::before {
+            content: "";
+            width: 2px;
+            height: 12px;
+            border-radius: 999px;
+            background: rgba(255, 224, 140, 0.95);
+            box-shadow: 0 0 10px rgba(255, 224, 140, 0.35);
+        }
+
+        .slider-mark::after {
+            content: "";
+            width: 10px;
+            height: 10px;
+            margin-top: 2px;
+            border-radius: 999px;
+            background: rgba(255, 232, 178, 0.98);
+            box-shadow: 0 0 14px rgba(255, 228, 164, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .slider-mark:hover::after,
+        .slider-mark:focus-visible::after {
+            transform: scale(1.14);
+            box-shadow: 0 0 18px rgba(255, 228, 164, 0.48);
+        }
+
+        .slider-mark:focus-visible {
+            outline: none;
+        }
+
+        .slider-note {
+            margin-top: 18px;
+            font-size: 11px;
+            line-height: 1.3;
+            color: rgba(255, 255, 255, 0.48);
+        }
+
         .toggle-group {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 12px;
         }
+
         .toggle-group label {
-            font-size: 13px; font-weight: 500; margin: 0;
+            font-size: 13px;
+            font-weight: 500;
         }
+
         .toggle-switch {
-            position: relative; width: 42px; height: 24px; cursor: pointer;
+            position: relative;
+            width: 42px;
+            height: 24px;
+            cursor: pointer;
         }
+
         .toggle-switch input {
-            opacity: 0; width: 0; height: 0;
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
+
         .toggle-slider {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 12px; transition: 0.3s;
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.14);
+            border-radius: 12px;
+            transition: 0.25s ease;
         }
-        .toggle-slider:before {
-            content: ""; position: absolute; height: 18px; width: 18px;
-            left: 3px; bottom: 3px; background: rgba(255, 255, 255, 0.6);
-            border-radius: 50%; transition: 0.3s;
+
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            left: 3px;
+            bottom: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            transition: 0.25s ease;
         }
+
         .toggle-switch input:checked + .toggle-slider {
-            background: linear-gradient(135deg, #6496ff 0%, #4e7dcc 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
         }
-        .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(18px); background: white;
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+            background: white;
         }
-        .toggle-switch:hover .toggle-slider {
-            box-shadow: 0 0 8px rgba(100, 150, 255, 0.3);
-        }
-        
-        /* 形状选择器 */
+
         .shape-selector {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             margin-bottom: 12px;
         }
+
+        .shape-btn,
+        .action-btn {
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
         .shape-btn {
-            padding: 8px; background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px; cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px; height: 42px;
+            height: 42px;
+            font-size: 20px;
         }
-        .shape-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(100, 150, 255, 0.5);
+
+        .shape-btn.active,
+        .action-btn:hover {
+            border-color: rgba(100, 150, 255, 0.6);
+            box-shadow: 0 0 14px rgba(100, 150, 255, 0.18);
+            background: rgba(100, 150, 255, 0.16);
         }
-        .shape-btn.active {
-            background: linear-gradient(135deg, rgba(100, 150, 255, 0.3) 0%, rgba(78, 125, 204, 0.3) 100%);
-            border-color: #6496ff;
-            box-shadow: 0 0 12px rgba(100, 150, 255, 0.4);
+
+        .action-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 8px;
         }
-        .shape-label {
-            font-size: 11px; opacity: 0.6; margin-bottom: 8px;
+
+        .action-btn {
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: 600;
         }
-        
-        /* FPS显示 */
-        #fps {
-            position: fixed; top: 20px; left: 20px;
-            background: rgba(10, 10, 15, 0.5); backdrop-filter: blur(20px);
-            padding: 10px 16px; border-radius: 12px; color: white;
-            font-family: 'SF Mono', Monaco, monospace; font-size: 13px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+        .mode-section[hidden] {
+            display: none;
         }
-        #fps .label { opacity: 0.4; margin-right: 8px; }
-        #fps .number { font-weight: 600; color: #6496ff; }
-        
-        /* 提示文本 */
+
         .hint {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(10, 10, 15, 0.5); backdrop-filter: blur(20px);
-            padding: 12px 20px; border-radius: 12px; color: rgba(255, 255, 255, 0.5);
-            font-size: 12px; text-align: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.08);
-            opacity: 0; animation: fadeInOut 4s ease-in-out;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(16px);
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
         }
-        
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
-            10%, 90% { opacity: 1; }
+
+        @media (max-width: 820px) {
+            .sim-switcher {
+                top: 12px;
+                left: 108px;
+                min-width: 118px;
+            }
+
+            #fps {
+                top: 12px;
+                left: 12px;
+            }
+
+            .controls {
+                top: auto;
+                right: 12px;
+                bottom: 72px;
+                left: 12px;
+                max-width: none;
+                min-width: 0;
+            }
+
+            .controls.collapsed {
+                left: auto;
+                width: 40px;
+            }
+
+            .hint {
+                left: 12px;
+                right: 12px;
+                transform: none;
+            }
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    
-    <div id="fps">
+    <canvas id="fluidCanvas"></canvas>
+    <canvas id="isingCanvas" hidden></canvas>
+
+    <div id="fps" class="floating-panel">
         <span class="label">FPS</span>
         <span class="number">60</span>
     </div>
-    
-    <div class="controls">
+
+    <div class="sim-switcher">
+        <select id="simulationSelect">
+            <option value="fluid">流体</option>
+            <option value="ising">Ising</option>
+        </select>
+    </div>
+
+    <div class="controls floating-panel">
         <div class="controls-header">
-            <h3>控制面板</h3>
+            <h3 id="controlsTitle">流体控制</h3>
             <button class="toggle-panel" id="togglePanel" title="收起/展开面板">✕</button>
         </div>
-        
+
         <div class="controls-content">
-        <div class="section-title">物理参数</div>
-        <div class="control-group">
-            <label>
-                <span>流速</span>
-                <span class="value" id="flowSpeedVal">2.5</span>
-            </label>
-            <input type="range" id="flowSpeed" min="0.5" max="4" step="0.1" value="2.5">
+            <div class="mode-section" data-mode="fluid">
+                <div class="section-title">物理参数</div>
+                <div class="control-group">
+                    <label>
+                        <span>流速</span>
+                        <span class="value" id="flowSpeedVal">2.4</span>
+                    </label>
+                    <input type="range" id="flowSpeed" min="0.4" max="15" step="0.1" value="2.4">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>粘度</span>
+                        <span class="value" id="viscosityVal">0.0008</span>
+                    </label>
+                    <input type="range" id="viscosity" min="0.0001" max="0.006" step="0.0001" value="0.0008">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>涡量强度</span>
+                        <span class="value" id="turbulenceVal">0.45</span>
+                    </label>
+                    <input type="range" id="turbulence" min="0" max="2.0" step="0.05" value="0.45">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>压力迭代</span>
+                        <span class="value" id="reynoldsVal">18</span>
+                    </label>
+                    <input type="range" id="reynolds" min="8" max="36" step="1" value="18">
+                </div>
+
+                <div class="section-title">障碍物</div>
+                <div class="control-group">
+                    <label>
+                        <span>障碍物大小</span>
+                        <span class="value" id="obstacleSizeVal">0.05</span>
+                    </label>
+                    <input type="range" id="obstacleSize" min="0.02" max="0.12" step="0.01" value="0.05">
+                </div>
+                <div class="shape-selector">
+                    <button id="shapeCircle" class="shape-btn active" data-shape="circle" title="圆形">●</button>
+                    <button id="shapeSquare" class="shape-btn" data-shape="square" title="方形">■</button>
+                    <button id="shapeTriangle" class="shape-btn" data-shape="triangle" title="三角形">▲</button>
+                </div>
+                <div class="action-row">
+                    <button class="action-btn" id="clearObstacles">清空障碍物</button>
+                    <button class="action-btn" id="resetFluid">重置流场</button>
+                </div>
+
+                <div class="section-title">视觉效果</div>
+                <div class="toggle-group">
+                    <label for="showArrows">箭头</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showArrows" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <label for="showStreamlines">流线</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showStreamlines" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mode-section" data-mode="ising" hidden>
+                <div class="section-title">模型参数</div>
+                <div class="control-group">
+                    <label>
+                        <span>晶格尺寸</span>
+                        <span class="value" id="isingSizeVal">192</span>
+                    </label>
+                    <input type="range" id="isingSize" min="64" max="1024" step="64" value="192">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>耦合 J</span>
+                        <span class="value" id="isingCouplingVal">1.00</span>
+                    </label>
+                    <input type="range" id="isingCoupling" min="-2.4" max="2.4" step="0.02" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>β</span>
+                        <span class="value" id="isingBetaVal">0.45</span>
+                    </label>
+                    <div class="slider-shell" id="isingBetaShell">
+                        <input type="range" id="isingBeta" min="0.1" max="1.2" step="0.01" value="0.45">
+                        <button type="button" class="slider-mark" id="isingCriticalMark" title="跳到临界温度"></button>
+                    </div>
+                    <div class="slider-note" id="isingCriticalText">临界温度 Tc≈2.27，临界逆温 βc≈0.44</div>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>外场 h</span>
+                        <span class="value" id="isingFieldVal">0.00</span>
+                    </label>
+                    <input type="range" id="isingField" min="-0.35" max="0.35" step="0.01" value="0">
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span>扫描速率</span>
+                        <span class="value" id="isingSweepsVal">18</span>
+                    </label>
+                    <input type="range" id="isingSweeps" min="1" max="48" step="1" value="18">
+                </div>
+                <div class="action-row">
+                    <button class="action-btn" id="randomizeIsing">随机初始化</button>
+                    <button class="action-btn" id="flipIsing">整体翻转</button>
+                </div>
+            </div>
         </div>
-        <div class="control-group">
-            <label>
-                <span>粘度</span>
-                <span class="value" id="viscosityVal">0.0005</span>
-            </label>
-            <input type="range" id="viscosity" min="0" max="0.005" step="0.0001" value="0.0005">
-        </div>
-        <div class="control-group">
-            <label>
-                <span>湍流强度</span>
-                <span class="value" id="turbulenceVal">0.3</span>
-            </label>
-            <input type="range" id="turbulence" min="0" max="1.5" step="0.05" value="0.3">
-        </div>
-        <div class="control-group">
-            <label>
-                <span>雷诺数</span>
-                <span class="value" id="reynoldsVal">3000</span>
-            </label>
-            <input type="range" id="reynolds" min="500" max="6000" step="100" value="3000">
-        </div>
-        
-        <div class="section-title">障碍物</div>
-        <div class="control-group">
-            <label>
-                <span>障碍物大小</span>
-                <span class="value" id="obstacleSizeVal">0.05</span>
-            </label>
-            <input type="range" id="obstacleSize" min="0.02" max="0.12" step="0.01" value="0.05">
-        </div>
-        <div class="shape-selector">
-            <button id="shapeCircle" class="shape-btn active" data-shape="circle" title="圆形">●</button>
-            <button id="shapeSquare" class="shape-btn" data-shape="square" title="方形">■</button>
-            <button id="shapeTriangle" class="shape-btn" data-shape="triangle" title="三角形">▲</button>
-        </div>
-        
-        <div class="section-title">视觉效果</div>
-        <div class="toggle-group">
-            <label>箭头</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="showArrows" checked>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-        <div class="toggle-group">
-            <label>流线</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="showStreamlines" checked>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-        </div> <!-- controls-content -->
-    </div> <!-- controls -->
-    
-    <div class="hint">左键放置障碍物，右键删除 | 移动鼠标观察流动</div>
-    
+    </div>
+
+    <div class="hint" id="hint">流体模式：左键放置障碍物，右键删除最近障碍物，移动鼠标预览放置位置。</div>
+
     <script src="fluid.js"></script>
 </body>
 </html>
