@@ -9,7 +9,7 @@ function initRouter() {
     Router
         // 首页：顶部导航 + 侧边栏 + 个人卡片 + 主内容 + 首页内容 + 底部
         .register('/', {
-            components: ['topbar', 'sidebar', 'profile-card', 'main-content', 'home', 'footer'],
+            components: ['topbar', 'sidebar', 'profile-card', 'links-card', 'main-content', 'home', 'footer'],
             handler: async ({ router }) => {
                 setHeaderNavigation('home');
             }
