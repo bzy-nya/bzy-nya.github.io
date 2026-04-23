@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>404 · 喵咪迷路了</title>
     <link rel="icon" type="image/x-icon" href="asset/image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Press+Start+2P&display=swap" />
     <link rel="stylesheet" href="asset/css/main.css" />
     
     <style>
@@ -47,6 +50,7 @@
             display: inline-block;
             color: var(--text);
             text-decoration: none;
+            border-bottom: none;
             border: 2px solid var(--text);
             padding: 12px 24px;
             font-size: clamp(8px, 2.5vw, 12px);
@@ -61,6 +65,8 @@
         .back-home-btn:hover {
             background: var(--text);
             color: var(--primary);
+            text-shadow: none;
+            border-bottom-color: transparent;
         }
 
         @media (max-width: 600px) {
@@ -106,6 +112,7 @@
         <a class="back-home-btn" href="/">back to home</a>
     </div>
 
+    <script src="asset/js/christmas.js"></script>
     <script src="asset/js/main.js"></script>
     <script>
         // Initialize components for 404 page
@@ -115,17 +122,20 @@
             const savedTheme = localStorage.getItem('theme');
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+            const christmasEffects = typeof window.createChristmasEffectsManager === 'function'
+                ? window.createChristmasEffectsManager()
+                : null;
             
             if (currentTheme === 'dark') {
                 body.setAttribute('data-theme', 'dark');
+            } else if (currentTheme === 'christmas') {
+                body.setAttribute('data-theme', 'christmas');
+                christmasEffects?.start();
             } else if (currentTheme === 'halloween') {
                 body.setAttribute('data-theme', 'halloween');
             } else {
                 body.removeAttribute('data-theme');
             }
-            
-            // Initialize cat animation
-            initCatAnimation();
         });
     </script>
 </body>

@@ -79,11 +79,13 @@ export class UI {
         
         // Ensure we're observing an existing element with proper options
         const infoPanel = document.querySelector('.game-info-panel');
-        this.observer.observe(infoPanel, { 
-            attributes: true,
-            childList: true,
-            subtree: true
-        });
+        if (infoPanel) {
+            this.observer.observe(infoPanel, { 
+                attributes: true,
+                childList: true,
+                subtree: true
+            });
+        }
         this.positionTurnCounter();
     }
     

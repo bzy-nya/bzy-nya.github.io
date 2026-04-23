@@ -4,8 +4,11 @@
 class BlogSystem {
     constructor() {
         this.posts = [];
+        this.postsById = new Map();
         this.currentPost = null;
         this.isLoading = false;
+        this.tocObserver = null;
+        this.tocPositionHandler = null;
         
         // 初始化 marked.js 配置
         this.initMarked();
@@ -45,16 +48,6 @@ class BlogSystem {
             renderer.checkbox = (checked) => {
                 return `<input class="task-list-item-checkbox" type="checkbox" ${checked ? 'checked' : ''} disabled>`;
             };
-
-            /*
-            renderer.code = (code, infoString) => {
-                const lang = (infoString || '').trim();
-                const grammar = Prism.languages[lang] || Prism.languages.markup;
-                const html =    (code, grammar, lang);
-                const cls = lang ? `class="language-${lang}"` : '';
-                return `<pre><code ${cls}>${html}</code></pre>`;
-            };
-            */
 
             if (typeof katex !== 'undefined') {
                 const mathBlock = {
@@ -111,6 +104,8 @@ class BlogSystem {
      * 显示博客首页 - 供组件路由器调用
      */
     async showHome() {        
+        this.cleanupArticleUI({ clearMarkup: true });
+
         // 如果数据没有加载，先加载
         if (!this.posts || this.posts.length === 0) {
             await this.loadPosts();
@@ -124,15 +119,12 @@ class BlogSystem {
      * 加载博客文章列表
      */
     async loadPosts() {
-        console.log("[Blog] Loading posts...");
-
         try {
             const response = await fetch('blogs/posts.json');
             const data = await response.json();
             this.posts = data.posts || [];
+            this.postsById = new Map(this.posts.map((post) => [post.id, post]));
             this.tags = data.tags || {};
-
-            console.log(`[Blog] Loaded ${this.posts.length} posts`);
             return this.posts;  
         } catch (error) {
             console.error('Failed to load blog posts:', error);
@@ -144,14 +136,14 @@ class BlogSystem {
      * 渲染博客列表
      */
     renderBlogList() {
-        const blogContainer = document.querySelector('#blog .list');
+        const blogContainer = document.querySelector('#blog .blog-list');
         if (!blogContainer) return;
 
         if (this.posts.length === 0) {
             blogContainer.innerHTML = `
-                <div class="item">
-                    <div class="item-title">No posts yet :(</div>
-                    <div class="item-desc">
+                <div class="blog-list-card blog-post-item">
+                    <div class="blog-list-title">No posts yet :(</div>
+                    <div class="blog-list-desc">
                         Blog posts are coming soon! Stay tuned for exciting content about algorithms, research, and more.
                     </div>
                 </div>
@@ -184,10 +176,10 @@ class BlogSystem {
             const pinnedBadge = post.pinned ? '<span class="pixel-badge pinned-badge">📌 Pinned</span>' : '';
 
             return `
-                <div class="item blog-post-item ${post.pinned ? 'pinned-post' : ''}" data-post-id="${post.id}">
-                    <div class="item-title">${post.title} ${pinnedBadge} ${featuredBadge}</div>
-                    <div class="item-desc">${post.description}</div>
-                    <div class="item-meta">
+                <div class="blog-list-card blog-post-item ${post.pinned ? 'pinned-post' : ''}" data-post-id="${post.id}">
+                    <div class="blog-list-title">${post.title} ${pinnedBadge} ${featuredBadge}</div>
+                    <div class="blog-list-desc">${post.description}</div>
+                    <div class="blog-list-meta">
                         ${this.formatDate(post.date)} 
                         ${tags}
                         <a href="#/post/${post.id}" data-post-id="${post.id}">Read more</a>
@@ -204,44 +196,48 @@ class BlogSystem {
      * 显示单篇博客文章
      */
     async showPost(postId) {
-        const post = this.posts.find(p => p.id === postId);
+        const post = this.postsById.get(postId);
         if (!post) {
             console.error('Post not found:', postId);
-            console.error('Available post IDs:', this.posts.map(p => p.id));
-            return;
+            this.redirectToNotFound();
+            return false;
         }
 
         this.isLoading = true;
         this.showLoading();
 
         try {
-            // 加载 markdown 文件
             const response = await fetch(`blogs/posts/${post.file}`);
+            if (response.status === 404) {
+                this.redirectToNotFound();
+                return false;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Failed to load post: ${response.status}`);
+            }
+
             let markdown = await response.text();
 
             markdown = this.preprocessExtensions(markdown);
 
-            const Html = marked ? marked.parse(markdown) : markdown;
-            
-            // 生成目录
-            const result = this.generateTableOfContents(Html);
+            const html = marked ? marked.parse(markdown) : markdown;
+            const result = this.generateTableOfContents(html);
 
-            // 显示文章
-            this.renderPostView(post, result.html, result.toc);
+            this.renderPostView(post, result.html);
             this.currentPost = post;
 
-            // 确保DOM已经更新，然后进行渲染
             setTimeout(() => {
-                // 重新高亮代码
                 this.highlightCode();
             }, 10);
 
-            // 渲染文章目录导航
             this.renderArticleTOC(result.toc);
+            return true;
 
         } catch (error) {
             console.error('Failed to load post:', error);
             this.showError('Failed to load the blog post. Please try again.');
+            return false;
         } finally {
             this.isLoading = false;
         }
@@ -250,7 +246,7 @@ class BlogSystem {
     /**
      * 渲染文章视图
      */
-    renderPostView(post, content, toc) {
+    renderPostView(post, content) {
         const blogContainer = document.querySelector('#blog');
         if (!blogContainer) {
             console.error('[Blog] Blog container not found!');
@@ -283,28 +279,18 @@ class BlogSystem {
             </section>
         `;
 
-        // 单独插入内容，避免innerHTML解析问题
+        this.cleanupArticleUI();
+
         const contentElement = document.getElementById('blog-post-content');
         if (contentElement) {
-            
-            // 尝试创建一个临时元素来验证HTML
-            try {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = content;
-                
-                contentElement.innerHTML = content;                
-            } catch (error) {
-                console.error('Error inserting content:', error);
-                // 作为备用，尝试使用textContent
-                contentElement.textContent = content;
-            }
+            contentElement.innerHTML = content;
         }
 
         // 添加返回按钮事件
         const backButton = document.getElementById('back-to-blog-list');
         if (backButton) {
             backButton.addEventListener('click', () => {
-                Router.navigate('#blog')
+                Router.navigate('blog');
             });
         }
     }
@@ -316,8 +302,6 @@ class BlogSystem {
         const blogContainer = document.querySelector('#blog');
         if (!blogContainer) return;
 
-        // 不再推送历史记录，因为组件路由器会管理 URL 状态
-
         blogContainer.innerHTML = `
             <section class="section">
                 <h2 class="section-title">
@@ -326,21 +310,20 @@ class BlogSystem {
                     <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg>
                 </h2>
                 <div class="pixel-divider"></div>
-                <div class="list"></div>
+                <div class="blog-list"></div>
             </section>
         `;
 
         this.renderBlogList();
         this.currentPost = null;
-        
-        // 重新显示博客导航
-        this.renderBlogNavigation();
     }
 
     /**
      * 显示加载状态
      */
     showLoading() {
+        this.cleanupArticleUI({ clearMarkup: true });
+
         const blogContainer = document.querySelector('#blog');
         if (!blogContainer) return;
 
@@ -358,6 +341,8 @@ class BlogSystem {
      * 显示错误信息
      */
     showError(message) {
+        this.cleanupArticleUI({ clearMarkup: true });
+
         const blogContainer = document.querySelector('#blog');
         if (!blogContainer) return;
 
@@ -366,37 +351,16 @@ class BlogSystem {
                 <div class="error-container" style="text-align: center; padding: 40px;">
                     <p style="color: var(--accent); font-family: 'Press Start 2P', monospace; font-size: 12px; margin-bottom: 16px;">Error!</p>
                     <p>${message}</p>
-                    <button class="nav-btn" onclick="window.router.navigate('/')" style="margin-top: 20px;">Back to Blog List</button>
+                    <button class="nav-btn" id="back-to-blog-home" style="margin-top: 20px;">Back to Blog List</button>
                 </div>
             </section>
         `;
-    }
 
-    /**
-     * 重新渲染数学公式
-     */
-    renderMath() {
-        if (typeof renderMathInElement !== 'undefined') {
-            const blogContent = document.querySelector('.blog-post-content');
-            if (blogContent) {
-                renderMathInElement(blogContent, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false},
-                        {left: '\\(', right: '\\)', display: false},
-                        {left: '\\[', right: '\\]', display: true}
-                    ],
-                    throwOnError: false,
-                    errorColor: '#cc0000',
-                    strict: false,
-                    ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-                    ignoredClasses: ['no-katex'],
-                    fleqn: false,
-                    macros: {
-                        "\\Pr": "\\operatorname{Pr}"
-                    }
-                });
-            }
+        const backButton = document.getElementById('back-to-blog-home');
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                Router.navigate('blog');
+            });
         }
     }
 
@@ -464,15 +428,6 @@ class BlogSystem {
      * 渲染博客导航栏
      */
     renderBlogNavigation() {
-        // 直接渲染，由路由器控制组件可见性
-        this._doRenderBlogNavigation();
-    }
-
-    /**
-     * 实际渲染博客导航栏
-     */
-    _doRenderBlogNavigation() {
-        // 查找博客导航组件容器
         const navComponent = document.getElementById('blog-navigation');
         if (!navComponent) {
             console.warn('[Blog] Blog navigation component not found');
@@ -572,21 +527,15 @@ class BlogSystem {
         
         postItems.forEach(item => {
             const postId = item.getAttribute('data-post-id');
-            const post = this.posts.find(p => p.id === postId);
+            const post = this.postsById.get(postId);
             
             if (tag === 'all' || (post && post.tags && post.tags.includes(tag))) {
-                item.style.display = 'block';
-                item.style.opacity = '1';
+                item.classList.remove('is-filtered-out');
             } else {
-                item.style.display = 'none';
-                item.style.opacity = '0';
+                item.classList.add('is-filtered-out');
             }
         });
     }
-
-    /**
-     * 移除博客导航栏
-     */
 
     /**
      * 生成文章目录
@@ -610,8 +559,7 @@ class BlogSystem {
             toc.push({
                 level,
                 text,
-                id,
-                element: heading
+                id
             });
         });
                 
@@ -627,7 +575,7 @@ class BlogSystem {
      */
     renderArticleTOC(toc) {
         if (!toc || toc.length === 0) {
-            console.log('[Blog] No TOC to render');
+            this.cleanupArticleUI({ clearMarkup: true });
             return;
         }
         
@@ -669,42 +617,54 @@ class BlogSystem {
      */
     buildTOCHTML(toc) {
         if (toc.length === 0) return '<p class="no-toc">No headings found</p>';
-        
-        let html = '<ul class="toc-list">';
-        let currentLevel = 2; // 从h2开始
-        
-        toc.forEach((item, index) => {
-            const { level, text, id } = item;
-            
-            // 处理层级变化
-            if (level > currentLevel) {
-                // 开启新的嵌套列表
-                for (let i = currentLevel; i < level; i++) {
-                    html += '<ul class="toc-nested">';
-                }
-            } else if (level < currentLevel) {
-                // 关闭嵌套列表
-                for (let i = level; i < currentLevel; i++) {
-                    html += '</ul>';
-                }
+
+        const { list } = this.buildTOCList(toc, 0, toc[0].level, true);
+        return list.outerHTML;
+    }
+
+    buildTOCList(items, startIndex, level, isRoot = false) {
+        const list = document.createElement('ul');
+        list.className = isRoot ? 'toc-list' : 'toc-nested';
+
+        let index = startIndex;
+        let lastItem = null;
+
+        while (index < items.length) {
+            const item = items[index];
+
+            if (item.level < level) {
+                break;
             }
-            
-            html += `<li class="toc-item toc-level-${level}">
-                        <a href="#${id}" class="toc-link" data-target="${id}">
-                            ${text}
-                        </a>
-                     </li>`;
-            
-            currentLevel = level;
-        });
-        
-        // 关闭所有未关闭的列表
-        for (let i = 2; i < currentLevel; i++) {
-            html += '</ul>';
+
+            if (item.level > level) {
+                if (!lastItem) {
+                    index += 1;
+                    continue;
+                }
+
+                const nested = this.buildTOCList(items, index, item.level);
+                lastItem.appendChild(nested.list);
+                index = nested.nextIndex;
+                continue;
+            }
+
+            const listItem = document.createElement('li');
+            listItem.className = `toc-item toc-level-${item.level}`;
+
+            const link = document.createElement('a');
+            link.href = `#${item.id}`;
+            link.className = 'toc-link';
+            link.dataset.target = item.id;
+            link.textContent = item.text;
+
+            listItem.appendChild(link);
+            list.appendChild(listItem);
+
+            lastItem = listItem;
+            index += 1;
         }
-        html += '</ul>';
-        
-        return html;
+
+        return { list, nextIndex: index };
     }
 
     /**
@@ -739,6 +699,8 @@ class BlogSystem {
      */
     initTOCScrollSpy(toc) {
         if (toc.length === 0) return;
+
+        this.cleanupTOCObservers();
         
         const tocLinks = document.querySelectorAll('.toc-link');
         const headings = toc.map(item => document.getElementById(item.id)).filter(Boolean);
@@ -777,40 +739,86 @@ class BlogSystem {
         const tocCard = document.getElementById('article-toc-card');
         if (!tocCard) return;
 
+        this.cleanupTOCPositionHandler();
+
         this.tocPositionHandler = () => {
             const header = document.querySelector('.topbar');
-            if (!header) return;
+            const tocContent = tocCard.querySelector('.toc-content');
+            if (!header || window.innerWidth <= 980) {
+                tocCard.style.top = '';
+                tocCard.style.maxHeight = '';
+                if (tocContent) {
+                    tocContent.style.maxHeight = '';
+                }
+                return;
+            }
 
-            const headerRect = header.getBoundingClientRect();
-            const headerHeight = headerRect.height;
-            const headerBottom = headerRect.bottom;
-
-            // 如果header完全移出视野，将目录顶到最上面
-            if (headerBottom <= 0) {
+            if (header.classList.contains('is-collapsed')) {
                 tocCard.style.top = '10px';
                 tocCard.style.maxHeight = 'calc(100vh - 40px)';
-                // 同时更新toc-content的高度
-                const tocContent = tocCard.querySelector('.toc-content');
                 if (tocContent) {
                     tocContent.style.maxHeight = 'calc(100vh - 100px)';
                 }
-            } else {
-                // 否则保持在header下方
-                tocCard.style.top = '80px';
-                tocCard.style.maxHeight = 'calc(100vh - 160px)';
-                // 同时更新toc-content的高度
-                const tocContent = tocCard.querySelector('.toc-content');
+                return;
+            }
+
+            if (header.classList.contains('is-compact')) {
+                tocCard.style.top = '52px';
+                tocCard.style.maxHeight = 'calc(100vh - 116px)';
                 if (tocContent) {
-                    tocContent.style.maxHeight = 'calc(100vh - 240px)';
+                    tocContent.style.maxHeight = 'calc(100vh - 176px)';
                 }
+                return;
+            }
+
+            tocCard.style.top = '80px';
+            tocCard.style.maxHeight = 'calc(100vh - 160px)';
+            if (tocContent) {
+                tocContent.style.maxHeight = 'calc(100vh - 240px)';
             }
         };
 
-        // 添加滚动事件监听器
+        // 添加滚动和尺寸变化监听器
         window.addEventListener('scroll', this.tocPositionHandler);
+        window.addEventListener('resize', this.tocPositionHandler);
         
         // 触发一次初始计算
         this.tocPositionHandler();
+    }
+
+    cleanupArticleUI({ clearMarkup = false } = {}) {
+        this.cleanupTOCObservers();
+        this.cleanupTOCPositionHandler();
+
+        if (!clearMarkup) {
+            return;
+        }
+
+        const tocCard = document.getElementById('article-toc-card');
+        if (tocCard) {
+            tocCard.innerHTML = '';
+            tocCard.style.top = '';
+            tocCard.style.maxHeight = '';
+        }
+    }
+
+    cleanupTOCObservers() {
+        if (this.tocObserver) {
+            this.tocObserver.disconnect();
+            this.tocObserver = null;
+        }
+    }
+
+    cleanupTOCPositionHandler() {
+        if (this.tocPositionHandler) {
+            window.removeEventListener('scroll', this.tocPositionHandler);
+            window.removeEventListener('resize', this.tocPositionHandler);
+            this.tocPositionHandler = null;
+        }
+    }
+
+    redirectToNotFound() {
+        window.location.replace('/404.html');
     }
 
     /**
@@ -826,33 +834,34 @@ class BlogSystem {
      * 初始化博客系统
      */
     async init() {
-        console.log('[Blog] Initializing blog system...');
         await this.loadPosts();
-        
-        console.log('[Blog] Blog system ready');
     }
 }
 
 // 全局博客系统实例
 let blogSystem = null;
-let blogSystemInitializing = false;
+let blogSystemInitPromise = null;
 
 // 初始化函数
 async function tryInitBlogSystem() {
     if (blogSystem) return blogSystem;
     
-    if (blogSystemInitializing) return;
+    if (!blogSystemInitPromise) {
+        blogSystemInitPromise = (async () => {
+            try {
+                blogSystem = new BlogSystem();
+                await blogSystem.init();
+            } catch (error) {
+                console.error('[Blog] Failed to initialize blog system:', error);
+                blogSystem = null;
+            }
 
-    blogSystemInitializing = true;
-    
-    try {
-        blogSystem = new BlogSystem();
-        await blogSystem.init();
-    } catch (error) {
-        console.error('[Blog] Failed to initialize blog system:', error);
-        blogSystem = null;
-    } 
+            window.blogSystem = blogSystem;
+            return blogSystem;
+        })().finally(() => {
+            blogSystemInitPromise = null;
+        });
+    }
 
-    window.blogSystem = blogSystem;
-    blogSystemInitializing = false;
+    return blogSystemInitPromise;
 }

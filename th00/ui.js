@@ -3,12 +3,6 @@ let canvas_dom, scr, grz_dom, fps_dom, info_dom;
 let mx = 0, my = 0;
 let key_pressed = Array(256);
 
-// FPS detection variables
-let detected_fps = 60;
-let s_time = 0;
-let t_time = 0;
-let detect_frame = 100;
-
 // Sound management variables
 const soundThrottles = {
     graze: {
@@ -37,9 +31,6 @@ function initUI() {
     
     // Set up event listeners
     setupEventListeners();
-    
-    // Detect FPS
-    detect_fps();
 }
 
 // Set up all event listeners
@@ -67,29 +58,55 @@ function handleKeyDown(e) {
     if(37 <= e.keyCode && e.keyCode <= 40) {
         e.preventDefault();
     }
+    if (e.keyCode === 27 || e.keyCode === "Z".charCodeAt(0)) {
+        e.preventDefault();
+    }
     key_pressed[e.keyCode] = true;
     game.scene.player.precisionMode = e.shiftKey;
 }
 
-function handleGameControls(e) {
-    if(e.keyCode == "R".charCodeAt(0)) {
-        // Remove any existing game over overlay
-        const overlay = document.getElementById('game-over-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
-        
-        // Clean up any effects
-        const effectsContainer = document.querySelector('.effects-container');
-        if (effectsContainer) {
-            effectsContainer.remove();
-        }
-        
+function clearGameEffects() {
+    const overlay = document.getElementById('game-over-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+
+    const effectsContainer = document.querySelector('.effects-container');
+    if (effectsContainer) {
+        effectsContainer.remove();
+    }
+}
+
+function startOrResumeGame() {
+    clearGameEffects();
+
+    if (!game.state.hasStarted || game.state.isGameOver) {
         game.stop();
         game.init(scr);
+        info_dom.innerHTML = `游戏运行中。目标帧率 ${GAME_CONSTANTS.TIMING.TARGET_FPS} FPS。`;
+        return;
     }
-    if(e.keyCode == "E".charCodeAt(0)) {
-        game.stop();
+
+    if (game.state.isPaused) {
+        game.resume();
+        info_dom.innerHTML = `已继续。目标帧率 ${GAME_CONSTANTS.TIMING.TARGET_FPS} FPS。`;
+    }
+}
+
+function handleGameControls(e) {
+    if (e.repeat && (e.keyCode === "Z".charCodeAt(0) || e.keyCode === 27)) {
+        return;
+    }
+
+    if(e.keyCode == "Z".charCodeAt(0)) {
+        startOrResumeGame();
+    }
+
+    if(e.keyCode === 27) {
+        if (game.state.isRunning) {
+            game.pause();
+            info_dom.innerHTML = "已暂停。按 Z 继续。";
+        }
     }
 }
 
@@ -133,37 +150,6 @@ function get_gamepad() {
     
     // Return the array of gamepads or an empty array if none available
     return gamepads || [];
-}
-
-// UI utility functions
-function detect_fps() {
-    if(detect_frame === 100) {
-        info_dom.innerHTML = `计算中...`;
-        s_time = performance.now();
-    }
-    detect_frame--;
-    if(detect_frame === 0) {
-        t_time = performance.now();
-        const elapsed = t_time - s_time;
-        detected_fps = 100000 / elapsed;
-        const fpss = [30, 60, 120, 144, 180, 240];
-        detected_fps = fpss.reduce((closest, fps) => 
-            Math.abs(fps - detected_fps) < Math.abs(closest - detected_fps) ? fps : closest, 
-            fpss[0]);
-                
-        info_dom.innerHTML = 
-            `探测到屏幕刷新率为 ${detected_fps} Hz 
-            <button id="fps-detect-btn">重新测量</button>`;
-        
-            game.detected_fps = detected_fps;
-        // Add event listener to the button
-        document.getElementById("fps-detect-btn").addEventListener("click", () => {
-            detect_frame = 100;
-            detect_fps();
-        });
-    } else {
-        requestAnimationFrame(detect_fps);
-    }
 }
 
 // Game mode and settings functions
@@ -301,7 +287,7 @@ function showGrazeEffect(x, y, color = 'rgba(255,255,255,0.8)') {
 // Game over handler
 function onGameOver(x, y) {
     // Update info text
-    info_dom.innerHTML = "满身疮痍！按 R 重新开始";
+    info_dom.innerHTML = "满身疮痍！按 Z 重新开始";
     
     // Create visual effects
     // Create container if it doesn't exist
@@ -447,7 +433,6 @@ window.showGrazeEffect = showGrazeEffect;
 window.playSound = playSound;
 
 // Explicitly make functions available globally for HTML onclick handlers
-window.detect_fps = detect_fps;
 window.set_mode = set_mode;
 window.set_observe = set_observe;
 window.set_autoplay = set_autoplay;
