@@ -4,12 +4,12 @@ class ComponentRouter {
         this.currentRoute = null;
         this.activeComponents = new Set();
         this.isTransitioning = false;
+        this.pendingPath = null;
         
         this.init();
     }
 
     init() {
-        console.log("[router] Starting initialization...");
         window.addEventListener('hashchange', () => this.handleRouteChange());
         window.addEventListener('load', () => this.handleRouteChange());
     }
@@ -20,8 +20,6 @@ class ComponentRouter {
      * @param {Object} config - 路由配置
      */
     register(pattern, config) {
-        console.log(`[router] Registering new pattern "${pattern}"`);
-
         const routeConfig = {
             pattern,
             components: config.components || [],
@@ -94,9 +92,16 @@ class ComponentRouter {
      * 处理路由变化
      */
     async handleRouteChange() {
-        if (this.isTransitioning) return;
-        
         const path = this.parseCurrentHash();
+        if (this.isTransitioning) {
+            this.pendingPath = path;
+            return;
+        }
+
+        if (this.currentRoute?.path === path) {
+            return;
+        }
+
         const match = this.matchRoute(path);
         
         if (!match) {
@@ -106,17 +111,18 @@ class ComponentRouter {
         
         const { config, params } = match;
         
-        // 检查是否需要组件切换
-        const newComponents = new Set(config.components);
-        
-        console.log('[router] Route to', path, {
-            components: config.components,
-            params
-        });
-        
-        await this.performTransition(config, params, path);
-        
-        this.currentRoute = { path, config, params };
+        const didTransition = await this.performTransition(config, params, path);
+
+        if (didTransition) {
+            this.currentRoute = { path, config, params };
+        }
+
+        const pendingPath = this.pendingPath;
+        this.pendingPath = null;
+
+        if (pendingPath && pendingPath !== path) {
+            await this.handleRouteChange();
+        }
     }
 
     /**
@@ -135,23 +141,29 @@ class ComponentRouter {
             }
 
             // 2. 并行执行：组件切换动画 + 内容更新
-            async function Hooks() {
+            const runHooks = async () => {
+                const context = { params, path, router: this };
+
                 if (config.beforeEnter) {
-                    await config.beforeEnter({ params, path, router: this });
+                    await config.beforeEnter(context);
                 }
-                await config.handler({ params, path, router: this })
+                if (config.handler) {
+                    await config.handler(context);
+                }
                 if (config.afterEnter) {
-                    await config.afterEnter({ params, path, router: this });
+                    await config.afterEnter(context);
                 }
-            }
+            };
             
             const componentTransition = this.switchComponents(config.components);
-            const handler = Hooks();
+            const handler = runHooks();
 
             await Promise.all([componentTransition, handler]);
+            return true;
             
         } catch (error) {
             console.error('[router] Transition error:', error);
+            return false;
         } finally {
             this.isTransitioning = false;
         }
@@ -167,13 +179,11 @@ class ComponentRouter {
         
         // 隐藏组件 - 统一淡出动画
         if (toHide.length > 0) {
-            console.log('[router] Hiding components:', toHide);
             await this.hideComponents(toHide);
         }
         
         // 显示组件 - 统一淡入动画
         if (toShow.length > 0) {
-            console.log('[router] Showing components:', toShow);
             await this.showComponents(toShow);
         }
         
@@ -221,7 +231,8 @@ class ComponentRouter {
                 }
 
                 // 先显示元素
-                element.style.display = 'block';
+                element.classList.remove('fade-out');
+                element.style.display = this.getElementDisplayMode(element);
                 
                 // 强制重绘确保display生效
                 element.offsetHeight;
@@ -237,6 +248,21 @@ class ComponentRouter {
         });
         
         await Promise.all(promises);
+    }
+
+    getElementDisplayMode(element) {
+        if (element.dataset.routerDisplay) {
+            return element.dataset.routerDisplay;
+        }
+
+        const previousDisplay = element.style.display;
+        element.style.display = '';
+        const computedDisplay = window.getComputedStyle(element).display;
+        element.style.display = previousDisplay;
+
+        const displayMode = computedDisplay === 'none' ? 'block' : computedDisplay;
+        element.dataset.routerDisplay = displayMode;
+        return displayMode;
     }
 
     /**

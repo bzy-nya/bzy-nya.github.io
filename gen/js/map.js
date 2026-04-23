@@ -61,6 +61,9 @@ export class GameMap {
         
         // Place mountains and cities according to density parameters
         grid = this.placeMountainsAndCities(grid);
+
+        // Ensure the map always has enough empty cells to place all generals.
+        this.ensureMinimumSpawnCells(grid);
         
         // Find suitable general positions
         const generalPositions = this.findGeneralPositions(grid);
@@ -80,6 +83,37 @@ export class GameMap {
             grid,
             generalPositions
         };
+    }
+
+    ensureMinimumSpawnCells(grid) {
+        let emptyCells = this.countEmptyCells(grid);
+        if (emptyCells >= this.playerCount) {
+            return;
+        }
+
+        for (let y = 0; y < this.height && emptyCells < this.playerCount; y++) {
+            for (let x = 0; x < this.width && emptyCells < this.playerCount; x++) {
+                const cell = grid[y][x];
+                if (cell.type === 'mountain' || cell.type === 'city') {
+                    cell.type = 'empty';
+                    cell.owner = this.OWNER_EMPTY;
+                    cell.units = 0;
+                    emptyCells++;
+                }
+            }
+        }
+    }
+
+    countEmptyCells(grid) {
+        let count = 0;
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (grid[y][x].type === 'empty') {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
     
     initializeEmptyGrid() {
@@ -129,40 +163,55 @@ export class GameMap {
         // Ensure generals are spaced apart
         const minDistance = Math.floor(Math.min(this.width, this.height) / 3);
         const positions = [];
-        
-        for (let i = 0; i < this.playerCount; i++) {
-            let valid = false;
-            let x, y;
-            
-            // Try to find a valid position
+
+        for (let requiredDistance = minDistance; requiredDistance >= 0 && positions.length < this.playerCount; requiredDistance--) {
             let attempts = 0;
-            while (!valid && attempts < 100) {
-                x = Math.floor(Math.random() * this.width);
-                y = Math.floor(Math.random() * this.height);
-                
+            const maxAttempts = Math.max(200, this.width * this.height * 2);
+
+            while (positions.length < this.playerCount && attempts < maxAttempts) {
+                const x = Math.floor(Math.random() * this.width);
+                const y = Math.floor(Math.random() * this.height);
+                attempts++;
+
                 if (grid[y][x].type !== 'empty') {
-                    attempts++;
                     continue;
                 }
-                
-                // Check distance from other generals
-                valid = true;
+
+                const alreadyUsed = positions.some((pos) => pos.x === x && pos.y === y);
+                if (alreadyUsed) {
+                    continue;
+                }
+
+                let valid = true;
                 for (const pos of positions) {
                     const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
-                    if (distance < minDistance) {
+                    if (distance < requiredDistance) {
                         valid = false;
                         break;
                     }
                 }
-                
-                attempts++;
-            }
-            
-            if (valid) {
-                positions.push({ x, y });
+
+                if (valid) {
+                    positions.push({ x, y });
+                }
             }
         }
-        
+
+        if (positions.length < this.playerCount) {
+            for (let y = 0; y < this.height && positions.length < this.playerCount; y++) {
+                for (let x = 0; x < this.width && positions.length < this.playerCount; x++) {
+                    if (grid[y][x].type !== 'empty') {
+                        continue;
+                    }
+
+                    const alreadyUsed = positions.some((pos) => pos.x === x && pos.y === y);
+                    if (!alreadyUsed) {
+                        positions.push({ x, y });
+                    }
+                }
+            }
+        }
+
         return positions;
     }
     

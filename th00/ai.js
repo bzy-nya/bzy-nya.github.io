@@ -1,5 +1,49 @@
 // Enhanced AI for bullet dodging with optimized calculations
 
+function getNormalizedMove(dx, dy, speed, timeScale) {
+    const scale = dx !== 0 && dy !== 0 ? Math.SQRT1_2 : 1;
+    return {
+        dx: dx * speed * timeScale * scale,
+        dy: dy * speed * timeScale * scale
+    };
+}
+
+function measureClearance(x, y, bullets) {
+    let minDistance = Infinity;
+    for (const bullet of bullets) {
+        const d = dist(bullet.x, bullet.y, x, y) - bullet.r;
+        if (d < minDistance) {
+            minDistance = d;
+        }
+    }
+    return Number.isFinite(minDistance) ? minDistance : 9999;
+}
+
+function getAimQuality(x, y, enemies) {
+    if (!enemies || !enemies.length) return 0;
+
+    let bestQuality = 0;
+    for (const enemy of enemies) {
+        if (!enemy || enemy.removed) continue;
+
+        const verticalDistance = Math.max(24, y - enemy.y);
+        const horizontalError = Math.abs(x - enemy.x);
+        const laneTolerance = enemy.isBoss ? 56 : 34;
+        const alignment = Math.max(0, 1 - horizontalError / laneTolerance);
+        if (alignment <= 0) continue;
+
+        const proximityWeight = 1 / (1 + verticalDistance / 240);
+        const priority = enemy.isBoss ? 1.55 : 1;
+        const damagedWeight = 1 + (1 - enemy.hp / enemy.maxHp) * 0.35;
+        const quality = alignment * proximityWeight * priority * damagedWeight;
+        if (quality > bestQuality) {
+            bestQuality = quality;
+        }
+    }
+
+    return bestQuality;
+}
+
 // Enhanced calculateEnergy with trajectory prediction and graze incentives
 function calculateEnergy(bullet, x, y) {
     // Create a copy of the bullet to predict its next position
@@ -241,6 +285,7 @@ function updatePlayerAI() {
     // Get player reference and bullets
     const player = game.scene.player;
     const bullets = game.scene.bullets;
+    const enemies = game.scene.enemies.filter((enemy) => !enemy.removed);
     
     // No need to do anything if there are no bullets
     if (!bullets || !bullets.length) return;
@@ -272,13 +317,16 @@ function updatePlayerAI() {
         y: player.y, 
         energy: Infinity, 
         precise: false, 
-        grazeOpportunities: 0 
+        grazeOpportunities: 0,
+        clearance: -Infinity
     };
     
     // Predict bullet positions for the next few frames
-    const LOOK_AHEAD_FRAMES = 3;
+    const LOOK_AHEAD_FRAMES = 5;
     const futureBullets = predictBulletPositions(LOOK_AHEAD_FRAMES);
-    
+
+    const initialCandidates = [];
+
     // Evaluate all candidate moves
     directions.forEach(dir => {
         // Try both normal and precise movement for each direction
@@ -289,8 +337,9 @@ function updatePlayerAI() {
                 GAME_CONSTANTS.PLAYER.NORMAL_SPEED;
             
             // Calculate move vector
-            const dx = dir.dx * speed * timeScale;
-            const dy = dir.dy * speed * timeScale;
+            const move = getNormalizedMove(dir.dx, dir.dy, speed, timeScale);
+            const dx = move.dx;
+            const dy = move.dy;
             
             // Calculate new position
             const nx = check_range(player.x + dx, 0, GAME_CONSTANTS.SCREEN.WIDTH);
@@ -313,32 +362,9 @@ function updatePlayerAI() {
                     grazeOpportunities++;
                 }
             }
-            
-            // Project future positions and energy
-            let futureX = nx;
-            let futureY = ny;
-            
-            // Simulate continued movement in the same direction
-            for (let frame = 0; frame < LOOK_AHEAD_FRAMES; frame++) {
-                // Project position with continued movement
-                futureX = check_range(futureX + dx, 0, GAME_CONSTANTS.SCREEN.WIDTH);
-                futureY = check_range(futureY + dy, 0, GAME_CONSTANTS.SCREEN.HEIGHT);
-                
-                if (frame < futureBullets.length && futureBullets[frame].length > 0) {
-                    // Discount future frames (less important than immediate danger)
-                    const timeWeight = Math.pow(0.8, frame + 1);
-                    total_energy += evaluatePosition(futureX, futureY, futureBullets[frame], timeWeight);
-                    
-                    // Count additional future graze opportunities
-                    for (const bullet of futureBullets[frame]) {
-                        const d = dist(bullet.x, bullet.y, futureX, futureY) - bullet.r;
-                        if (d > GAME_CONSTANTS.PLAYER.COLLISION_RADIUS && 
-                            d <= GAME_CONSTANTS.PLAYER.GRAZE_RADIUS) {
-                            grazeOpportunities += 0.2; // Count future opportunities less
-                        }
-                    }
-                }
-            }
+
+            const clearance = measureClearance(nx, ny, filteredBullets);
+            const aimQuality = getAimQuality(nx, ny, enemies);
             
             // Add small penalty for staying still to encourage movement
             if (dx === 0 && dy === 0) {
@@ -359,19 +385,91 @@ function updatePlayerAI() {
             if (isPrecise) {
                 total_energy *= 0.95;
             }
-            
-            // Update best move if this is better or if it has the same energy but more graze opportunities
-            if (total_energy < best_move.energy || 
-                (Math.abs(total_energy - best_move.energy) < 1e-6 && grazeOpportunities > best_move.grazeOpportunities)) {
-                best_move = { 
-                    x: nx, 
-                    y: ny, 
-                    energy: total_energy, 
-                    precise: isPrecise, 
-                    grazeOpportunities: grazeOpportunities 
-                };
+
+            if (clearance > GAME_CONSTANTS.PLAYER.GRAZE_RADIUS * 1.35) {
+                total_energy -= aimQuality * 58;
             }
+
+            initialCandidates.push({
+                x: nx,
+                y: ny,
+                dx,
+                dy,
+                dir,
+                precise: isPrecise,
+                grazeOpportunities,
+                energy: total_energy,
+                clearance,
+                aimQuality
+            });
         });
+    });
+
+    initialCandidates.sort((a, b) => {
+        if (Math.abs(a.energy - b.energy) > 1e-6) return a.energy - b.energy;
+        return b.clearance - a.clearance;
+    });
+
+    const topCandidates = initialCandidates.slice(0, 6);
+    topCandidates.forEach((candidate) => {
+        let total_energy = candidate.energy;
+        let grazeOpportunities = candidate.grazeOpportunities;
+        let futureX = candidate.x;
+        let futureY = candidate.y;
+        let bestFutureClearance = candidate.clearance;
+        let bestAimQuality = candidate.aimQuality;
+
+        for (let frame = 0; frame < LOOK_AHEAD_FRAMES; frame++) {
+            const futurePrecision = candidate.precise || bestFutureClearance < GAME_CONSTANTS.PLAYER.GRAZE_RADIUS * 1.4;
+            const futureSpeed = futurePrecision ? GAME_CONSTANTS.PLAYER.PRECISE_SPEED : GAME_CONSTANTS.PLAYER.NORMAL_SPEED;
+            const futureMove = getNormalizedMove(candidate.dir.dx, candidate.dir.dy, futureSpeed, timeScale);
+            futureX = check_range(futureX + futureMove.dx, 0, GAME_CONSTANTS.SCREEN.WIDTH);
+            futureY = check_range(futureY + futureMove.dy, 0, GAME_CONSTANTS.SCREEN.HEIGHT);
+
+            if (frame < futureBullets.length && futureBullets[frame].length > 0) {
+                const timeWeight = Math.pow(0.78, frame + 1);
+                total_energy += evaluatePosition(futureX, futureY, futureBullets[frame], timeWeight);
+                const futureClearance = measureClearance(futureX, futureY, futureBullets[frame]);
+                bestFutureClearance = Math.min(bestFutureClearance, futureClearance);
+                total_energy -= Math.min(futureClearance, 24) * 0.65;
+                const futureAimQuality = getAimQuality(futureX, futureY, enemies);
+                bestAimQuality = Math.max(bestAimQuality, futureAimQuality);
+                if (futureClearance > GAME_CONSTANTS.PLAYER.GRAZE_RADIUS * 1.5) {
+                    total_energy -= futureAimQuality * 24 * timeWeight;
+                }
+
+                for (const bullet of futureBullets[frame]) {
+                    const d = dist(bullet.x, bullet.y, futureX, futureY) - bullet.r;
+                    if (d > GAME_CONSTANTS.PLAYER.COLLISION_RADIUS && d <= GAME_CONSTANTS.PLAYER.GRAZE_RADIUS) {
+                        grazeOpportunities += 0.2;
+                    }
+                }
+            }
+        }
+
+        if (candidate.precise && bestFutureClearance > GAME_CONSTANTS.PLAYER.GRAZE_RADIUS * 1.8) {
+            total_energy += 22;
+        }
+
+        if (
+            total_energy < best_move.energy ||
+            (Math.abs(total_energy - best_move.energy) < 1e-6 && bestFutureClearance > best_move.clearance) ||
+            (
+                Math.abs(total_energy - best_move.energy) < 1e-6 &&
+                Math.abs(bestFutureClearance - best_move.clearance) < 1e-6 &&
+                grazeOpportunities > best_move.grazeOpportunities
+            )
+        ) {
+            best_move = {
+                x: candidate.x,
+                y: candidate.y,
+                energy: total_energy,
+                precise: candidate.precise,
+                grazeOpportunities,
+                clearance: bestFutureClearance,
+                aimQuality: bestAimQuality
+            };
+        }
     });
     
     // Apply the best move

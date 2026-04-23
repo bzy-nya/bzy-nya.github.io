@@ -1,0 +1,6 @@
+# macOS metadata
+.DS_Store
+
+# local-only files
+serve.py
+image.png

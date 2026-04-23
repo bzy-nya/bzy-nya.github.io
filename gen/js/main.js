@@ -21,6 +21,7 @@ class GameSimulator {
         this.speed = 1; // Default speed set to 1x
         this.lastUpdate = 0;
         this.tickInterval = 500; // 500ms per tick at 1x speed (2 ticks/second)
+        this.animationFrameId = null;
         
         this.initEventListeners();
         
@@ -89,7 +90,7 @@ class GameSimulator {
     }
     
     startSimulation() {
-        if (this.game && this.gameState !== "running") {
+        if (this.gameState === "running") {
             return;
         }
         
@@ -97,7 +98,7 @@ class GameSimulator {
             this.gameState = "running";
             this.ui.updateGameStatus("running");
             this.lastUpdate = performance.now();
-            requestAnimationFrame((ts) => this.gameLoop(ts));
+            this.scheduleNextFrame();
             return;
         }
         
@@ -124,7 +125,7 @@ class GameSimulator {
         this.gameState = "running";
         this.ui.updateGameStatus("running");
         this.lastUpdate = performance.now();
-        requestAnimationFrame((ts) => this.gameLoop(ts));
+        this.scheduleNextFrame();
     }
     
     togglePause() {
@@ -135,16 +136,37 @@ class GameSimulator {
         
         if (this.gameState === "running") {
             this.lastUpdate = performance.now();
-            requestAnimationFrame((ts) => this.gameLoop(ts));
+            this.scheduleNextFrame();
+        } else {
+            this.cancelScheduledFrame();
         }
     }
     
     resetSimulation() {
+        this.cancelScheduledFrame();
         this.gameState = "preview";
         this.ui.updateGameStatus("preview");
         this.game = null;
         this.aiPlayers = [];
         this.generateMapPreview();
+    }
+
+    scheduleNextFrame() {
+        if (this.animationFrameId !== null) {
+            return;
+        }
+
+        this.animationFrameId = requestAnimationFrame((ts) => {
+            this.animationFrameId = null;
+            this.gameLoop(ts);
+        });
+    }
+
+    cancelScheduledFrame() {
+        if (this.animationFrameId !== null) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
     }
     
     gameLoop(timestamp) {
@@ -198,7 +220,7 @@ class GameSimulator {
         this.renderer.render(this.game);
         
         // Continue the game loop
-        requestAnimationFrame((ts) => this.gameLoop(ts));
+        this.scheduleNextFrame();
     }
 }
 

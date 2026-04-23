@@ -242,7 +242,7 @@ export class Game {
             return this.getPlayerColor(cell.owner);
         }
         
-        if (cell.owner === this.game.OWNER_NEUTRAL) { 
+        if (cell.owner === this.OWNER_NEUTRAL) { 
             return "#777"; // Gray color for neutral cities
         }
         

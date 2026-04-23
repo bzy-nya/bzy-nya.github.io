@@ -19,8 +19,18 @@ function check_range(v, l, r) {
     return v;
 }
 
+function lerp(a, b, t) {
+    return a + (b - a) * t;
+}
+
+function clamp01(v) {
+    return check_range(v, 0, 1);
+}
+
 
 // Export utilities to the global scope
 window.dist = dist;
 window.random_int = random_int;
 window.check_range = check_range;
+window.lerp = lerp;
+window.clamp01 = clamp01;
