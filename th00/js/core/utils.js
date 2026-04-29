@@ -1,36 +1,28 @@
 // Utility functions for the game
 
 // Math utility functions
-function sqr(x) { return x * x; }
+export function sqr(x) { return x * x; }
 
-function dist(x1, y1, x2, y2) {
+export function dist(x1, y1, x2, y2) {
     return Math.sqrt(sqr(Math.abs(x1-x2)) + sqr(Math.abs(y1-y2)));
 }
 
-function random_int(min, max) {
+export function random_int(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1) + min); 
 }
 
-function check_range(v, l, r) {
+export function check_range(v, l, r) {
     if (v > r) return r;
     if (v < l) return l;
     return v;
 }
 
-function lerp(a, b, t) {
+export function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
-function clamp01(v) {
+export function clamp01(v) {
     return check_range(v, 0, 1);
 }
-
-
-// Export utilities to the global scope
-window.dist = dist;
-window.random_int = random_int;
-window.check_range = check_range;
-window.lerp = lerp;
-window.clamp01 = clamp01;

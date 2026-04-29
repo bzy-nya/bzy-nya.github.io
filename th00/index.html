@@ -2,10 +2,73 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=../th00.html">
-    <title>Redirecting to touhou00</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>touhou00</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <p>If you are not redirected automatically, follow this <a href="../th00.html">link to touhou00</a>.</p>
+    <div class="top-actions" aria-label="Page actions">
+        <button id="theme-toggle-btn" class="icon-action" title="切换主题" aria-label="Toggle dark/light theme">
+            <!-- SVG icons will be inserted by js/ui/themeManager.js -->
+        </button>
+        <a class="icon-action github-action" href="https://github.com/bzy-nya/bzy-nya.github.io" target="_blank" rel="noopener" aria-label="Open GitHub repository">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2.25a9.75 9.75 0 0 0-3.08 19c.49.09.67-.21.67-.47v-1.67c-2.73.59-3.31-1.17-3.31-1.17-.45-1.14-1.09-1.44-1.09-1.44-.89-.61.07-.6.07-.6.99.07 1.51 1.02 1.51 1.02.87 1.5 2.29 1.07 2.85.82.09-.64.34-1.07.62-1.32-2.18-.25-4.47-1.09-4.47-4.85 0-1.07.38-1.95 1.01-2.64-.1-.25-.44-1.25.1-2.6 0 0 .83-.26 2.69 1.01A9.3 9.3 0 0 1 12 6.01c.83 0 1.66.11 2.44.33 1.86-1.27 2.68-1.01 2.68-1.01.54 1.35.2 2.35.1 2.6.63.69 1.01 1.57 1.01 2.64 0 3.77-2.29 4.6-4.48 4.84.35.31.67.91.67 1.84v2.73c0 .26.18.57.68.47A9.75 9.75 0 0 0 12 2.25Z"/>
+            </svg>
+        </a>
+    </div>
+
+    <main class="arcade-shell">
+        <div class="game-container">
+            <div class="stage-hud">
+                <span class="stage-label">th00</span>
+                <div class="stats">
+                    <span id="graze">Graze: 0</span>
+                    <span id="fps">FPS: 0</span>
+                </div>
+            </div>
+            <canvas id="canvas" width="600" height="800"></canvas>
+        </div>
+
+        <aside class="controls-container" aria-label="Game controls">
+            <div class="control-section">
+                <div class="section-title">弹幕模式</div>
+                <div class="button-group mode-grid">
+                    <button class="mode active" id="mode1" onclick="set_mode(1)">自机狙+随机弹</button>
+                    <button class="mode" id="mode2" onclick="set_mode(2)">随机弹</button>
+                    <button class="mode" id="mode3" onclick="set_mode(3)">泛狙</button>
+                    <button class="mode" id="mode4" onclick="set_mode(4)">雨弹幕</button>
+                    <button class="mode" id="mode5" onclick="set_mode(5)">波粒</button>
+                    <button class="mode" id="mode6" onclick="set_mode(6)">重力</button>
+                    <button class="mode" id="mode7" onclick="set_mode(7)">暴雪</button>
+                    <button class="mode" id="mode8" onclick="set_mode(8)">Dream</button>
+                </div>
+            </div>
+            
+            <div class="control-section control-input-section">
+                <div class="section-title">操作</div>
+                <div class="button-group segmented">
+                    <button class="input active" id="input_keyboard" onclick="set_keyboard()">键盘</button>
+                    <button class="input" id="input_mouse" onclick="set_mouse()">鼠标</button>
+                    <button class="input" id="input_gamepad" onclick="set_gamepad()">手柄</button>
+                </div>
+                <div class="button-group assist-group">
+                    <button id="show_only" onclick="set_observe()">观察模式</button>
+                    <button id="auto_play" onclick="set_autoplay()">自动模式</button>
+                </div>
+                <div class="control-hint" id="control_hint">键盘：Z 开始/射击/继续，方向键或 WASD 移动，Shift 精准移动，Esc 暂停。</div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">系统信息</div>
+                <div id="info">待机中。选择弹幕模式后按 Z 开始。</div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
