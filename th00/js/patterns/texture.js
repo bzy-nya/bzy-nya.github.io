@@ -14,8 +14,7 @@ export const enemy_texture_template = {
         sourceY: 0,
         drawWidth: 56,
         drawHeight: 38,
-        cacheSize: 72,
-        fallbackSize: 68
+        cacheSize: 72
     }),
 
     bossFairy: Object.freeze({
@@ -33,8 +32,7 @@ export const enemy_texture_template = {
         sourceY: 0,
         drawWidth: 72,
         drawHeight: 72,
-        cacheSize: 92,
-        fallbackSize: 112
+        cacheSize: 92
     })
 };
 

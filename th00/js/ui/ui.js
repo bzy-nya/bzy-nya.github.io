@@ -1,14 +1,19 @@
 // DOM references
 import { TH00_INPUT_STATE, TH00_MODE_MAP } from '../core/config.js';
-import { game, setBulletGenerator, setGameCallbacks } from '../core/game.js';
+import { game, preloadGameAssets, setBulletGenerator, setGameCallbacks } from '../core/game.js';
 import { playSound } from './audio.js';
 
 let canvas_dom, game_container_dom, scr, grz_dom, fps_dom, info_dom, control_hint_dom;
+let isStartingGame = false;
+let previousGamepadButtons = {
+    shoot: false,
+    pause: false
+};
 
 const CONTROL_HINTS = {
     keyboard: '键盘：Z 开始 / 射击 / 继续，方向键或 WASD 移动，Shift 精准移动，Esc 暂停。',
     mouse: '鼠标：移动鼠标控制位置，按住左键开始 / 射击 / 继续，Esc 暂停。',
-    gamepad: '手柄：左摇杆移动，A / 按钮 0 射击，L2 精准移动；开始 / 继续仍可按 Z，Esc 暂停。'
+    gamepad: '手柄：A / 按钮 0 开始 / 射击 / 继续，左摇杆移动，L2 精准移动，Start 暂停。'
 };
 
 // Initialize UI
@@ -25,6 +30,7 @@ export function initUI() {
 
     // Set up event listeners
     setupEventListeners();
+    pollGamepadControls();
 }
 
 // Set up all event listeners
@@ -75,13 +81,24 @@ function clearGameEffects() {
     }
 }
 
-function startOrResumeGame() {
+async function startOrResumeGame() {
+    if (isStartingGame) return;
     clearGameEffects();
 
     if (!game.state.hasStarted || game.state.isGameOver || game.state.isStageClear) {
-        game.stop();
-        game.init(scr);
-        info_dom.innerHTML = `Cirno 玩耍中...`;
+        isStartingGame = true;
+        info_dom.innerHTML = '资源加载中...';
+        try {
+            await preloadGameAssets();
+            game.stop();
+            game.init(scr);
+            info_dom.innerHTML = `Cirno 玩耍中...`;
+        } catch (error) {
+            console.error(error);
+            info_dom.innerHTML = '资源加载失败，请刷新后重试。';
+        } finally {
+            isStartingGame = false;
+        }
         return;
     }
 
@@ -139,7 +156,8 @@ function handleMouseUp() {
 
 // Gamepad event handlers
 function handleGamepadConnected(e) {
-    const gamepad = navigator.getGamepads()[e.gamepad.index];
+    const gamepad = e.gamepad || getActiveGamepad();
+    if (!gamepad) return;
     info_dom.innerHTML = 
         `已连接到手柄：${gamepad.id}。共有 ${gamepad.buttons.length} 个按钮，${gamepad.axes.length} 个摇杆坐标轴。`;
 }
@@ -159,6 +177,33 @@ function get_gamepad() {
     
     // Return the array of gamepads or an empty array if none available
     return gamepads || [];
+}
+
+function getActiveGamepad() {
+    return Array.from(get_gamepad()).find((pad) => pad && pad.connected !== false) || null;
+}
+
+function isGamepadButtonPressed(gamepad, index) {
+    return !!(gamepad?.buttons?.[index]?.pressed);
+}
+
+function pollGamepadControls() {
+    const gamepad = game.settings.inputMode === "gamepad" ? getActiveGamepad() : null;
+    const shootPressed = isGamepadButtonPressed(gamepad, 0);
+    const pausePressed = isGamepadButtonPressed(gamepad, 9);
+
+    if (shootPressed && !previousGamepadButtons.shoot) {
+        startOrResumeGame();
+    }
+
+    if (pausePressed && !previousGamepadButtons.pause && game.state.isRunning) {
+        game.pause();
+        info_dom.innerHTML = "已暂停。按 A / 按钮 0 继续。";
+    }
+
+    previousGamepadButtons.shoot = shootPressed;
+    previousGamepadButtons.pause = pausePressed;
+    requestAnimationFrame(pollGamepadControls);
 }
 
 function setActiveButton(selector, activeId) {
@@ -211,10 +256,7 @@ function set_keyboard() { setInputMode('keyboard', 'default'); }
 function set_mouse() { setInputMode('mouse', 'none'); }
 
 function set_gamepad() {
-    const gamepads = get_gamepad();
-    
-    // Find the first connected gamepad
-    const activeGamepad = Array.from(gamepads).find(pad => pad !== null);
+    const activeGamepad = getActiveGamepad();
     
     if (!activeGamepad) {
         info_dom.innerHTML = "未探测到手柄，请确保已连接并按任意按钮激活";
