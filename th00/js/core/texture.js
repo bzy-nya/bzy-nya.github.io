@@ -218,159 +218,35 @@ export function getEnemySprite(renderCache, enemy) {
         return renderCache.enemySprites.get(key);
     }
 
-    if (renderCache.enemySpriteLoaded && renderCache.enemySpriteSheet) {
-        const size = texture.cacheSize;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        const srcX = texture.sourceXOffset + frameIndex * texture.frameWidth;
-        const srcY = texture.sourceY + rowIndex * texture.frameHeight;
-        const drawWidth = texture.drawWidth;
-        const drawHeight = texture.drawHeight;
-        if (flipX) {
-            ctx.translate(size, 0);
-            ctx.scale(-1, 1);
-        }
-        ctx.drawImage(
-            renderCache.enemySpriteSheet,
-            srcX,
-            srcY,
-            texture.frameWidth,
-            texture.frameHeight,
-            flipX ? size - (size - drawWidth) / 2 - drawWidth : (size - drawWidth) / 2,
-            (size - drawHeight) / 2,
-            drawWidth,
-            drawHeight
-        );
-
-        const sprite = { canvas, size };
-        renderCache.enemySprites.set(key, sprite);
-        return sprite;
+    if (!renderCache.enemySpriteLoaded || !renderCache.enemySpriteSheet) {
+        return null;
     }
 
-    const size = texture.fallbackSize;
+    const size = texture.cacheSize;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const cx = size / 2;
-    const cy = size * (enemy.isBoss ? 0.56 : 0.58);
-    const scale = enemy.isBoss ? 1.45 : 1;
-    const hairColor = `hsl(${enemy.hue - 18}, 78%, 58%)`;
-    const dressColor = `hsl(${enemy.hue + 6}, 88%, 62%)`;
-    const dressShadow = `hsl(${enemy.hue - 4}, 70%, 40%)`;
-    const ribbonColor = `hsl(${enemy.hue + 28}, 95%, 76%)`;
-    const crystalStroke = `hsla(${enemy.hue + 16}, 100%, 86%, 0.92)`;
-    const crystalFill = `hsla(${enemy.hue + 6}, 100%, 84%, 0.34)`;
-    const skinColor = '#f8f6ff';
-    const outlineColor = 'rgba(20, 32, 60, 0.22)';
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(scale, scale);
-
-    ctx.strokeStyle = crystalStroke;
-    ctx.lineWidth = 1.15;
-    [-1, 1].forEach((dir) => {
-        for (let i = 0; i < 4; i++) {
-            const offsetY = -18 + i * 10;
-            const outerX = dir * (18 + i * 7);
-            ctx.beginPath();
-            ctx.moveTo(dir * 8, offsetY);
-            ctx.lineTo(outerX, offsetY - 7);
-            ctx.lineTo(dir * (outerX + dir * 8), offsetY - 1);
-            ctx.lineTo(outerX, offsetY + 7);
-            ctx.closePath();
-            ctx.fillStyle = crystalFill;
-            ctx.fill();
-            ctx.stroke();
-        }
-    });
-
-    ctx.fillStyle = hairColor;
-    ctx.beginPath();
-    ctx.arc(0, -20, 11.5, Math.PI, Math.PI * 2);
-    ctx.quadraticCurveTo(12, -14, 8, -4);
-    ctx.quadraticCurveTo(0, 3, -8, -4);
-    ctx.quadraticCurveTo(-12, -14, 0, -20);
-    ctx.fill();
-
-    ctx.fillStyle = ribbonColor;
-    ctx.beginPath();
-    ctx.moveTo(-10, -25);
-    ctx.lineTo(-2, -31);
-    ctx.lineTo(-1, -20);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(10, -25);
-    ctx.lineTo(2, -31);
-    ctx.lineTo(1, -20);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(0, -16, 9.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#203a76';
-    ctx.beginPath();
-    ctx.arc(-3.5, -17, 1.35, 0, Math.PI * 2);
-    ctx.arc(3.5, -17, 1.35, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(0, -16, 9.5, Math.PI * 1.04, Math.PI * 1.96);
-    ctx.stroke();
-
-    const dressGradient = ctx.createLinearGradient(0, -8, 0, 28);
-    dressGradient.addColorStop(0, '#fbffff');
-    dressGradient.addColorStop(0.28, ribbonColor);
-    dressGradient.addColorStop(0.29, dressColor);
-    dressGradient.addColorStop(1, dressShadow);
-    ctx.fillStyle = dressGradient;
-    ctx.beginPath();
-    ctx.moveTo(0, -5);
-    ctx.quadraticCurveTo(14, -2, 16, 18);
-    ctx.quadraticCurveTo(0, 32, -16, 18);
-    ctx.quadraticCurveTo(-14, -2, 0, -5);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-    ctx.beginPath();
-    ctx.moveTo(0, -2);
-    ctx.quadraticCurveTo(8, 4, 8, 18);
-    ctx.quadraticCurveTo(0, 23, -8, 18);
-    ctx.quadraticCurveTo(-8, 4, 0, -2);
-    ctx.fill();
-
-    ctx.fillStyle = ribbonColor;
-    ctx.beginPath();
-    ctx.moveTo(0, 3);
-    ctx.lineTo(-5, 11);
-    ctx.lineTo(0, 9);
-    ctx.lineTo(5, 11);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(-3.4, -17.5, 0.85, 0, Math.PI * 2);
-    ctx.arc(3.1, -17.5, 0.85, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = outlineColor;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(-12, 20);
-    ctx.quadraticCurveTo(0, 28, 12, 20);
-    ctx.stroke();
-
-    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
+    const srcX = texture.sourceXOffset + frameIndex * texture.frameWidth;
+    const srcY = texture.sourceY + rowIndex * texture.frameHeight;
+    const drawWidth = texture.drawWidth;
+    const drawHeight = texture.drawHeight;
+    if (flipX) {
+        ctx.translate(size, 0);
+        ctx.scale(-1, 1);
+    }
+    ctx.drawImage(
+        renderCache.enemySpriteSheet,
+        srcX,
+        srcY,
+        texture.frameWidth,
+        texture.frameHeight,
+        flipX ? size - (size - drawWidth) / 2 - drawWidth : (size - drawWidth) / 2,
+        (size - drawHeight) / 2,
+        drawWidth,
+        drawHeight
+    );
 
     const sprite = { canvas, size };
     renderCache.enemySprites.set(key, sprite);

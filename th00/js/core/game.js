@@ -37,6 +37,10 @@ export const game = {
         cirnoFrameGroups: 3,
         cirnoFramesPerGroup: 8
     },
+    assets: {
+        preloadPromise: null,
+        loaded: false
+    },
 
     // Game scene containing all game entities
     scene: {
@@ -136,22 +140,8 @@ export const game = {
 		}
         resetStageGenerators(this.scene.stage);
 
-        if (!this.renderCache.cirnoSprite) {
-            const cirnoSprite = new Image();
-            cirnoSprite.onload = () => {
-                this.renderCache.cirnoSpriteLoaded = true;
-            };
-            cirnoSprite.src = TH00_ASSET_PATHS.images.cirno;
-            this.renderCache.cirnoSprite = cirnoSprite;
-        }
-        if (!this.renderCache.enemySpriteSheet) {
-            const enemySpriteSheet = new Image();
-            enemySpriteSheet.onload = () => {
-                this.renderCache.enemySpriteLoaded = true;
-                this.renderCache.enemySprites.clear();
-            };
-            enemySpriteSheet.src = TH00_ASSET_PATHS.images.enemySpriteSheet;
-            this.renderCache.enemySpriteSheet = enemySpriteSheet;
+        if (!this.assets.loaded) {
+            throw new Error('TH00 assets must be loaded before starting the game.');
         }
 		
 		// Reset performance metrics
@@ -230,6 +220,40 @@ export const game = {
         stopStageMusic();
     }
 };
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+        image.src = src;
+    });
+}
+
+export function preloadGameAssets() {
+    if (game.assets.loaded) {
+        return Promise.resolve();
+    }
+
+    if (!game.assets.preloadPromise) {
+        game.assets.preloadPromise = Promise.all([
+            loadImage(TH00_ASSET_PATHS.images.cirno),
+            loadImage(TH00_ASSET_PATHS.images.enemySpriteSheet)
+        ]).then(([cirnoSprite, enemySpriteSheet]) => {
+            game.renderCache.cirnoSprite = cirnoSprite;
+            game.renderCache.cirnoSpriteLoaded = true;
+            game.renderCache.enemySpriteSheet = enemySpriteSheet;
+            game.renderCache.enemySpriteLoaded = true;
+            game.renderCache.enemySprites.clear();
+            game.assets.loaded = true;
+        }).catch((error) => {
+            game.assets.preloadPromise = null;
+            throw error;
+        });
+    }
+
+    return game.assets.preloadPromise;
+}
 
 function drawBloom(x, y, radius, color, alpha = 1) {
     drawSceneBloom(game.context, x, y, radius, color, alpha);
@@ -367,6 +391,7 @@ function renderEnemies() {
         }
 
         const sprite = getEnemySprite(game.renderCache, enemy);
+        if (!sprite) return;
         ctx.save();
         ctx.fillStyle = 'rgba(12, 18, 33, 0.28)';
         ctx.beginPath();
@@ -417,10 +442,8 @@ function updatePlayerShooting() {
     const player = game.scene.player;
     player.shotCooldown = Math.max(0, player.shotCooldown - 1);
 
-    const gamepad = game.settings.inputMode === "gamepad" && gameCallbacks.getGamepad
-        ? gameCallbacks.getGamepad()[0]
-        : null;
-    const gamepadShooting = !!(gamepad && gamepad.buttons[0] && gamepad.buttons[0].pressed);
+    const gamepad = game.settings.inputMode === "gamepad" ? getActiveGamepad() : null;
+    const gamepadShooting = isGamepadButtonPressed(gamepad, 0);
     const mouseShooting = game.settings.inputMode === "mouse" && TH00_INPUT_STATE.mouseDown;
     const keyboardShooting = game.settings.inputMode === "keyboard" && !!TH00_INPUT_STATE.keys["Z".charCodeAt(0)];
     const isShooting = game.settings.autoplay ||
@@ -683,16 +706,18 @@ function updatePlayerPosition(mx, my, key_pressed) {
             game.scene.player.y = my;
         }
         else if(game.settings.inputMode === "gamepad") {
-            const gp = gameCallbacks.getGamepad ? gameCallbacks.getGamepad()[0] : null;
+            const gp = getActiveGamepad();
             if(gp) {
-                game.scene.player.precisionMode = gp.buttons[6].pressed;
+                game.scene.player.precisionMode = isGamepadButtonPressed(gp, 6);
                 const gamepad_speed = (game.scene.player.precisionMode ? 
                     GAME_CONSTANTS.PLAYER.PRECISE_SPEED : 
                     GAME_CONSTANTS.PLAYER.NORMAL_SPEED);
                 
                 const deadzone = GAME_CONSTANTS.INPUT.GAMEPAD_DEADZONE;
-                let axisX = Math.abs(gp.axes[0]) > deadzone ? gp.axes[0] : 0;
-                let axisY = Math.abs(gp.axes[1]) > deadzone ? gp.axes[1] : 0;
+                const rawAxisX = getGamepadAxis(gp, 0);
+                const rawAxisY = getGamepadAxis(gp, 1);
+                let axisX = Math.abs(rawAxisX) > deadzone ? rawAxisX : 0;
+                let axisY = Math.abs(rawAxisY) > deadzone ? rawAxisY : 0;
                 const axisLength = Math.hypot(axisX, axisY);
                 if (axisLength > 1) {
                     axisX /= axisLength;
@@ -717,6 +742,20 @@ function updatePlayerPosition(mx, my, key_pressed) {
     // Keep player within bounds
     game.scene.player.x = check_range(game.scene.player.x, 1, GAME_CONSTANTS.SCREEN.WIDTH);
     game.scene.player.y = check_range(game.scene.player.y, 1, GAME_CONSTANTS.SCREEN.HEIGHT);
+}
+
+function getActiveGamepad() {
+    if (!gameCallbacks.getGamepad) return null;
+    return Array.from(gameCallbacks.getGamepad()).find((pad) => pad && pad.connected !== false) || null;
+}
+
+function isGamepadButtonPressed(gamepad, index) {
+    return !!(gamepad?.buttons?.[index]?.pressed);
+}
+
+function getGamepadAxis(gamepad, index) {
+    const value = gamepad?.axes?.[index];
+    return Number.isFinite(value) ? value : 0;
 }
 
 function getCirnoAnimFrame(frameGroup) {
@@ -769,48 +808,6 @@ function renderPlayer() {
                 drawWidth,
                 drawHeight
             );
-        } else {
-            ctx.fillStyle = 'rgba(184, 239, 255, 0.62)';
-            ctx.beginPath();
-            ctx.moveTo(-12, 6);
-            ctx.quadraticCurveTo(-34, 10, -22, 24);
-            ctx.quadraticCurveTo(-10, 12, -4, 8);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(12, 6);
-            ctx.quadraticCurveTo(34, 10, 22, 24);
-            ctx.quadraticCurveTo(10, 12, 4, 8);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.fillStyle = 'rgba(156, 241, 255, 0.78)';
-            [-1, 1].forEach((dir) => {
-                for (let i = 0; i < 3; i++) {
-                    const offsetY = -6 + i * 8;
-                    ctx.beginPath();
-                    ctx.moveTo(dir * 10, offsetY);
-                    ctx.lineTo(dir * (18 + i * 5), offsetY - 7);
-                    ctx.lineTo(dir * (22 + i * 6), offsetY);
-                    ctx.lineTo(dir * (18 + i * 5), offsetY + 7);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-            });
-
-            const dressGradient = ctx.createLinearGradient(0, -16, 0, 20);
-            dressGradient.addColorStop(0, '#f9ffff');
-            dressGradient.addColorStop(0.42, '#69dfff');
-            dressGradient.addColorStop(1, '#2f8fdc');
-            ctx.fillStyle = dressGradient;
-            ctx.beginPath();
-            ctx.moveTo(0, -16);
-            ctx.quadraticCurveTo(14, -8, 12, 6);
-            ctx.quadraticCurveTo(16, 20, 0, 24);
-            ctx.quadraticCurveTo(-16, 20, -12, 6);
-            ctx.quadraticCurveTo(-14, -8, 0, -16);
-            ctx.fill();
         }
         ctx.restore();
         
@@ -871,9 +868,25 @@ function renderStoppedEffectFrame() {
 
 function scheduleStoppedEffectLoop(loopId) {
     if (loopId !== game.performance.loopId || game.scene.effects.length === 0) return;
-    game.performance.requestId = requestAnimationFrame(() => {
+    game.performance.requestId = requestAnimationFrame((timestamp) => {
         if (loopId !== game.performance.loopId) return;
         game.performance.requestId = 0;
+
+        const targetFrameTime = 1000 / GAME_CONSTANTS.TIMING.TARGET_FPS;
+        if (!game.performance.lastStepTime) {
+            game.performance.lastStepTime = timestamp;
+        }
+        const elapsedSinceLastStep = timestamp - game.performance.lastStepTime;
+        if (elapsedSinceLastStep + 0.25 < targetFrameTime) {
+            scheduleStoppedEffectLoop(loopId);
+            return;
+        }
+        if (elapsedSinceLastStep <= targetFrameTime * 1.5) {
+            game.performance.lastStepTime += targetFrameTime;
+        } else {
+            game.performance.lastStepTime = timestamp;
+        }
+
         game.performance.frameCount++;
         updateEffects();
         renderStoppedEffectFrame();
