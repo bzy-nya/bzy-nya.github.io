@@ -21,7 +21,7 @@ export function initUI() {
     // Get DOM references
     canvas_dom = document.getElementById("canvas");
     game_container_dom = document.querySelector('.game-container');
-    scr = canvas_dom.getContext("2d");
+    scr = canvas_dom.getContext("2d", { alpha: false });
     grz_dom = document.getElementById("graze");
     fps_dom = document.getElementById("fps");
     info_dom = document.getElementById("info");

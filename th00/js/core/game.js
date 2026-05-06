@@ -28,6 +28,7 @@ export const game = {
         enemySprites: new Map(),
         enemySpriteSheet: null,
         enemySpriteLoaded: false,
+        playerShotSprite: null,
         cirnoSprite: null,
         cirnoSpriteLoaded: false,
         cirnoFrameWidth: 32,
@@ -97,7 +98,10 @@ export const game = {
         fps: 0,
         fpsSampleFrame: 0,
         fpsSampleTime: 0,
-        lastStepTime: 0
+        lastStepTime: 0,
+        accumulator: 0,
+        renderIsDarkTheme: false,
+        renderTransformIsIdentity: true
     },
     
     // Initialize/reset game
@@ -150,6 +154,8 @@ export const game = {
         this.performance.fpsSampleFrame = 0;
         this.performance.fpsSampleTime = 0;
         this.performance.lastStepTime = 0;
+        this.performance.accumulator = 0;
+        this.performance.renderTransformIsIdentity = true;
         resetAudioState();
         playStageMusic(this.scene.stage.background?.music);
 
@@ -193,6 +199,8 @@ export const game = {
         this.performance.fpsSampleTime = 0;
         this.performance.fpsSampleFrame = this.performance.frameCount;
         this.performance.lastStepTime = 0;
+        this.performance.accumulator = 0;
+        this.performance.renderTransformIsIdentity = true;
         resumeStageMusic();
         scheduleMainLoop(this.performance.loopId);
     },
@@ -471,6 +479,7 @@ function updatePlayerShooting() {
 function updatePlayerBullets() {
     const shots = game.scene.playerBullets;
     const enemies = game.scene.enemies;
+    let shotWriteIndex = 0;
 
     for (let i = 0; i < shots.length; i++) {
         const shot = shots[i];
@@ -504,39 +513,68 @@ function updatePlayerBullets() {
                 break;
             }
         }
+
+        if (!shot.removed) {
+            shots[shotWriteIndex++] = shot;
+        }
     }
 
-    game.scene.playerBullets = shots.filter((shot) => !shot.removed);
-    game.scene.enemies = enemies.filter((enemy) => !enemy.removed);
+    shots.length = shotWriteIndex;
+
+    let enemyWriteIndex = 0;
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        if (!enemy.removed) {
+            enemies[enemyWriteIndex++] = enemy;
+        }
+    }
+    enemies.length = enemyWriteIndex;
+}
+
+function getPlayerShotSprite() {
+    if (game.renderCache.playerShotSprite) {
+        return game.renderCache.playerShotSprite;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 18;
+    canvas.height = 34;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(9, 1, 9, 33);
+    gradient.addColorStop(0, 'rgba(255,255,255,0.96)');
+    gradient.addColorStop(0.45, 'rgba(163, 245, 255, 0.92)');
+    gradient.addColorStop(1, 'rgba(66, 181, 255, 0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(9, 1);
+    ctx.lineTo(13.5, 21);
+    ctx.lineTo(9, 27);
+    ctx.lineTo(4.5, 21);
+    ctx.closePath();
+    ctx.fill();
+
+    game.renderCache.playerShotSprite = canvas;
+    return canvas;
 }
 
 function renderPlayerBullets() {
     const ctx = game.context;
-    game.scene.playerBullets.forEach((shot) => {
-        ctx.save();
-        ctx.translate(shot.x, shot.y);
-        ctx.globalCompositeOperation = 'lighter';
-        const gradient = ctx.createLinearGradient(0, -16, 0, 16);
-        gradient.addColorStop(0, 'rgba(255,255,255,0.96)');
-        gradient.addColorStop(0.45, 'rgba(163, 245, 255, 0.92)');
-        gradient.addColorStop(1, 'rgba(66, 181, 255, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(0, -16);
-        ctx.lineTo(4.5, 4);
-        ctx.lineTo(0, 10);
-        ctx.lineTo(-4.5, 4);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-    });
+    const sprite = getPlayerShotSprite();
+    const shots = game.scene.playerBullets;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < shots.length; i++) {
+        const shot = shots[i];
+        ctx.drawImage(sprite, shot.x - 9, shot.y - 17, 18, 34);
+    }
+    ctx.restore();
 }
 
-function drawBulletTrail(ctx, bullet, bulletCount) {
+function drawBulletTrail(ctx, bullet, bulletCount, isDarkTheme) {
     const prevX = bullet.prevX ?? bullet.x - bullet.dx;
     const prevY = bullet.prevY ?? bullet.y - bullet.dy;
     const trailWidth = Math.max(1, bullet.r * 0.52);
-    const style = getBulletRenderStyle(bullet);
+    const style = getBulletRenderStyle(bullet, isDarkTheme);
 
     if (style.trailColor && bulletCount <= GAME_CONSTANTS.PERFORMANCE.TRAIL_BULLET_THRESHOLD) {
         ctx.strokeStyle = style.trailColor;
@@ -549,8 +587,8 @@ function drawBulletTrail(ctx, bullet, bulletCount) {
     }
 }
 
-function drawBulletSprite(ctx, bullet) {
-    const sprite = getBulletSprite(game.renderCache, bullet);
+function drawBulletSprite(ctx, bullet, isDarkTheme) {
+    const sprite = getBulletSprite(game.renderCache, bullet, isDarkTheme);
 
     if (bullet.sprite === 'needle' || bullet.sprite === 'petal') {
         const rotation = bullet.sprite === 'needle'
@@ -559,11 +597,15 @@ function drawBulletSprite(ctx, bullet) {
         const cos = Math.cos(rotation);
         const sin = Math.sin(rotation);
         ctx.setTransform(cos, sin, -sin, cos, bullet.x, bullet.y);
+        game.performance.renderTransformIsIdentity = false;
         ctx.drawImage(sprite.canvas, -sprite.center, -sprite.center, sprite.size, sprite.size);
         return;
     }
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!game.performance.renderTransformIsIdentity) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        game.performance.renderTransformIsIdentity = true;
+    }
     ctx.drawImage(sprite.canvas, bullet.x - sprite.center, bullet.y - sprite.center, sprite.size, sprite.size);
 }
 
@@ -572,22 +614,28 @@ function renderEnemyBullets() {
     const bullets = game.scene.bullets;
     const bulletCount = bullets.length;
     if (bulletCount === 0) return;
+    const isDarkTheme = game.performance.renderIsDarkTheme;
+    const bulletStyle = getBulletRenderStyle(bullets[0], isDarkTheme);
 
-    if (bulletCount <= GAME_CONSTANTS.PERFORMANCE.TRAIL_DISABLE_BULLET_THRESHOLD) {
+    if (bulletCount <= GAME_CONSTANTS.PERFORMANCE.TRAIL_BULLET_THRESHOLD) {
         ctx.save();
         ctx.lineCap = 'round';
         for (let i = 0; i < bulletCount; i++) {
-            drawBulletTrail(ctx, bullets[i], bulletCount);
+            drawBulletTrail(ctx, bullets[i], bulletCount, isDarkTheme);
         }
         ctx.restore();
     }
 
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = bulletStyle.compositeOperation;
+    game.performance.renderTransformIsIdentity = true;
     for (let i = 0; i < bulletCount; i++) {
-        drawBulletSprite(ctx, bullets[i]);
+        drawBulletSprite(ctx, bullets[i], isDarkTheme);
     }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!game.performance.renderTransformIsIdentity) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        game.performance.renderTransformIsIdentity = true;
+    }
     ctx.restore();
 }
 
@@ -668,7 +716,7 @@ function updateBullets() {
 
                     // Trigger visual effect for graze
                     if (game.settings.visualGrazeFeedback && gameCallbacks.showGrazeEffect) {
-                        const style = getBulletRenderStyle(bullet_now);
+                        const style = getBulletRenderStyle(bullet_now, game.performance.renderIsDarkTheme);
                         gameCallbacks.showGrazeEffect(x, y, style.color);
                     }
                 }
@@ -888,6 +936,7 @@ function scheduleStoppedEffectLoop(loopId) {
         }
 
         game.performance.frameCount++;
+        game.performance.renderIsDarkTheme = document.body.classList.contains('dark-theme');
         updateEffects();
         renderStoppedEffectFrame();
         scheduleStoppedEffectLoop(loopId);
@@ -914,19 +963,21 @@ function main_loop(currentTime = 0, loopId) {
         game.performance.lastStepTime = currentTime;
     }
 
-    const elapsedSinceLastStep = currentTime - game.performance.lastStepTime;
-    if (elapsedSinceLastStep + 0.25 < targetFrameTime) {
+    const elapsedSinceLastStep = Math.max(0, currentTime - game.performance.lastStepTime);
+    game.performance.lastStepTime = currentTime;
+    game.performance.accumulator = Math.min(
+        game.performance.accumulator + elapsedSinceLastStep,
+        targetFrameTime * GAME_CONSTANTS.PERFORMANCE.MAX_FRAME_CATCH_UP
+    );
+
+    if (game.performance.accumulator < targetFrameTime) {
         scheduleMainLoop(loopId);
         return;
     }
-
-    if (elapsedSinceLastStep <= targetFrameTime * 1.5) {
-        game.performance.lastStepTime += targetFrameTime;
-    } else {
-        game.performance.lastStepTime = currentTime;
-    }
+    game.performance.accumulator -= targetFrameTime;
 
     const fps = updateGameState();
+    game.performance.renderIsDarkTheme = document.body.classList.contains('dark-theme');
 
 	cls();
     renderStageBackground(
@@ -934,7 +985,7 @@ function main_loop(currentTime = 0, loopId) {
         game.scene.background,
         game.performance.frameCount,
         game.scene.bullets.length,
-        document.body.classList.contains('dark-theme')
+        game.performance.renderIsDarkTheme
     );
 
     // Update player position (input handled by UI)
