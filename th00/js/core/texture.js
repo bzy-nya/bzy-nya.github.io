@@ -37,10 +37,31 @@ function scaleCssColor(color, scale, alphaScale = 1) {
     return `rgba(${r}, ${g}, ${b}, ${Math.round(a * 1000) / 1000})`;
 }
 
-export function getBulletRenderStyle(bullet) {
-    const isDarkTheme = document.body.classList.contains('dark-theme');
+function getBulletStyleSignature(bullet, isDarkTheme) {
+    return [
+        isDarkTheme ? 'dark' : 'light',
+        bullet.color,
+        bullet.glowColor,
+        bullet.coreColor,
+        bullet.outlineColor,
+        bullet.dayColor,
+        bullet.dayGlowColor,
+        bullet.dayCoreColor,
+        bullet.dayOutlineColor,
+        bullet.dayTrailColor,
+        bullet.trailColor
+    ].join('|');
+}
+
+export function getBulletRenderStyle(bullet, isDarkTheme = document.body.classList.contains('dark-theme')) {
+    const signature = getBulletStyleSignature(bullet, isDarkTheme);
+    if (bullet._renderStyleSignature === signature && bullet._renderStyle) {
+        return bullet._renderStyle;
+    }
+
+    let style;
     if (isDarkTheme) {
-        return {
+        style = {
             color: bullet.color || '#fff',
             glowColor: bullet.glowColor || bullet.color || 'rgba(255,255,255,0.4)',
             coreColor: bullet.coreColor || '#fff',
@@ -50,24 +71,30 @@ export function getBulletRenderStyle(bullet) {
             shadowColor: 'rgba(0, 0, 0, 0)',
             shadowScale: 1,
             visualScale: 1,
-            trailColor: bullet.trailColor || bullet.glowColor || bullet.color || 'rgba(255,255,255,0.3)'
+            trailColor: bullet.trailColor || bullet.glowColor || bullet.color || 'rgba(255,255,255,0.3)',
+            compositeOperation: 'lighter'
+        };
+    } else {
+        style = {
+            color: bullet.dayColor ? scaleCssColor(bullet.dayColor, 1.48) : scaleCssColor(bullet.color || '#fff', 0.90),
+            glowColor: bullet.dayGlowColor
+                ? scaleCssColor(bullet.dayGlowColor, 1.08, 0.22)
+                : scaleCssColor(bullet.glowColor || bullet.color || 'rgba(0,0,0,0.18)', 0.78, 0.20),
+            coreColor: bullet.dayColor ? scaleCssColor(bullet.dayColor, 1.72) : (bullet.dayCoreColor || bullet.coreColor || '#fff'),
+            outlineColor: bullet.dayOutlineColor || 'rgba(0, 0, 0, 0.88)',
+            rimColor: 'rgba(255, 255, 255, 0.34)',
+            outerStrokeColor: 'rgba(0, 0, 0, 1)',
+            shadowColor: 'rgba(0, 0, 0, 0.36)',
+            shadowScale: 1,
+            visualScale: 1,
+            trailColor: bullet.dayTrailColor || scaleCssColor(bullet.trailColor || bullet.glowColor || bullet.color || 'rgba(0,0,0,0.12)', 0.76, 0.86),
+            compositeOperation: 'source-over'
         };
     }
 
-    return {
-        color: bullet.dayColor || scaleCssColor(bullet.color || '#fff', 0.62),
-        glowColor: bullet.dayGlowColor
-            ? scaleCssColor(bullet.dayGlowColor, 1, 0.26)
-            : scaleCssColor(bullet.glowColor || bullet.color || 'rgba(0,0,0,0.18)', 0.70, 0.24),
-        coreColor: bullet.dayColor ? scaleCssColor(bullet.dayColor, 1.36) : (bullet.dayCoreColor || bullet.coreColor || '#fff'),
-        outlineColor: bullet.dayOutlineColor || 'rgba(0, 0, 0, 0.98)',
-        rimColor: 'rgba(255, 255, 255, 0.34)',
-        outerStrokeColor: 'rgba(0, 0, 0, 1)',
-        shadowColor: 'rgba(0, 0, 0, 0.58)',
-        shadowScale: 1.18,
-        visualScale: 1.28,
-        trailColor: bullet.dayTrailColor || scaleCssColor(bullet.trailColor || bullet.glowColor || bullet.color || 'rgba(0,0,0,0.12)', 0.76, 0.86)
-    };
+    bullet._renderStyleSignature = signature;
+    bullet._renderStyle = style;
+    return style;
 }
 
 function rememberBulletSprite(renderCache, key, sprite) {
@@ -79,8 +106,8 @@ function rememberBulletSprite(renderCache, key, sprite) {
     cache.set(key, sprite);
 }
 
-export function getBulletSprite(renderCache, bullet) {
-    const style = getBulletRenderStyle(bullet);
+export function getBulletSprite(renderCache, bullet, isDarkTheme) {
+    const style = getBulletRenderStyle(bullet, isDarkTheme);
     const key = [
         bullet.sprite || 'orb',
         Math.round((bullet.r || 4) * 10) / 10,
@@ -93,8 +120,15 @@ export function getBulletSprite(renderCache, bullet) {
         Math.round((style.shadowScale || 1) * 100) / 100
     ].join('|');
 
+    if (bullet._renderSpriteKey === key && bullet._renderSprite) {
+        return bullet._renderSprite;
+    }
+
     if (renderCache.bulletSprites.has(key)) {
-        return renderCache.bulletSprites.get(key);
+        const cachedSprite = renderCache.bulletSprites.get(key);
+        bullet._renderSpriteKey = key;
+        bullet._renderSprite = cachedSprite;
+        return cachedSprite;
     }
 
     const radius = (bullet.r || 4) * (style.visualScale || 1);
@@ -181,18 +215,22 @@ export function getBulletSprite(renderCache, bullet) {
         ctx.fill();
     }
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.lineWidth = Math.max(1.2, radius * 0.12);
-    ctx.strokeStyle = style.outerStrokeColor;
-    ctx.beginPath();
-    ctx.arc(center, center, radius + ctx.lineWidth * 0.55, 0, Math.PI * 2);
-    ctx.stroke();
+    if (!bullet.sprite || bullet.sprite === 'orb') {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.lineWidth = Math.max(1.2, radius * 0.12);
+        ctx.strokeStyle = style.outerStrokeColor;
+        ctx.beginPath();
+        ctx.arc(center, center, radius + ctx.lineWidth * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
 
-    ctx.lineWidth = Math.max(0.8, radius * 0.06);
-    ctx.strokeStyle = style.rimColor;
-    ctx.beginPath();
-    ctx.arc(center, center, Math.max(1, radius * 0.76), 0, Math.PI * 2);
-    ctx.stroke();
+        ctx.lineWidth = Math.max(0.8, radius * 0.06);
+        ctx.strokeStyle = style.rimColor;
+        ctx.beginPath();
+        ctx.arc(center, center, Math.max(1, radius * 0.76), 0, Math.PI * 2);
+        ctx.stroke();
+    } else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
 
     const sprite = {
         canvas,
@@ -200,6 +238,8 @@ export function getBulletSprite(renderCache, bullet) {
         center
     };
     rememberBulletSprite(renderCache, key, sprite);
+    bullet._renderSpriteKey = key;
+    bullet._renderSprite = sprite;
     return sprite;
 }
 

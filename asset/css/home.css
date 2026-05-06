@@ -374,6 +374,10 @@
     opacity: 0.9;
 }
 
+#fun .galaxy-icon {
+    color: var(--secondary);
+}
+
 #fun .fun-title {
     font-family: 'Press Start 2P', 'Courier New', monospace;
     font-size: 10px;
