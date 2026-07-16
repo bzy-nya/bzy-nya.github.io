@@ -4,3 +4,5 @@
 # local-only files
 serve.py
 image.png
+/README.md
+/.local/
