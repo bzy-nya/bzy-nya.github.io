@@ -7,7 +7,6 @@
 - 入口页面与 UI 结构，脚本加载顺序决定依赖关系（SVG → NN → GA/RL → 实体 → 训练 → 游戏 → UI）。
 
 `js/main.js`
-- `MODE_CONFIG`：GA/RL 的文案、滑动条范围、参数映射。
 - `applyModeConfig(mode)`：切换模式 UI/主题，并同步滑动条范围与数值。
 - `handleSliderChange(key, rawValue, applyToTrainer)`：滑动条值显示与写入 trainer。
 - `refreshParameterDisplay(applyToTrainer)`：批量刷新滑动条对应数值。
@@ -17,6 +16,10 @@
 - `setupParameterControls()`：滑动条事件绑定与状态跟踪。
 - `updateStatsDisplay()`：UI 数据刷新与个体预览驱动。
 - `drawIndividualPreview()`/`drawDinoStyleNetwork()`：个体与网络可视化。
+
+`js/uiConfig.js`
+- `MODE_CONFIG`：GA/RL 的文案、滑动条范围和参数映射。
+- `SLIDER_VALUE_FIELDS`/`SLIDER_INPUT_FIELDS`：滑动条与 DOM 字段映射。
 
 ## 游戏循环与渲染
 `js/game.js`

@@ -9,7 +9,7 @@
 - `css/`: page and game styling.
 - `js/core/`: shared configuration, input state, utilities, runtime mob logic, texture rendering, scene rendering, game state, and the main game loop.
 - `js/patterns/`: data-driven templates for bullets, danmaku generators, mobs, stages, textures, and reusable trajectories.
-- `js/systems/`: non-UI gameplay systems such as autoplay AI.
+- `js/systems/`: non-UI gameplay systems such as autoplay AI and break-effect lifecycle/rendering.
 - `js/ui/`: DOM controls, theme handling, effects, and audio playback.
 
 `js/core/config.js` owns shared runtime configuration, including asset paths, mode mappings, gameplay constants, and the mutable input state consumed by the game loop.
