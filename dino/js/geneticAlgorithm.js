@@ -24,6 +24,7 @@ class GeneticAlgorithm {
         this.lastBest = 0;
         this.lineageHistory = []; // 每代的溯源信息
         this.savedElites = []; // 保存的精英个体
+        this.savedEliteIndices = []; // 精英在上一代中的真实索引
 
         // 当种群大小变更时，通知 game.js 重建 dinos
         this._needsDinoRebuild = false;
@@ -33,7 +34,7 @@ class GeneticAlgorithm {
     createInitialPopulation() {
         this.population = [];
         for (let i = 0; i < this.populationSize; i++) {
-            // 神经网络输入(6个):
+            // 神经网络输入(7个):
             // 1. 恐龙当前高度（距地面）
             // 2. 恐龙垂直速度
             // 3. 到下一个障碍物的水平距离
@@ -136,7 +137,8 @@ class GeneticAlgorithm {
         this.stats.avgScoreHistory.push(scores.reduce((a, b) => a + b, 0) / scores.length);
         
         // 保存当前的精英个体（在 createNextGeneration 之前）
-        this.savedElites = this.getElites();
+        this.savedEliteIndices = this.getEliteIndices();
+        this.savedElites = this.savedEliteIndices.map((index) => this.population[index].copy());
         
         // 格式化输出当前代统计
         const sortedIndices = this.fitnessScores
@@ -260,7 +262,7 @@ class GeneticAlgorithm {
             console.log(`✅ 使用保存的 ${this.savedElites.length} 个精英个体`);
             for (let i = 0; i < this.savedElites.length; i++) {
                 newPopulation.push(this.savedElites[i]);
-                newLineage.push({ from: [i, null], method: 'elite' });
+                newLineage.push({ from: [this.savedEliteIndices[i] ?? null, null], method: 'elite' });
             }
         } else {
             console.warn(`⚠️  savedElites 为空，回退到重新计算精英`);
@@ -314,7 +316,8 @@ class GeneticAlgorithm {
         
         // 多样性注入：若连续停滞>=8代，随机重启5%个体（非精英）
         if (this.stagnantGenerations >= 8) {
-            const replaceCount = Math.max(1, Math.floor(this.populationSize * 0.05));
+            const replaceableCount = newPopulation.length - eliteProtectedCount;
+            const replaceCount = Math.min(replaceableCount, Math.max(1, Math.floor(this.populationSize * 0.05)));
             console.log(`🔄 停滞${this.stagnantGenerations}代，注入${replaceCount}个随机个体`);
             for (let i = 0; i < replaceCount; i++) {
                 // 只替换非精英个体
@@ -340,17 +343,15 @@ class GeneticAlgorithm {
     
     // 获取精英个体
     getElites() {
-        const elites = [];
-        const sortedIndices = this.fitnessScores
+        return this.getEliteIndices().map((index) => this.population[index].copy());
+    }
+
+    getEliteIndices() {
+        return this.fitnessScores
             .map((fitness, index) => ({ fitness, index }))
             .sort((a, b) => b.fitness - a.fitness)
-            .slice(0, this.elitismCount);
-            
-        for (const item of sortedIndices) {
-            elites.push(this.population[item.index].copy());
-        }
-        
-        return elites;
+            .slice(0, this.elitismCount)
+            .map((item) => item.index);
     }
     
     // 获取当前种群的最佳个体
@@ -372,6 +373,8 @@ class GeneticAlgorithm {
         this.stagnantGenerations = 0; // 重置停滞代数
         this.lastBest = 0; // 重置最佳分数记录
         this.lineageHistory = []; // 重置谱系历史
+        this.savedElites = [];
+        this.savedEliteIndices = [];
         this.stats = {
             generationHistory: [],
             bestScoreHistory: [],

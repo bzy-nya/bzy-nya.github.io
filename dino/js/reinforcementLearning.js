@@ -167,8 +167,11 @@ class ReinforcementLearning {
         if (allDead) {
             const weightAbsBefore = this.debug ? this.getWeightAbsSum(this.sharedBrain) : 0;
             const actionCounts = this.debug ? [0, 0, 0] : null; // jump/idle/crouch
+            const trajectoryBatch = [];
+            const allReturns = [];
 
-            // 统一在 episode 结束后做一次更新（避免并行 agent 还在跑时策略改变）
+            // 先收集整批回报。不能逐 agent 标准化，否则表现最差和最好
+            // 的轨迹都会被强制成相同的零均值分布，跨个体优劣信号会消失。
             for (const a of this.population) {
                 if (!a.trajectory || a.trajectory.length === 0) continue;
 
@@ -189,34 +192,30 @@ class ReinforcementLearning {
                     returns.unshift(G);
                 }
 
-                // 基线更新（降低方差）
-                if (returns.length > 0) {
-                    const meanReturn = returns.reduce((x, y) => x + y, 0) / returns.length;
-                    this.baseline = this.baselineMomentum * this.baseline + (1 - this.baselineMomentum) * meanReturn;
-                    for (let i = 0; i < returns.length; i++) {
-                        returns[i] -= this.baseline;
-                    }
-                }
+                trajectoryBatch.push({ agent: a, returns });
+                allReturns.push(...returns);
+            }
 
-                // 标准化回报（减少方差）
-                if (returns.length > 1) {
-                    const mean = returns.reduce((x, y) => x + y, 0) / returns.length;
-                    const std = Math.sqrt(returns.reduce((x, y) => x + Math.pow(y - mean, 2), 0) / returns.length);
-                    for (let i = 0; i < returns.length; i++) {
-                        returns[i] = (returns[i] - mean) / (std + 1e-8);
-                    }
-                }
+            const meanReturn = allReturns.length > 0
+                ? allReturns.reduce((x, y) => x + y, 0) / allReturns.length
+                : 0;
+            const returnStd = allReturns.length > 1
+                ? Math.sqrt(allReturns.reduce((sum, value) => sum + Math.pow(value - meanReturn, 2), 0) / allReturns.length)
+                : 1;
+            this.baseline = this.episode === 0
+                ? meanReturn
+                : this.baselineMomentum * this.baseline + (1 - this.baselineMomentum) * meanReturn;
 
-                // 对该 agent 的整条轨迹做 REINFORCE 更新
-                for (let t = 0; t < a.trajectory.length; t++) {
-                    const step = a.trajectory[t];
-                    const advantage = returns[t] * this.rewardScale;
+            // 所有梯度都按生成轨迹时冻结的策略计算，再应用到训练网络。
+            const batchScale = 1 / Math.max(1, allReturns.length);
+            for (const { agent, returns } of trajectoryBatch) {
+                for (let t = 0; t < agent.trajectory.length; t++) {
+                    const step = agent.trajectory[t];
+                    const advantage = ((returns[t] - this.baseline) / (returnStd + 1e-8)) * this.rewardScale;
                     if (!Number.isFinite(advantage)) continue;
-                    this.updatePolicyGradient(this.sharedBrain, step.state, step.action, advantage);
+                    this.updatePolicyGradient(this.sharedBrain, step.state, step.action, advantage, this.policyBrain, batchScale);
                 }
-
-                // 清空轨迹
-                a.trajectory = [];
+                agent.trajectory = [];
             }
 
             // 计算本回合统计
@@ -267,9 +266,11 @@ class ReinforcementLearning {
     }
     
     // 使用策略梯度更新网络权重
-    updatePolicyGradient(brain, state, actionIndex, advantage) {
-        const { inputMatrix, hidden, logits } = this.forwardLogits(brain, state);
+    updatePolicyGradient(brain, state, actionIndex, advantage, behaviorBrain = this.policyBrain, gradientScale = 1) {
+        const referenceBrain = behaviorBrain || brain;
+        const { inputMatrix, hidden, logits } = this.forwardLogits(referenceBrain, state);
         const probs = this.softmax(logits);
+        const stepSize = this.learningRate * Math.max(0, Number.isFinite(gradientScale) ? gradientScale : 1);
 
         const safeAdvantage = Math.max(-this.advantageClip, Math.min(this.advantageClip, advantage));
 
@@ -289,18 +290,18 @@ class ReinforcementLearning {
         }
         
         // 为了计算隐藏层梯度，先保存更新前的 W2
-        const w2Before = brain.weightsHiddenOutput.map(row => row.slice());
+        const w2Before = referenceBrain.weightsHiddenOutput.map(row => row.slice());
 
         // 反向传播更新输出层权重（梯度上升）
         for (let i = 0; i < brain.weightsHiddenOutput.length; i++) {
             for (let j = 0; j < brain.weightsHiddenOutput[i].length; j++) {
                 // 使用实际的隐藏层激活值
                 const hiddenActivation = hidden[j][0];
-                const gradient = outputGradients[i] * hiddenActivation * this.learningRate;
+                const gradient = outputGradients[i] * hiddenActivation * stepSize;
                 brain.weightsHiddenOutput[i][j] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.weightsHiddenOutput[i][j] + gradient));
             }
             // 更新偏置
-            brain.biasOutput[i][0] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.biasOutput[i][0] + outputGradients[i] * this.learningRate));
+            brain.biasOutput[i][0] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.biasOutput[i][0] + outputGradients[i] * stepSize));
         }
         
         // 计算隐藏层梯度
@@ -320,11 +321,11 @@ class ReinforcementLearning {
         for (let j = 0; j < brain.weightsInputHidden.length; j++) {
             for (let k = 0; k < brain.weightsInputHidden[j].length; k++) {
                 const inputValue = inputMatrix[k][0];
-                const gradient = hiddenGradients[j] * inputValue * this.learningRate;
+                const gradient = hiddenGradients[j] * inputValue * stepSize;
                 brain.weightsInputHidden[j][k] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.weightsInputHidden[j][k] + gradient));
             }
             // 更新偏置
-            brain.biasHidden[j][0] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.biasHidden[j][0] + hiddenGradients[j] * this.learningRate));
+            brain.biasHidden[j][0] = Math.max(-this.weightClip, Math.min(this.weightClip, brain.biasHidden[j][0] + hiddenGradients[j] * stepSize));
         }
     }
     

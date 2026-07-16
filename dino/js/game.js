@@ -78,6 +78,7 @@ class DinoGame {
     
     // 初始化地面图案
     initGroundPattern() {
+        this.groundPattern = [];
         for (let i = 0; i < this.canvas.width / 20; i++) {
             this.groundPattern.push({
                 x: i * 20,
@@ -283,6 +284,7 @@ class DinoGame {
     reset() {
         this.frame = 0;
         this.gameSpeed = 6;
+        this.speedMultiplier = 1;
         this.isRunning = false;
         this.isPaused = false;
         this.obstacleManager.reset();

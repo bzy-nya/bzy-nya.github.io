@@ -44,7 +44,7 @@ function setupEventListeners() {
     canvas_dom.addEventListener("mousemove", handleMouseMove);
     game_container_dom.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("blur", handleMouseUp);
+    window.addEventListener("blur", clearActiveInput);
     game_container_dom.addEventListener("contextmenu", (e) => e.preventDefault());
     
     // Gamepad events
@@ -152,6 +152,14 @@ function handleMouseDown(e) {
 
 function handleMouseUp() {
     TH00_INPUT_STATE.mouseDown = false;
+}
+
+function clearActiveInput() {
+    TH00_INPUT_STATE.mouseDown = false;
+    TH00_INPUT_STATE.keys.fill(false);
+    game.scene.player.precisionMode = false;
+    previousGamepadButtons.shoot = false;
+    previousGamepadButtons.pause = false;
 }
 
 // Gamepad event handlers

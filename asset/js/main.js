@@ -15,7 +15,7 @@ function initRouter() {
         // 首页：顶部导航 + 侧边栏 + 个人卡片 + 主内容 + 首页内容 + 底部
         .register('/', {
             components: ['topbar', 'sidebar', 'profile-card', 'links-card', 'main-content', 'home', 'footer'],
-            handler: async ({ router }) => {
+            afterEnter: async () => {
                 setHeaderNavigation('home');
             }
         })
@@ -26,8 +26,12 @@ function initRouter() {
             async beforeEnter({ router }) {
                 await tryInitBlogSystem();
             },
-            async handler({ router }) {
+            async handler({ onRollback }) {
+                const snapshot = window.blogSystem.captureViewState();
+                onRollback(() => window.blogSystem.restoreViewState(snapshot));
                 await window.blogSystem.showHome();
+            },
+            async afterEnter() {
                 setHeaderNavigation('blog');
             }
         })
@@ -38,21 +42,25 @@ function initRouter() {
             async beforeEnter({ router }) {
                 await tryInitBlogSystem();
             },
-            async beforeLeave() {
-                window.blogSystem?.cleanupArticleUI();
-            },
-            async handler({ params, router }) {
-                const didRenderPost = await window.blogSystem.showPost(params.id);
-                if (didRenderPost !== false) {
-                    setHeaderNavigation('blog');
+            async beforeLeave({ to }) {
+                if (to.config.pattern !== '/post/:id') {
+                    window.blogSystem?.cleanupArticleUI();
                 }
+            },
+            async handler({ params, onRollback }) {
+                const snapshot = window.blogSystem.captureViewState();
+                onRollback(() => window.blogSystem.restoreViewState(snapshot));
+                return window.blogSystem.showPost(params.id);
+            },
+            async afterEnter() {
+                setHeaderNavigation('blog');
             }
         })
         
         // Fun页面：顶部导航 + 侧边栏 + 个人卡片 + 主内容 + Fun内容 + 底部
         .register('/fun', {
             components: ['topbar', 'sidebar', 'profile-card', 'main-content', 'fun', 'footer'],
-            handler: async ({ router }) => {
+            afterEnter: async () => {
                 setHeaderNavigation('fun');
             }
         })
@@ -60,7 +68,7 @@ function initRouter() {
         // 未知 hash：保留站点外壳并显示站内兜底页，避免全空白。
         .setFallback({
             components: ['topbar', 'main-content', 'not-found', 'footer'],
-            handler: async () => {
+            afterEnter: async () => {
                 setHeaderNavigation(null);
             }
         });
@@ -227,11 +235,13 @@ function initThemeSwitcher() {
         currentTheme = 'christmas';
     } else {
         // Outside Christmas season, use saved preference or system theme
-        currentTheme = localStorage.getItem('theme') || getSystemTheme();
+        const savedTheme = localStorage.getItem('theme');
+        currentTheme = ['light', 'dark', 'halloween'].includes(savedTheme)
+            ? savedTheme
+            : getSystemTheme();
     }
     function applyChristmasTheme() {
         body.setAttribute('data-theme', 'christmas');
-        localStorage.setItem('theme', 'christmas');
         if (themeIcon) {
             themeIcon.setAttribute('href', '#px-tree');
         }

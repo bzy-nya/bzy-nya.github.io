@@ -297,6 +297,7 @@ function startSimulation() {
     dom.startBtn.disabled = true;
     dom.pauseBtn.disabled = false;
     dom.manualBtn.disabled = true;
+    dom.modeToggle.disabled = false;
 }
 
 // 开始手动游戏
@@ -305,10 +306,13 @@ function startManualGame() {
     dom.startBtn.disabled = true;
     dom.pauseBtn.disabled = false;
     dom.manualBtn.disabled = true;
+    dom.modeToggle.disabled = true;
 }
 
 // 切换AI模式
 function toggleAIMode() {
+    if (game.isRunning && game.gameMode === 'MANUAL') return;
+
     persistSliderValues(game.aiMode);
     const newMode = game.aiMode === 'GA' ? 'RL' : 'GA';
     game.setAIMode(newMode);
@@ -333,6 +337,7 @@ function resetGame() {
     dom.pauseBtn.disabled = true;
     dom.pauseBtn.textContent = '暂停';
     dom.manualBtn.disabled = false;
+    dom.modeToggle.disabled = false;
     dom.speedBtn.textContent = '速度: 1x';
 
     // 新 trainer 会在 reset 内重建，确保参数沿用当前滑动条设定

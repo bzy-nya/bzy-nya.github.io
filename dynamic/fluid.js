@@ -98,8 +98,13 @@ class FluidSimulation {
         }
 
         const gl = this.gl;
-        gl.getExtension('EXT_color_buffer_float');
-        gl.getExtension('OES_texture_float_linear');
+        const colorBufferFloat = gl.getExtension('EXT_color_buffer_float');
+        const floatLinear = gl.getExtension('OES_texture_float_linear');
+        if (!colorBufferFloat) {
+            this.supported = false;
+            return;
+        }
+        this.textureFilter = floatLinear ? gl.LINEAR : gl.NEAREST;
         gl.disable(gl.BLEND);
 
         this.vertexShader = `#version 300 es
@@ -519,8 +524,8 @@ class FluidSimulation {
         const gl = this.gl;
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.textureFilter);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.textureFilter);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, null);

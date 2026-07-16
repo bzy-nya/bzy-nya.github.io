@@ -205,7 +205,6 @@ class BlogSystem {
         }
 
         this.isLoading = true;
-        this.showLoading();
 
         try {
             const response = await fetch(`blogs/posts/${post.file}`);
@@ -237,10 +236,48 @@ class BlogSystem {
 
         } catch (error) {
             console.error('Failed to load post:', error);
-            this.showError('Failed to load the blog post. Please try again.');
             return false;
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    captureViewState() {
+        const blogContainer = document.getElementById('blog');
+        const tocCard = document.getElementById('article-toc-card');
+        const toc = Array.from(document.querySelectorAll('#article-toc-card .toc-link')).map((link) => ({
+            level: Number(link.closest('.toc-item')?.className.match(/toc-level-(\d+)/)?.[1]) || 2,
+            text: link.textContent || '',
+            id: link.dataset.target || ''
+        }));
+
+        return {
+            blogMarkup: blogContainer?.innerHTML ?? '',
+            tocMarkup: tocCard?.innerHTML ?? '',
+            currentPost: this.currentPost,
+            toc
+        };
+    }
+
+    restoreViewState(snapshot) {
+        if (!snapshot) return;
+
+        this.cleanupArticleUI();
+        const blogContainer = document.getElementById('blog');
+        const tocCard = document.getElementById('article-toc-card');
+        if (blogContainer) blogContainer.innerHTML = snapshot.blogMarkup;
+        if (tocCard) tocCard.innerHTML = snapshot.tocMarkup;
+        this.currentPost = snapshot.currentPost;
+
+        if (!snapshot.currentPost) return;
+
+        document.getElementById('back-to-blog-list')?.addEventListener('click', () => {
+            Router.navigate('blog');
+        });
+        if (snapshot.toc.length > 0) {
+            this.addTOCEventListeners();
+            this.initTOCScrollSpy(snapshot.toc);
+            this.initTOCPositionAdjustment();
         }
     }
 

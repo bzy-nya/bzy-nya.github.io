@@ -37,32 +37,32 @@ function repeatedWave(id, frame, until, repeatEvery, mob, count, generator, targ
 
 export const stage_template = {
     AimedRandomMix: stage('AimedRandomMix', 'AimedRandomMix', [
-        repeatedWave('aimed-basic-a', 0, 5400, 132, 'fairyDefault', 3, 'AimedRandomMix', 56),
-        repeatedWave('aimed-basic-b', 132, 5400, 264, 'fairyDefault', 4, 'AimedRandomMix', 124)
+        repeatedWave('aimed-basic-a', 0, null, 132, 'fairyDefault', 3, 'AimedRandomMix', 56),
+        repeatedWave('aimed-basic-b', 132, null, 264, 'fairyDefault', 4, 'AimedRandomMix', 124)
     ]),
 
     Random: stage('Random', 'Random', [
-        repeatedWave('random-four', 0, 5400, 132, 'fairyRandom', 4, 'Random', 54)
+        repeatedWave('random-four', 0, null, 132, 'fairyRandom', 4, 'Random', 54)
     ]),
 
     WideAngleAim: stage('WideAngleAim', 'WideAngleAim', [
-        repeatedWave('wide-three', 0, 5400, 132, 'fairyWide', 3, 'WideAngleAim', 58)
+        repeatedWave('wide-three', 0, null, 132, 'fairyWide', 3, 'WideAngleAim', 58)
     ]),
 
     Rain: stage('Rain', 'Rain', [
-        repeatedWave('rain-five', 0, 5400, 132, 'fairyRain', 5, 'Rain', 52)
+        repeatedWave('rain-five', 0, null, 132, 'fairyRain', 5, 'Rain', 52)
     ]),
 
     Wave: stage('Wave', 'Wave', [
-        { id: 'wave-boss', type: 'spawn', frame: 0, mob: 'bossWave', count: 1, generator: 'Wave', x: 300, y: -90, targetX: 300, targetY: 188 }
+        { id: 'wave-boss', type: 'spawn', frame: 0, repeatEvery: 60, mob: 'bossWave', count: 1, generator: 'Wave', x: 300, y: -90, targetX: 300, targetY: 188 }
     ]),
 
     Gravity: stage('Gravity', 'Gravity', [
-        { id: 'gravity-boss', type: 'spawn', frame: 0, mob: 'bossGravity', count: 1, generator: 'Gravity', x: 300, y: -90, targetX: 300, targetY: 176 }
+        { id: 'gravity-boss', type: 'spawn', frame: 0, repeatEvery: 60, mob: 'bossGravity', count: 1, generator: 'Gravity', x: 300, y: -90, targetX: 300, targetY: 176 }
     ]),
 
     Snowy: stage('Snowy', 'Snowy', [
-        repeatedWave('snowy-four', 0, 5400, 132, 'fairySnowy', 4, 'Snowy', 56)
+        repeatedWave('snowy-four', 0, null, 132, 'fairySnowy', 4, 'Snowy', 56)
     ]),
 
     Dream: stage('dream', 'Dream', [

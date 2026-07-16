@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>404 · 喵咪迷路了</title>
-    <link rel="icon" type="image/x-icon" href="/asset/image/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="asset/image/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Press+Start+2P&display=swap" />
-    <link rel="stylesheet" href="/asset/css/main.css" />
+    <link rel="stylesheet" href="asset/css/main.css" />
     
     <style>
         /* 404 specific styles */
@@ -85,7 +85,7 @@
 
     <script>
         // Load SVG icons
-        fetch('/asset/image/icons.svg')
+        fetch('asset/image/icons.svg')
             .then(response => response.text())
             .then(svgText => {
                 const parser = new DOMParser();
@@ -109,11 +109,11 @@
     <div class="container">
         <h1>404</h1>
         <p>~ (=^w^=) ~</p>
-        <a class="back-home-btn" href="/">back to home</a>
+        <a class="back-home-btn" href="./">back to home</a>
     </div>
 
-    <script src="/asset/js/christmas.js"></script>
-    <script src="/asset/js/main.js"></script>
+    <script src="asset/js/christmas.js"></script>
+    <script src="asset/js/main.js"></script>
     <script>
         // Initialize components for 404 page
         document.addEventListener('DOMContentLoaded', () => {
@@ -121,16 +121,18 @@
             const body = document.body;
             const savedTheme = localStorage.getItem('theme');
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
-            const christmasEffects = typeof window.createChristmasEffectsManager === 'function'
-                ? window.createChristmasEffectsManager()
-                : null;
-            
+            const now = new Date();
+            const isChristmasSeason = now.getMonth() === 11 && now.getDate() >= 15;
+            const currentTheme = isChristmasSeason
+                ? 'christmas'
+                : ['light', 'dark', 'halloween'].includes(savedTheme)
+                    ? savedTheme
+                    : (prefersDark ? 'dark' : 'light');
             if (currentTheme === 'dark') {
                 body.setAttribute('data-theme', 'dark');
             } else if (currentTheme === 'christmas') {
                 body.setAttribute('data-theme', 'christmas');
-                christmasEffects?.start();
+                window.createChristmasEffectsManager?.().start();
             } else if (currentTheme === 'halloween') {
                 body.setAttribute('data-theme', 'halloween');
             } else {

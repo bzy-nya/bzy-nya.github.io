@@ -171,11 +171,19 @@ function createBackgroundShader() {
             float nodeInnerMask = 0.0;
             vec3 routeAccent = vec3(0.0);
             vec3 nodeAccent = vec3(0.0);
-            vec3 projectionWeight = max(abs(normal), vec3(edgeCarryMask));
-
-            sampleDayCircuitProjection(p.xz, projectionWeight.y, routeMask, nodeOuterMask, nodeInnerMask, routeAccent, nodeAccent);
-            sampleDayCircuitProjection(p.xy, projectionWeight.z, routeMask, nodeOuterMask, nodeInnerMask, routeAccent, nodeAccent);
-            sampleDayCircuitProjection(p.zy, projectionWeight.x, routeMask, nodeOuterMask, nodeInnerMask, routeAccent, nodeAccent);
+            // Unfold vertical faces from the shared ground XZ field. The path
+            // bends while crossing a wall, then blends back to the ground field
+            // near box edges so adjacent faces meet at the same world point.
+            // The old triplanar version generated unrelated paths per face.
+            vec2 surfaceUv = p.xz;
+            if (abs(normal.z) > 0.5) {
+                surfaceUv.y += p.y * normal.z * 0.72;
+            } else if (abs(normal.x) > 0.5) {
+                surfaceUv.x += p.y * normal.x * 0.72;
+            }
+            float surfaceWeight = 1.0 - edgeCarryMask;
+            sampleDayCircuitProjection(surfaceUv, surfaceWeight, routeMask, nodeOuterMask, nodeInnerMask, routeAccent, nodeAccent);
+            sampleDayCircuitProjection(p.xz, edgeCarryMask, routeMask, nodeOuterMask, nodeInnerMask, routeAccent, nodeAccent);
 
             vec3 originalBase = base;
             float surfaceStrength = abs(normal.y) > 0.5 ? 0.52 : 0.34;

@@ -50,9 +50,9 @@ class GATrainer extends BaseTrainer {
 
         const dinos = [];
         for (let i = 0; i < this.ga.population.length; i++) {
-            const offsetX = 80 + (i % 5) * 15;
-            const offsetY = Math.floor(i / 5) * 3;
-            const dino = new Dino(offsetX, game.groundY, this.ga.population[i], offsetY);
+            // Every genome must face exactly the same course. Rendering offsets
+            // also change collision timing, which biases fitness by array index.
+            const dino = new Dino(80, game.groundY, this.ga.population[i]);
 
             const hue = (i * 360 / this.ga.population.length) % 360;
             dino.color = `hsl(${hue}, 60%, 40%)`;
@@ -221,9 +221,7 @@ class RLTrainer extends BaseTrainer {
     _createAgents(game) {
         const dinos = [];
         for (let i = 0; i < this.rl.populationSize; i++) {
-            const offsetX = 80 + (i % 3) * 15;
-            const offsetY = Math.floor(i / 3) * 3;
-            const dino = new Dino(offsetX, game.groundY, this.rl.sharedBrain, offsetY);
+            const dino = new Dino(80, game.groundY, this.rl.sharedBrain);
 
             const hue = (i * 360 / this.rl.populationSize) % 360;
             dino.color = `hsl(${hue}, 70%, 50%)`;

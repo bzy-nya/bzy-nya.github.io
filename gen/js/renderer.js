@@ -287,10 +287,10 @@ export class Renderer {
     
     resetZoom() {
         this.zoomFactor = 1;
+        this.offsetInitialized = false;
         
-        // Reset position too
+        // Recalculate dimensions and let render center the map again.
         if (this.lastRenderedGame) {
-            this.calculateDimensions(this.lastRenderedGame);
             this.render(this.lastRenderedGame);
         }
     }

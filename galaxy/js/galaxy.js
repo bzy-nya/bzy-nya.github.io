@@ -423,7 +423,6 @@
 
   window.addEventListener("resize", () => {
     resize();
-    resetSimulation();
   });
 
   resize();

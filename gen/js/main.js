@@ -16,6 +16,7 @@ class GameSimulator {
         
         this.game = null;
         this.previewMap = null; // For map preview before starting
+        this.previewSettingsKey = null;
         this.aiPlayers = [];
         
         this.speed = 1; // Default speed set to 1x
@@ -47,11 +48,17 @@ class GameSimulator {
         this.ui.setSpeedChangeCallback((speed) => {
             this.speed = speed;
         });
+        this.ui.setMapSettingsChangeCallback(() => {
+            if (this.gameState === 'preview') {
+                this.generateMapPreview();
+            }
+        });
     }
     
     generateMapPreview() {
         // Get settings from UI
         const settings = this.ui.getMapSettings();
+        this.previewSettingsKey = this.getSettingsKey(settings);
         
         // Create a new game for preview purposes
         this.previewMap = new Game(settings);
@@ -86,7 +93,18 @@ class GameSimulator {
         this.ui.updateGameStatus("preview");
         
         // Render the preview map
+        this.renderer.offsetInitialized = false;
         this.renderer.render(this.previewMap);
+    }
+
+    getSettingsKey(settings) {
+        return [
+            settings.width,
+            settings.height,
+            settings.playerCount,
+            settings.mountainDensity,
+            settings.cityDensity
+        ].join(':');
     }
     
     startSimulation() {
@@ -103,9 +121,14 @@ class GameSimulator {
         }
         
         // Get settings from UI
-        const settings = this.ui.getMapSettings();
+        let settings = this.ui.getMapSettings();
+        if (!this.previewMap || this.previewSettingsKey !== this.getSettingsKey(settings)) {
+            this.generateMapPreview();
+            settings = this.ui.getMapSettings();
+        }
         
-        // Initialize new game (use preview map if available)
+        // The preview is regenerated on every settings change, so the visible
+        // map and the map that starts are always the same object.
         this.game = this.previewMap || new Game(settings);
         
         this.previewMap = null; // Clear preview map

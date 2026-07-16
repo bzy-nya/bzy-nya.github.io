@@ -633,7 +633,7 @@ function updateBullets() {
 
             // Enhanced graze detection with cooldown
             const grazeDistance = grazeRadius + r;
-            if(distanceSq <= grazeDistance * grazeDistance) {
+            if(distanceSq > hitRadius * hitRadius && distanceSq <= grazeDistance * grazeDistance) {
                 // Initialize lastGrazed if it doesn't exist
                 if (typeof bullet_now.lastGrazed === 'undefined') {
                     bullet_now.lastGrazed = 0;
@@ -986,6 +986,7 @@ export function setBulletGenerator(generatorName) {
         game.scene.stageClearPending = false;
         
         resetStageGenerators(game.scene.stage);
+        syncStageMusicForCurrentState();
         
         // Return success
         return true;
@@ -993,6 +994,18 @@ export function setBulletGenerator(generatorName) {
     
     // Return false if generator not found
     return false;
+}
+
+function syncStageMusicForCurrentState() {
+    if (!game.state.hasStarted || game.state.isGameOver || game.state.isStageClear) {
+        stopStageMusic();
+        return;
+    }
+
+    playStageMusic(game.scene.stage.background?.music);
+    if (game.state.isPaused) {
+        pauseStageMusic();
+    }
 }
 
 window.game = game;

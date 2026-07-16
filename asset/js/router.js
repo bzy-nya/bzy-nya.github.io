@@ -143,39 +143,63 @@ class ComponentRouter {
     async performTransition(config, params, path) {
         this.isTransitioning = true;
         const previousComponents = Array.from(this.activeComponents);
+        const rollbackHandlers = [];
+        const context = {
+            params,
+            path,
+            router: this,
+            onRollback(handler) {
+                if (typeof handler === 'function') {
+                    rollbackHandlers.push(handler);
+                }
+            }
+        };
         
         try {
-            const context = { params, path, router: this };
-
             // 先准备目标路由。准备失败时，当前页面仍保持可见。
             if (config.beforeEnter) {
-                await config.beforeEnter(context);
+                this.assertTransitionResult(await config.beforeEnter(context), 'beforeEnter');
             }
             if (config.handler) {
-                await config.handler(context);
+                this.assertTransitionResult(await config.handler(context), 'handler');
             }
 
             // 目标路由准备完成后，再清理旧路由并提交可见组件状态。
             if (this.currentRoute?.config.beforeLeave) {
-                await this.currentRoute.config.beforeLeave({
+                this.assertTransitionResult(await this.currentRoute.config.beforeLeave({
                     from: this.currentRoute,
-                    to: { config, params, path }
-                });
+                    to: { config, params, path },
+                    router: this,
+                    onRollback: context.onRollback
+                }), 'beforeLeave');
             }
 
             await this.switchComponents(config.components);
 
             if (config.afterEnter) {
-                await config.afterEnter(context);
+                this.assertTransitionResult(await config.afterEnter(context), 'afterEnter');
             }
             return true;
             
         } catch (error) {
+            for (let i = rollbackHandlers.length - 1; i >= 0; i--) {
+                try {
+                    await rollbackHandlers[i]();
+                } catch (rollbackError) {
+                    console.error('[router] Rollback error:', rollbackError);
+                }
+            }
             this.restoreComponentVisibility(previousComponents, config.components);
             console.error('[router] Transition error:', error);
             return false;
         } finally {
             this.isTransitioning = false;
+        }
+    }
+
+    assertTransitionResult(result, phase) {
+        if (result === false) {
+            throw new Error(`[router] ${phase} aborted the transition`);
         }
     }
 

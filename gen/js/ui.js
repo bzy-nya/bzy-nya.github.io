@@ -42,6 +42,17 @@ export class UI {
         document.getElementById('cityDensity').addEventListener('input', (e) => {
             this.cityDensityValue.textContent = e.target.value + '%';
         });
+
+        ['aiCount', 'mapSize'].forEach((id) => {
+            document.getElementById(id)?.addEventListener('input', () => {
+                this.onMapSettingsChange?.(this.getMapSettings());
+            });
+        });
+        ['mountainDensity', 'cityDensity'].forEach((id) => {
+            document.getElementById(id)?.addEventListener('change', () => {
+                this.onMapSettingsChange?.(this.getMapSettings());
+            });
+        });
         
         // Initialize edit map button
         this.editMapBtn.addEventListener('click', () => {
@@ -96,6 +107,10 @@ export class UI {
     
     setSpeedChangeCallback(callback) {
         this.onSpeedChange = callback;
+    }
+
+    setMapSettingsChangeCallback(callback) {
+        this.onMapSettingsChange = callback;
     }
     
     /**
