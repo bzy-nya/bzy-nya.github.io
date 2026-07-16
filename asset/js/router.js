@@ -1,6 +1,7 @@
 class ComponentRouter {
     constructor() {
         this.routes = new Map();
+        this.fallbackRoute = null;
         this.currentRoute = null;
         this.activeComponents = new Set();
         this.isTransitioning = false;
@@ -20,15 +21,7 @@ class ComponentRouter {
      * @param {Object} config - 路由配置
      */
     register(pattern, config) {
-        const routeConfig = {
-            pattern,
-            components: config.components || [],
-            handler: config.handler || null,
-            beforeEnter: config.beforeEnter || null,
-            afterEnter: config.afterEnter || null,
-            beforeLeave: config.beforeLeave || null,
-            ...config
-        };
+        const routeConfig = this.createRouteConfig(pattern, config);
 
         // 如果是字符串，转换为正则表达式以支持参数
         if (typeof pattern === 'string') {
@@ -43,6 +36,23 @@ class ComponentRouter {
         }
 
         this.routes.set(pattern, routeConfig);
+        return this;
+    }
+
+    createRouteConfig(pattern, config) {
+        return {
+            pattern,
+            components: config.components || [],
+            handler: config.handler || null,
+            beforeEnter: config.beforeEnter || null,
+            afterEnter: config.afterEnter || null,
+            beforeLeave: config.beforeLeave || null,
+            ...config
+        };
+    }
+
+    setFallback(config) {
+        this.fallbackRoute = this.createRouteConfig(null, config);
         return this;
     }
 
@@ -102,7 +112,9 @@ class ComponentRouter {
             return;
         }
 
-        const match = this.matchRoute(path);
+        const match = this.matchRoute(path) || (this.fallbackRoute
+            ? { config: this.fallbackRoute, params: {}, path }
+            : null);
         
         if (!match) {
             console.warn('[router] No route match for:', path);
@@ -130,9 +142,20 @@ class ComponentRouter {
      */
     async performTransition(config, params, path) {
         this.isTransitioning = true;
+        const previousComponents = Array.from(this.activeComponents);
         
         try {
-            // 1. 执行离开前钩子
+            const context = { params, path, router: this };
+
+            // 先准备目标路由。准备失败时，当前页面仍保持可见。
+            if (config.beforeEnter) {
+                await config.beforeEnter(context);
+            }
+            if (config.handler) {
+                await config.handler(context);
+            }
+
+            // 目标路由准备完成后，再清理旧路由并提交可见组件状态。
             if (this.currentRoute?.config.beforeLeave) {
                 await this.currentRoute.config.beforeLeave({
                     from: this.currentRoute,
@@ -140,28 +163,15 @@ class ComponentRouter {
                 });
             }
 
-            // 2. 并行执行：组件切换动画 + 内容更新
-            const runHooks = async () => {
-                const context = { params, path, router: this };
+            await this.switchComponents(config.components);
 
-                if (config.beforeEnter) {
-                    await config.beforeEnter(context);
-                }
-                if (config.handler) {
-                    await config.handler(context);
-                }
-                if (config.afterEnter) {
-                    await config.afterEnter(context);
-                }
-            };
-            
-            const componentTransition = this.switchComponents(config.components);
-            const handler = runHooks();
-
-            await Promise.all([componentTransition, handler]);
+            if (config.afterEnter) {
+                await config.afterEnter(context);
+            }
             return true;
             
         } catch (error) {
+            this.restoreComponentVisibility(previousComponents, config.components);
             console.error('[router] Transition error:', error);
             return false;
         } finally {
@@ -189,6 +199,31 @@ class ComponentRouter {
         
         // 更新活跃组件集合
         this.activeComponents = new Set(targetComponents);
+    }
+
+    restoreComponentVisibility(previousComponents, targetComponents = []) {
+        const previousSet = new Set(previousComponents);
+        const allComponents = new Set([
+            ...previousComponents,
+            ...targetComponents,
+            ...this.activeComponents
+        ]);
+
+        allComponents.forEach((componentId) => {
+            const element = document.getElementById(componentId);
+            if (!element) return;
+
+            element.classList.remove('fade-out');
+            if (previousSet.has(componentId)) {
+                element.style.display = this.getElementDisplayMode(element);
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+                element.style.display = 'none';
+            }
+        });
+
+        this.activeComponents = previousSet;
     }
 
     /**

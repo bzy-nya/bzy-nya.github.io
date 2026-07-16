@@ -25,16 +25,17 @@ class BlogSystem {
             const originalImage = renderer.image;
             renderer.image = function(href, title, text) {
                 const img = originalImage.call(this, href, title, text);
+                const lazyImg = img.replace('<img ', '<img loading="lazy" decoding="async" ');
                 
                 // 如果有标题，包装在figure元素中并添加figcaption
                 if (title) {
                     return `<figure class="blog-image">
-                        ${img}
+                        ${lazyImg}
                         <figcaption class="blog-image-caption">${title}</figcaption>
                     </figure>`;
                 } else {
                     // 即使没有标题也要居中
-                    return `<figure class="blog-image">${img}</figure>`;
+                    return `<figure class="blog-image">${lazyImg}</figure>`;
                 }
             };
 

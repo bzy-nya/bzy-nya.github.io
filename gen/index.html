@@ -84,23 +84,6 @@
         </div>
     </div>
     
-    <div id="errorMessage" style="display:none; position:fixed; top:0; left:0; right:0; background-color:rgba(255,0,0,0.8); color:white; padding:10px; text-align:center; z-index:1000;">
-        CORS Error: Cannot load modules from file:// URLs. Please run the simulator using a web server.<br>
-        Run <code>python3 ../serve.py</code> in your terminal and then visit <a href="http://localhost:8000/gen/" style="color:white; text-decoration:underline;">http://localhost:8000/gen/</a>
-    </div>
-
-    <!-- Script loading with fallback -->
-    <script>
-        // Try to detect if we're running from file:// protocol
-        if (window.location.protocol === 'file:') {
-            document.getElementById('errorMessage').style.display = 'block';
-        }
-    </script>
     <script type="module" src="js/main.js"></script>
-    <script nomodule>
-        // This will only run in browsers that don't support ES modules
-        console.error("Your browser doesn't support ES modules or we're running from file:// URL.");
-        document.getElementById('errorMessage').style.display = 'block';
-    </script>
 </body>
 </html>

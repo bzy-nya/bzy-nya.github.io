@@ -55,6 +55,14 @@ function initRouter() {
             handler: async ({ router }) => {
                 setHeaderNavigation('fun');
             }
+        })
+
+        // 未知 hash：保留站点外壳并显示站内兜底页，避免全空白。
+        .setFallback({
+            components: ['topbar', 'main-content', 'not-found', 'footer'],
+            handler: async () => {
+                setHeaderNavigation(null);
+            }
         });
     
     window.Router = Router; // 全局暴露路由器实例
