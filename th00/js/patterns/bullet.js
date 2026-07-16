@@ -6,7 +6,7 @@ export const bullet_template = {
     small: {
         r: 4,
         color: 'rgba(0, 112, 255, 0.96)',
-        dayColor: 'rgb(0, 48, 165)',
+        dayColor: 'rgba(0, 96, 165, 0.96)',
         glowColor: 'rgba(0, 112, 255, 0.34)',
         dayGlowColor: 'rgba(0, 70, 210, 0.82)',
         coreColor: '#ffffff',
@@ -23,7 +23,7 @@ export const bullet_template = {
     needle: {
         r: 7,
         color: 'rgba(224, 20, 96, 0.96)',
-        dayColor: 'rgb(138, 0, 52)',
+        dayColor: 'rgba(178, 10, 82, 0.96)',
         glowColor: 'rgba(224, 20, 96, 0.34)',
         dayGlowColor: 'rgba(178, 0, 70, 0.82)',
         coreColor: '#fff7fd',
@@ -40,7 +40,7 @@ export const bullet_template = {
     big: {
         r: 15,
         color: 'rgba(0, 142, 180, 0.94)',
-        dayColor: 'rgb(0, 82, 112)',
+        dayColor: 'rgba(0, 102, 132, 0.94)',
         glowColor: 'rgba(0, 142, 180, 0.30)',
         dayGlowColor: 'rgba(0, 110, 145, 0.11)',
         coreColor: '#ffffff',
@@ -57,7 +57,7 @@ export const bullet_template = {
     petal: {
         r: 10,
         color: 'rgba(188, 24, 142, 0.96)',
-        dayColor: 'rgb(124, 0, 92)',
+        dayColor: 'rgba(124, 0, 92, 0.96)',
         glowColor: 'rgba(188, 24, 142, 0.34)',
         dayGlowColor: 'rgba(160, 0, 120, 0.82)',
         coreColor: '#fff7fb',
@@ -74,7 +74,7 @@ export const bullet_template = {
     gravity: {
         r: 4,
         color: 'rgba(78, 96, 220, 0.96)',
-        dayColor: 'rgb(42, 38, 160)',
+        dayColor: 'rgba(42, 38, 160, 0.96)',
         glowColor: 'rgba(78, 96, 220, 0.34)',
         dayGlowColor: 'rgba(58, 54, 205, 0.82)',
         coreColor: '#ffffff',
@@ -92,7 +92,7 @@ export const bullet_template = {
         r: 15,
         minRadius: 9,
         color: 'rgba(0,145,210,0.94)',
-        dayColor: 'rgb(0,72,130)',
+        dayColor: 'rgba(0,72,130,0.94)',
         glowColor: 'rgba(0,145,210,0.32)',
         dayGlowColor: 'rgba(0,96,168,0.11)',
         coreColor: '#ffffff',
