@@ -12,6 +12,7 @@ class ComponentRouter {
 
     init() {
         window.addEventListener('hashchange', () => this.handleRouteChange());
+        window.addEventListener('popstate', () => this.handleRouteChange());
         window.addEventListener('load', () => this.handleRouteChange());
     }
 
@@ -60,11 +61,24 @@ class ComponentRouter {
      * 解析当前路由
      */
     parseCurrentHash() {
-        var path = window.location.hash.slice(1) || '';
+        const rawHash = window.location.hash.slice(1);
+        const normalizedHash = rawHash.replace(/^\/+/, '');
+        const subHashIndex = normalizedHash.indexOf('#');
+        const routeHash = subHashIndex === -1
+            ? normalizedHash
+            : normalizedHash.slice(0, subHashIndex);
+        const subHash = subHashIndex === -1
+            ? ''
+            : normalizedHash.slice(subHashIndex + 1);
+        const canonicalHash = routeHash
+            ? `#${routeHash}${subHash ? `#${subHash}` : ''}`
+            : '';
 
-        if (!path.startsWith('/')) path = '/' + path;
-        
-        return path;
+        return {
+            path: routeHash ? `/${routeHash}` : '/',
+            subHash,
+            canonicalHash
+        };
     }
 
     /**
@@ -102,13 +116,26 @@ class ComponentRouter {
      * 处理路由变化
      */
     async handleRouteChange() {
-        const path = this.parseCurrentHash();
+        const routeLocation = this.parseCurrentHash();
+        const { path, subHash, canonicalHash } = routeLocation;
+        const routeKey = `${path}#${subHash}`;
+        const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const canonicalUrl = `${window.location.pathname}${window.location.search}${canonicalHash}`;
+
+        if (currentUrl !== canonicalUrl) {
+            window.history.replaceState(window.history.state, '', canonicalUrl);
+        }
+
         if (this.isTransitioning) {
-            this.pendingPath = path;
+            this.pendingPath = { ...routeLocation, routeKey };
             return;
         }
 
         if (this.currentRoute?.path === path) {
+            if (this.currentRoute.subHash !== subHash) {
+                this.currentRoute.subHash = subHash;
+                this.scrollToSubHash(subHash);
+            }
             return;
         }
 
@@ -122,17 +149,23 @@ class ComponentRouter {
         }
         
         const { config, params } = match;
+
+        if (config.redirect) {
+            window.location.replace(config.redirect);
+            return;
+        }
         
-        const didTransition = await this.performTransition(config, params, path);
+        const didTransition = await this.performTransition(config, params, path, subHash);
 
         if (didTransition) {
-            this.currentRoute = { path, config, params };
+            this.currentRoute = { path, config, params, subHash };
+            this.scrollToSubHash(subHash, 'auto');
         }
 
         const pendingPath = this.pendingPath;
         this.pendingPath = null;
 
-        if (pendingPath && pendingPath !== path) {
+        if (pendingPath && pendingPath.routeKey !== routeKey) {
             await this.handleRouteChange();
         }
     }
@@ -140,13 +173,14 @@ class ComponentRouter {
     /**
      * 执行组件切换和路由处理
      */
-    async performTransition(config, params, path) {
+    async performTransition(config, params, path, subHash = '') {
         this.isTransitioning = true;
         const previousComponents = Array.from(this.activeComponents);
         const rollbackHandlers = [];
         const context = {
             params,
             path,
+            subHash,
             router: this,
             onRollback(handler) {
                 if (typeof handler === 'function') {
@@ -195,6 +229,26 @@ class ComponentRouter {
         } finally {
             this.isTransitioning = false;
         }
+    }
+
+    scrollToSubHash(subHash, behavior = 'smooth') {
+        if (!subHash) {
+            return;
+        }
+
+        let targetId = subHash;
+        try {
+            targetId = decodeURIComponent(subHash);
+        } catch (error) {
+            console.warn('[router] Invalid sub hash:', subHash, error);
+        }
+
+        requestAnimationFrame(() => {
+            document.getElementById(targetId)?.scrollIntoView({
+                behavior,
+                block: 'start'
+            });
+        });
     }
 
     assertTransitionResult(result, phase) {
@@ -298,6 +352,9 @@ class ComponentRouter {
                 
                 // 添加激活类触发淡入动画
                 element.classList.add('active');
+                document.dispatchEvent(new CustomEvent('componentrouter:shown', {
+                    detail: { id: componentId, element }
+                }));
                 
                 // 等待动画完成
                 setTimeout(() => {
@@ -339,13 +396,21 @@ class ComponentRouter {
      * 导航到指定路由
      */
     navigate(path, replace = false) {
-        var fullPath = path.startsWith('#') ? path : '#' + path;
+        const normalizedPath = String(path ?? '')
+            .replace(/^#/, '')
+            .replace(/^\/+/, '');
+        const nextHash = normalizedPath ? `#${normalizedPath}` : '';
+        const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+        const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
-        if (replace) {
-            window.location.replace(fullPath);
-        } else {
-            window.location.hash = fullPath;
+        if (nextUrl === currentUrl) {
+            this.handleRouteChange();
+            return;
         }
+
+        const historyMethod = replace ? 'replaceState' : 'pushState';
+        window.history[historyMethod](window.history.state, '', nextUrl);
+        this.handleRouteChange();
     }
 
     /**

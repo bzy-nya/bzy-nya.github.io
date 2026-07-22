@@ -103,6 +103,16 @@
         repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 1px, transparent 1px, transparent var(--px));
 }
 
+@keyframes pixelIconShadow {
+    0%,
+    100% {
+        box-shadow: 2px 2px 0 var(--fun-ink-shadow), -2px -2px 0 var(--sunlight);
+    }
+    50% {
+        box-shadow: 2px 2px 0 var(--fun-ink-shadow), -2px -2px 0 var(--sunlight-strong);
+    }
+}
+
 [data-theme="christmas"] .bg-grid {
     background-image:
         repeating-linear-gradient(0deg, rgba(244, 162, 97, 0.1) 0, rgba(244, 162, 97, 0.1) 1px, transparent 1px, transparent var(--px)),
@@ -415,5 +425,93 @@
     100% {
         transform: scale(0) translate(var(--tx), var(--ty));
         opacity: 0;
+    }
+}
+
+@keyframes surfaceChildReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(16px) rotate(var(--reveal-angle, -1deg));
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes surfaceGroupReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) rotate(-0.25deg);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes componentFloatReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(14px) rotate(-0.35deg);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes componentFloatHide {
+    0% {
+        opacity: 1;
+        transform: none;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(6px) rotate(0.15deg);
+    }
+}
+
+[data-theme="christmas"] .home-surface .social-btn,
+[data-theme="christmas"] .home-surface .social-btn:hover {
+    animation: none;
+}
+
+[data-theme="christmas"] .home-surface:hover,
+[data-theme="christmas"] .home-surface:focus-within {
+    box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+[data-theme="christmas"] .home-surface .social-btn:hover {
+    background: var(--surface-muted);
+    border-color: var(--line-soft);
+    box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+[data-theme="christmas"] .nav-btn,
+[data-theme="christmas"] .nav-btn:hover,
+[data-theme="christmas"] .nav-btn.active {
+    animation: none;
+}
+
+[data-theme="christmas"] .nav-btn:hover,
+[data-theme="christmas"] .nav-btn.active {
+    box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .component,
+    .stagger-reveal,
+    .home-surface,
+    .home-surface *,
+    #fun .fun-item,
+    #fun .fun-item * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+
+    .surface-reveal-item {
+        animation-delay: 0ms !important;
     }
 }

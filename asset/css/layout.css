@@ -14,9 +14,8 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--primary);
-    border-bottom: 2px solid var(--border);
-    backdrop-filter: blur(8px);
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--line-soft);
     overflow: hidden;
     transition: background-color 0.6s ease, border-color 0.6s ease;
 }
@@ -53,9 +52,10 @@
 }
 
 .brand-title {
-    font-family: 'Press Start 2P', 'Courier New', monospace;
-    font-size: 18px;
-    line-height: 1.2;
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    line-height: 1.45;
+    letter-spacing: 0;
     font-weight: 400;
     transition: font-size 0.28s ease, line-height 0.28s ease;
 }
@@ -70,15 +70,16 @@
 
 .nav-btn {
     color: var(--text);
-    font-family: 'Press Start 2P', 'Courier New', monospace;
-    font-size: 12px;
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    line-height: 1.4;
     padding: 10px 20px;
-    border: 2px solid var(--text);
-    background: transparent;
+    border: 1px solid var(--line-soft);
+    background: var(--surface-muted);
     position: relative;
     font-weight: 400;
     cursor: pointer;
-    transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease, padding 0.28s ease, font-size 0.28s ease;
+    transition: background-color 0.25s ease, color 0.6s ease, border-color 0.25s ease, box-shadow 0.25s ease, padding 0.28s ease, font-size 0.28s ease;
 }
 
 .nav-btn:not(:last-child) {
@@ -86,13 +87,21 @@
 }
 
 .nav-btn:last-of-type {
-    border-right: 2px solid var(--text);
+    border-right: 1px solid var(--line-soft);
 }
 
-.nav-btn:hover,
+.nav-btn:hover {
+    background: var(--surface-muted);
+    color: var(--text);
+    border-color: var(--line-soft);
+    box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
 .nav-btn.active {
-    background: var(--text);
-    color: var(--primary);
+    background: var(--card-bg);
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .nav-btn:active {
@@ -108,26 +117,26 @@
 
 .theme-btn {
     color: var(--text);
-    background: transparent;
-    border: 2px solid var(--text);
+    background: var(--surface-muted);
+    border: 1px solid var(--line-soft);
     padding: 8px;
     cursor: pointer;
-    transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease, transform 0.6s ease, padding 0.28s ease;
-    font-family: 'Press Start 2P', 'Courier New', monospace;
-    font-size: 10px;
+    transition: background-color 0.25s ease, color 0.6s ease, border-color 0.25s ease, box-shadow 0.25s ease, padding 0.28s ease;
+    font-family: var(--font-pixel);
+    font-size: 9px;
     position: relative;
     overflow: hidden;
 }
 
 .theme-btn:hover {
-    background: var(--text);
-    color: var(--primary);
-    border-color: var(--text);
-    transform: scale(1.05);
+    background: var(--surface-muted);
+    color: var(--text);
+    border-color: var(--line-soft);
+    box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .theme-btn:hover .theme-icon {
-    color: var(--primary);
+    color: var(--text);
 }
 
 .theme-btn .theme-icon {
@@ -136,18 +145,11 @@
 }
 
 .theme-btn:active {
-    transform: scale(0.95);
+    transform: none;
 }
 
 .theme-btn::before {
-    content: '';
-    position: absolute;
-    inset: -50%;
-    background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
-    opacity: 0;
-    transform: scale(0);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    pointer-events: none;
+    content: none;
 }
 
 .theme-btn.switching::before {
@@ -162,12 +164,12 @@
 }
 
 .topbar.is-compact .brand-title {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .topbar.is-compact .nav-btn {
     padding: 8px 16px;
-    font-size: 11px;
+    font-size: 9px;
 }
 
 .topbar.is-compact .theme-switcher {
@@ -216,18 +218,19 @@
 
 .component {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(14px) rotate(-0.35deg);
+    transform-origin: center;
     transition: opacity 0.2s ease, transform 0.2s ease, height 0.2s ease, background-color 0.6s ease, border-color 0.6s ease, color 0.6s ease;
 }
 
 .component.active {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
+    animation: componentFloatReveal 0.52s cubic-bezier(0.22, 0.72, 0.18, 1) backwards;
 }
 
 .component.fade-out {
-    opacity: 0;
-    transform: scale(0.95);
+    animation: componentFloatHide 0.2s ease forwards;
 }
 
 .component.content-updating {
@@ -238,10 +241,10 @@
 .section {
     position: relative;
     margin: 0;
-    background: transparent;
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
-    transition: border-color 0.6s ease, box-shadow 0.6s ease, background-color 0.6s ease, color 0.6s ease;
+    background: var(--surface-muted);
+    border: 1px solid var(--line-soft);
+    box-shadow: inset 0 0 0 0 transparent, 1px 1px 0 var(--shadow);
+    transition: border-color 0.3s ease, box-shadow 0.3s cubic-bezier(0.22, 0.72, 0.18, 1), background-color 0.6s ease, color 0.6s ease, transform 0.3s ease;
 }
 
 .card {
@@ -260,12 +263,16 @@
 
 .card:hover,
 .section:hover {
-    box-shadow: 0 6px 20px var(--shadow);
+    border-color: var(--line-soft);
+    background: var(--surface-muted);
+    box-shadow: inset 0 0 0 1px var(--line-soft), 1px 1px 0 var(--shadow);
 }
 
 .section-title {
-    font-family: 'Press Start 2P', 'Courier New', monospace;
-    font-size: clamp(16px, 5vw, 32px);
+    font-family: var(--font-pixel);
+    font-size: clamp(18px, 3.2vw, 26px);
+    line-height: 1.5;
+    letter-spacing: 0;
     margin-bottom: 20px;
     text-align: center;
     font-weight: 400;
@@ -292,19 +299,19 @@
     background: var(--text);
     pointer-events: none;
     clip-path: polygon(0 0, 100% 0, 100% 4px, 4px 4px, 4px 100%, 0 100%);
-    transition: background-color 0.6s ease, box-shadow 0.6s ease;
+    transition: background-color 0.6s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .section::before,
 .card::before {
-    top: -2px;
-    left: -2px;
+    top: -3px;
+    left: -3px;
 }
 
 .section::after,
 .card::after {
-    bottom: -2px;
-    right: -2px;
+    bottom: -3px;
+    right: -3px;
     transform: rotate(180deg);
 }
 
@@ -314,37 +321,48 @@
 }
 
 .pixel-divider {
-    height: 4px;
+    --divider-accent: var(--surface-accent, var(--secondary));
+    position: relative;
+    height: 16px;
     margin: 20px 0;
-    background: repeating-linear-gradient(
-        to right,
-        #ffffff 0 4px,
-        transparent 4px 8px,
-        #b8e6d3 8px 12px,
-        transparent 12px 16px
-    );
-    opacity: 0.6;
-    transition: background 0.6s ease;
+    background: none;
+    opacity: 1;
+    transition: color 0.6s ease, transform 0.3s ease;
 }
 
-[data-theme="dark"] .pixel-divider {
-    background: repeating-linear-gradient(
-        to right,
-        #f0a0b0 0 4px,
-        transparent 4px 8px,
-        #b8e6d3 8px 12px,
-        transparent 12px 16px
-    );
+.pixel-divider::before,
+.pixel-divider::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
 }
 
-[data-theme="christmas"] .pixel-divider {
-    background: repeating-linear-gradient(
-        to right,
-        #e63946 0 4px,
-        transparent 4px 8px,
-        #f4a261 8px 12px,
-        transparent 12px 16px
-    );
+.pixel-divider::before {
+    inset: 2px 0 auto;
+    height: 12px;
+    background-color: var(--line-soft);
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath fill='black' d='M6 0h4v4h4v4h-4v4H6V8H2V4h4z'/%3E%3C/svg%3E");
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: repeat-x;
+    -webkit-mask-size: 16px 12px;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath fill='black' d='M6 0h4v4h4v4h-4v4H6V8H2V4h4z'/%3E%3C/svg%3E");
+    mask-position: center;
+    mask-repeat: repeat-x;
+    mask-size: 16px 12px;
+    opacity: 0.46;
+    image-rendering: pixelated;
+    transition: background-color 0.6s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+.pixel-divider::after {
+    top: 2px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background-color: var(--divider-accent);
+    clip-path: polygon(4px 0, 8px 0, 8px 4px, 12px 4px, 12px 8px, 8px 8px, 8px 12px, 4px 12px, 4px 8px, 0 8px, 0 4px, 4px 4px);
+    transform: translateX(-50%);
+    transition: background-color 0.6s ease, transform 0.3s ease;
 }
 
 .pixel-badge {
@@ -352,8 +370,9 @@
     padding: clamp(2px, 1vw, 4px) clamp(4px, 2vw, 8px);
     background: var(--secondary);
     color: var(--primary);
-    font-family: 'Press Start 2P', monospace;
-    font-size: clamp(6px, 2vw, 8px);
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    line-height: 1.45;
     text-transform: uppercase;
     margin: 2px;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
@@ -384,11 +403,30 @@
 .footer {
     text-align: center;
     padding: 20px;
-    font-family: monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
-    background: transparent;
-    border-top: 2px solid var(--border);
+    line-height: 1.7;
+    background: var(--surface-muted);
+    border-top: 1px solid var(--line-soft);
+    box-shadow: inset 0 1px 0 var(--shadow);
     z-index: 10;
     font-weight: 400;
     transition: border-color 0.6s ease;
+}
+
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .section:hover {
+    border-color: var(--secondary);
+    box-shadow: inset 0 0 0 0 transparent, 1px 1px 0 var(--shadow);
+}
+
+[data-theme="dark"] .nav-btn:not(.active):hover,
+[data-theme="dark"] .theme-btn:hover {
+    border-color: var(--secondary);
+    box-shadow: none;
+}
+
+body:not([data-theme]) .nav-btn:not(.active):hover,
+body:not([data-theme]) .theme-btn:hover {
+    box-shadow: inset 0 0 0 2px var(--line-soft);
 }

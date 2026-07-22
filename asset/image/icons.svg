@@ -155,69 +155,145 @@
         
         <!-- Game controller icon -->
         <symbol id="px-dino" viewBox="0 0 24 24">
-            <g fill="currentColor" shape-rendering="crispEdges">
-                <rect x="8" y="6" width="8" height="6" fill="#535353"/>
-                <rect x="6" y="12" width="12" height="6" fill="#535353"/>
-                <rect x="4" y="18" width="4" height="2" fill="#535353"/>
-                <rect x="16" y="18" width="4" height="2" fill="#535353"/>
-                <rect x="10" y="8" width="2" height="2" fill="white"/>
-                <rect x="14" y="8" width="2" height="2" fill="white"/>
-                <rect x="16" y="10" width="2" height="2" fill="#535353"/>
-                <rect x="2" y="14" width="4" height="2" fill="#535353"/>
+            <defs>
+                <mask id="dino-cutout-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+                    <rect width="24" height="24" fill="white"/>
+                    <rect x="10" y="6" width="2" height="2" fill="black"/>
+                </mask>
+            </defs>
+            <g fill="currentColor" shape-rendering="crispEdges" mask="url(#dino-cutout-mask)">
+                <rect x="8" y="3" width="10" height="2"/>
+                <rect x="8" y="5" width="12" height="7"/>
+                <rect x="6" y="9" width="10" height="8"/>
+                <rect x="4" y="12" width="4" height="5"/>
+                <rect x="2" y="11" width="2" height="4"/>
+                <rect x="6" y="17" width="4" height="2"/>
+                <rect x="14" y="16" width="4" height="2"/>
+                <rect x="6" y="19" width="2" height="2"/>
+                <rect x="16" y="18" width="2" height="3"/>
+                <rect x="16" y="10" width="6" height="2"/>
             </g>
         </symbol>
         
         <!-- Strategy/Map icon -->
         <symbol id="px-gen" viewBox="0 0 24 24">
-            <g fill="currentColor" shape-rendering="crispEdges">
-                <path d="M4 20 L4 9 L8 13 L12 7 L16 13 L20 9 L20 20 Z" />
-                    <!-- 中央小门 -->
-                    <rect x="10" y="15" width="4" height="5" />
-                    <!-- 两侧旗帜 -->
-                    <line x1="8" y1="9" x2="8" y2="6" />
-                    <line x1="16" y1="9" x2="16" y2="6" />
+            <defs>
+                <mask id="gen-cutout-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+                    <rect width="24" height="24" fill="white"/>
+                    <rect x="10" y="16" width="4" height="5" fill="black"/>
+                </mask>
+            </defs>
+            <g fill="currentColor" shape-rendering="crispEdges" mask="url(#gen-cutout-mask)">
+                <rect x="3" y="9" width="3" height="12"/>
+                <rect x="18" y="9" width="3" height="12"/>
+                <rect x="6" y="12" width="12" height="9"/>
+                <rect x="8" y="9" width="3" height="3"/>
+                <rect x="13" y="7" width="3" height="5"/>
+                <rect x="5" y="5" width="2" height="6"/>
+                <rect x="17" y="3" width="2" height="8"/>
+                <rect x="7" y="5" width="4" height="3"/>
+                <rect x="13" y="3" width="4" height="3"/>
             </g>
         </symbol>
         
-        <!-- Bullet hell icon -->
-        <symbol id="px-touhou" viewBox="0 0 16 16">
-            <g fill="currentColor" shape-rendering="crispEdges">
-                <!-- Player -->
-                <rect x="7" y="12" width="2" height="2"/>
-                <rect x="6" y="13" width="4" height="1"/>
-                <!-- Bullets -->
-                <rect x="3" y="2" width="1" height="1"/>
-                <rect x="7" y="1" width="1" height="1"/>
-                <rect x="11" y="3" width="1" height="1"/>
-                <rect x="1" y="5" width="1" height="1"/>
+        <!-- Bullet hell shrine-maiden icon -->
+        <symbol id="px-touhou" viewBox="0 0 24 24">
+            <defs>
+                <mask id="touhou-cutout-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+                    <rect width="24" height="24" fill="white"/>
+                    <rect x="11" y="13" width="2" height="2" fill="black"/>
+                </mask>
+            </defs>
+            <g fill="currentColor" shape-rendering="crispEdges" mask="url(#touhou-cutout-mask)">
+                <!-- Curved danmaku field -->
+                <rect x="11" y="1" width="2" height="2"/>
+                <rect x="6" y="2" width="2" height="2"/>
+                <rect x="16" y="2" width="2" height="2"/>
+                <rect x="3" y="5" width="2" height="2"/>
+                <rect x="19" y="5" width="2" height="2"/>
+                <rect x="2" y="9" width="2" height="2"/>
+                <rect x="20" y="9" width="2" height="2"/>
+                <rect x="6" y="7" width="2" height="2"/>
+                <rect x="16" y="7" width="2" height="2"/>
+                <rect x="9" y="5" width="2" height="2"/>
+                <rect x="13" y="5" width="2" height="2"/>
+                <!-- Bow and head -->
+                <rect x="6" y="13" width="5" height="3"/>
+                <rect x="13" y="13" width="5" height="3"/>
+                <rect x="9" y="11" width="6" height="7"/>
+                <!-- Body and skirt -->
+                <rect x="10" y="17" width="4" height="3"/>
+                <rect x="8" y="20" width="8" height="2"/>
+                <rect x="6" y="22" width="12" height="1"/>
+            </g>
+        </symbol>
 
-        <!-- Pixel dynamics icon -->
+        <!-- Pixel dynamics / phase-flow icon -->
         <symbol id="px-dynamics" viewBox="0 0 16 16">
+            <defs>
+                <mask id="dynamics-cutout-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+                    <rect width="16" height="16" fill="white"/>
+                    <rect x="7" y="7" width="2" height="2" fill="black"/>
+                </mask>
+            </defs>
+            <g fill="currentColor" shape-rendering="crispEdges" mask="url(#dynamics-cutout-mask)">
+                <rect x="2" y="2" width="5" height="2"/>
+                <rect x="2" y="4" width="2" height="5"/>
+                <rect x="4" y="7" width="4" height="2"/>
+                <rect x="6" y="5" width="6" height="2"/>
+                <rect x="10" y="7" width="2" height="4"/>
+                <rect x="8" y="9" width="4" height="2"/>
+                <rect x="6" y="9" width="2" height="5"/>
+                <rect x="2" y="12" width="6" height="2"/>
+                <rect x="13" y="3" width="1" height="1"/>
+                <rect x="13" y="12" width="2" height="2"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel spiral galaxy -->
+        <symbol id="px-galaxy" viewBox="0 0 24 24">
+            <defs>
+                <mask id="galaxy-cutout-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+                    <rect width="24" height="24" fill="white"/>
+                    <rect x="11" y="11" width="2" height="2" fill="black"/>
+                </mask>
+            </defs>
+            <g fill="currentColor" shape-rendering="crispEdges" mask="url(#galaxy-cutout-mask)">
+                <!-- Bright core -->
+                <rect x="9" y="9" width="6" height="6"/>
+                <!-- First spiral arm -->
+                <rect x="6" y="6" width="5" height="3"/>
+                <rect x="3" y="5" width="4" height="2"/>
+                <rect x="2" y="7" width="2" height="5"/>
+                <rect x="3" y="11" width="5" height="2"/>
+                <rect x="6" y="13" width="4" height="3"/>
+                <!-- Opposing spiral arm -->
+                <rect x="14" y="8" width="4" height="3"/>
+                <rect x="17" y="10" width="5" height="2"/>
+                <rect x="20" y="12" width="2" height="5"/>
+                <rect x="17" y="16" width="4" height="2"/>
+                <rect x="13" y="17" width="5" height="3"/>
+                <rect x="9" y="19" width="5" height="2"/>
+                <!-- Remote stars -->
+                <rect x="18" y="3" width="2" height="2"/>
+                <rect x="4" y="18" width="2" height="2"/>
+                <rect x="2" y="2" width="1" height="1"/>
+                <rect x="21" y="21" width="1" height="1"/>
+            </g>
+        </symbol>
+
+        <!-- Pixel north-east arrow -->
+        <symbol id="px-arrow-up-right" viewBox="0 0 16 16">
             <g fill="currentColor" shape-rendering="crispEdges">
-                <!-- outer swirl -->
-                <rect x="2" y="2" width="4" height="2"/>
-                <rect x="2" y="4" width="2" height="4"/>
-                <rect x="4" y="6" width="4" height="2"/>
-                <rect x="6" y="4" width="6" height="2"/>
-                <rect x="10" y="6" width="2" height="4"/>
-                <rect x="8" y="8" width="4" height="2"/>
-                <rect x="6" y="10" width="2" height="4"/>
-                <rect x="4" y="10" width="2" height="2"/>
-                <rect x="2" y="12" width="4" height="2"/>
-                <!-- center core -->
-                <rect x="6" y="6" width="4" height="4"/>
-                <rect x="7" y="7" width="2" height="2" fill="#000000"/>
+                <rect x="7" y="2" width="7" height="2"/>
+                <rect x="12" y="4" width="2" height="5"/>
+                <rect x="9" y="5" width="3" height="2"/>
+                <rect x="7" y="7" width="3" height="2"/>
+                <rect x="5" y="9" width="3" height="2"/>
+                <rect x="3" y="11" width="3" height="2"/>
             </g>
         </symbol>
-                <rect x="13" y="6" width="1" height="1"/>
-                <rect x="5" y="4" width="1" height="1"/>
-                <rect x="9" y="5" width="1" height="1"/>
-                <rect x="2" y="8" width="1" height="1"/>
-                <rect x="12" y="9" width="1" height="1"/>
-                <rect x="6" y="7" width="1" height="1"/>
-                <rect x="10" y="8" width="1" height="1"/>
-            </g>
-        </symbol>
+
         <symbol id="px-pumpkin" viewBox="0 0 16 16">
   <defs>
     <mask id="pumpkin-face-mask">

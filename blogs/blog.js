@@ -13,6 +13,15 @@ class BlogSystem {
         // 初始化 marked.js 配置
         this.initMarked();
     }
+
+    announceVisualUpdate(...roots) {
+        roots.filter(Boolean).forEach((root) => {
+            document.dispatchEvent(new CustomEvent('blog:visual-update', {
+                detail: { root }
+            }));
+        });
+    }
+
     /**
      * 初始化 Marked.js 配置
      */
@@ -142,13 +151,14 @@ class BlogSystem {
 
         if (this.posts.length === 0) {
             blogContainer.innerHTML = `
-                <div class="blog-list-card blog-post-item">
+                <div class="blog-list-card blog-post-item home-surface surface-blog-card">
                     <div class="blog-list-title">No posts yet :(</div>
                     <div class="blog-list-desc">
                         Blog posts are coming soon! Stay tuned for exciting content about algorithms, research, and more.
                     </div>
                 </div>
             `;
+            this.announceVisualUpdate(document.getElementById('blog'));
             return;
         }
 
@@ -177,13 +187,13 @@ class BlogSystem {
             const pinnedBadge = post.pinned ? '<span class="pixel-badge pinned-badge">📌 Pinned</span>' : '';
 
             return `
-                <div class="blog-list-card blog-post-item ${post.pinned ? 'pinned-post' : ''}" data-post-id="${post.id}">
+                <div class="blog-list-card blog-post-item home-surface surface-blog-card ${post.pinned ? 'pinned-post' : ''}" data-post-id="${post.id}">
                     <div class="blog-list-title">${post.title} ${pinnedBadge} ${featuredBadge}</div>
                     <div class="blog-list-desc">${post.description}</div>
                     <div class="blog-list-meta">
                         ${this.formatDate(post.date)} 
                         ${tags}
-                        <a href="#/post/${post.id}" data-post-id="${post.id}">Read more</a>
+                        <a href="#post/${post.id}" data-post-id="${post.id}">Read more</a>
                     </div>
                 </div>
             `;
@@ -191,6 +201,7 @@ class BlogSystem {
         
         // 渲染博客目录导航
         this.renderBlogNavigation();
+        this.announceVisualUpdate(document.getElementById('blog'));
     }
 
     /**
@@ -219,7 +230,7 @@ class BlogSystem {
 
             let markdown = await response.text();
 
-            markdown = this.preprocessExtensions(markdown);
+            markdown = this.preprocessExtensions(markdown, postId);
 
             const html = marked ? marked.parse(markdown) : markdown;
             const result = this.generateTableOfContents(html);
@@ -268,6 +279,7 @@ class BlogSystem {
         if (blogContainer) blogContainer.innerHTML = snapshot.blogMarkup;
         if (tocCard) tocCard.innerHTML = snapshot.tocMarkup;
         this.currentPost = snapshot.currentPost;
+        this.announceVisualUpdate(blogContainer, tocCard);
 
         if (!snapshot.currentPost) return;
 
@@ -297,7 +309,7 @@ class BlogSystem {
 
         // 先创建框架结构
         blogContainer.innerHTML = `
-            <section class="section">
+            <section class="section home-surface surface-blog-article">
                 <div class="blog-nav">
                     <button class="nav-btn back-to-list" id="back-to-blog-list">
                         <svg class="icon small" aria-hidden="true" style="margin-right: 8px;"><use href="#px-triangle"/></svg>
@@ -322,6 +334,12 @@ class BlogSystem {
         const contentElement = document.getElementById('blog-post-content');
         if (contentElement) {
             contentElement.innerHTML = content;
+            contentElement.querySelectorAll('table').forEach(table => {
+                const scrollContainer = document.createElement('div');
+                scrollContainer.className = 'blog-table-scroll';
+                table.before(scrollContainer);
+                scrollContainer.appendChild(table);
+            });
         }
 
         // 添加返回按钮事件
@@ -331,6 +349,8 @@ class BlogSystem {
                 Router.navigate('blog');
             });
         }
+
+        this.announceVisualUpdate(blogContainer);
     }
 
     /**
@@ -341,7 +361,7 @@ class BlogSystem {
         if (!blogContainer) return;
 
         blogContainer.innerHTML = `
-            <section class="section">
+            <section class="section home-surface surface-blog-list">
                 <h2 class="section-title">
                     <svg class="icon small deco" aria-hidden="true"><use href="#px-sparkle"/></svg> 
                     Blog Posts 
@@ -366,13 +386,14 @@ class BlogSystem {
         if (!blogContainer) return;
 
         blogContainer.innerHTML = `
-            <section class="section">
-                <div class="loading-container" style="text-align: center; padding: 40px;">
-                    <svg class="icon large" aria-hidden="true" style="animation: gentleFloat 2s ease-in-out infinite;"><use href="#px-cat"/></svg>
-                    <p style="margin-top: 16px; font-family: 'Press Start 2P', monospace; font-size: 12px;">Loading post...</p>
+            <section class="section home-surface surface-blog-state">
+                <div class="loading-container blog-state-message">
+                    <svg class="icon large" aria-hidden="true"><use href="#px-cat"/></svg>
+                    <p class="blog-state-title">Loading post...</p>
                 </div>
             </section>
         `;
+        this.announceVisualUpdate(blogContainer);
     }
 
     /**
@@ -385,9 +406,9 @@ class BlogSystem {
         if (!blogContainer) return;
 
         blogContainer.innerHTML = `
-            <section class="section">
-                <div class="error-container" style="text-align: center; padding: 40px;">
-                    <p style="color: var(--accent); font-family: 'Press Start 2P', monospace; font-size: 12px; margin-bottom: 16px;">Error!</p>
+            <section class="section home-surface surface-blog-state">
+                <div class="error-container blog-state-message">
+                    <p class="blog-state-title">Error!</p>
                     <p>${message}</p>
                     <button class="nav-btn" id="back-to-blog-home" style="margin-top: 20px;">Back to Blog List</button>
                 </div>
@@ -400,6 +421,7 @@ class BlogSystem {
                 Router.navigate('blog');
             });
         }
+        this.announceVisualUpdate(blogContainer);
     }
 
     /**
@@ -418,9 +440,9 @@ class BlogSystem {
     /**
      * 预处理扩展的Markdown语法
      */
-    preprocessExtensions(markdown) {
+    preprocessExtensions(markdown, postId) {
         // 处理脚注
-        markdown = this.processFootnotes(markdown);
+        markdown = this.processFootnotes(markdown, postId);
         
         return markdown;
     }
@@ -428,7 +450,7 @@ class BlogSystem {
     /**
      * 处理脚注语法
      */
-    processFootnotes(markdown) {
+    processFootnotes(markdown, postId) {
         // 收集所有脚注定义
         const footnotes = {};
         const footnotePattern = /^\[(\^[^\]]+)\]:\s*(.+)$/gm;
@@ -445,7 +467,8 @@ class BlogSystem {
         // 替换脚注引用
         markdown = markdown.replace(/\[(\^[^\]]+)\]/g, (match, id) => {
             if (footnotes[id]) {
-                return `<sup><a href="#footnote-${id.substring(1)}" id="ref-${id.substring(1)}">${id.substring(1)}</a></sup>`;
+                const numId = id.substring(1);
+                return `<sup><a href="#post/${postId}#footnote:${numId}" id="footnote-ref:${numId}">${numId}</a></sup>`;
             }
             return match;
         });
@@ -455,7 +478,7 @@ class BlogSystem {
             markdown += "\n---\n";
             for (const [id, content] of Object.entries(footnotes)) {
                 const numId = id.substring(1);
-                markdown += `<div id="footnote-${numId}"><sup>${numId}</sup> ${content} <a href="#ref-${numId}">↩</a></div>\n\n`;
+                markdown += `<div id="footnote:${numId}"><sup>${numId}</sup> ${content} <a href="#post/${postId}#footnote-ref:${numId}" aria-label="Back to footnote ${numId}">↩</a></div>\n\n`;
             }
         }
         
@@ -491,7 +514,7 @@ class BlogSystem {
 
         // 直接在组件容器内渲染内容
         navComponent.innerHTML = `
-            <section class="card blog-navigation-card">
+            <section class="card blog-navigation-card home-surface surface-blog-navigation">
                 <div class="blog-nav-title">
                     <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
                     Blog Navigation
@@ -537,6 +560,7 @@ class BlogSystem {
 
         // 添加过滤事件监听器
         this.addNavigationEventListeners();
+        this.announceVisualUpdate(navComponent);
     }
 
     /**
@@ -573,6 +597,7 @@ class BlogSystem {
                 item.classList.add('is-filtered-out');
             }
         });
+        this.announceVisualUpdate(document.getElementById('blog'));
     }
 
     /**
@@ -629,7 +654,7 @@ class BlogSystem {
         
         // 直接在组件容器内渲染内容
         tocComponent.innerHTML = `
-            <section class="card article-toc-card">
+            <section class="card article-toc-card home-surface surface-blog-toc">
                 <div class="toc-title">
                     <svg class="icon small" aria-hidden="true"><use href="#px-sparkle"/></svg>
                     Contents
@@ -648,6 +673,7 @@ class BlogSystem {
         
         // 初始化目录位置调整
         this.initTOCPositionAdjustment();
+        this.announceVisualUpdate(tocComponent);
     }
 
     /**
@@ -690,7 +716,7 @@ class BlogSystem {
             listItem.className = `toc-item toc-level-${item.level}`;
 
             const link = document.createElement('a');
-            link.href = `#${item.id}`;
+            link.href = `#post/${this.currentPost.id}#${item.id}`;
             link.className = 'toc-link';
             link.dataset.target = item.id;
             link.textContent = item.text;
@@ -715,15 +741,9 @@ class BlogSystem {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const targetId = link.getAttribute('data-target');
-                const targetElement = document.getElementById(targetId);
-                
-                if (targetElement) {
-                    // 平滑滚动到目标位置
-                    targetElement.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                    
+                if (targetId && this.currentPost) {
+                    Router.navigate(`post/${this.currentPost.id}#${targetId}`);
+
                     // 更新激活状态
                     tocLinks.forEach(l => l.classList.remove('active'));
                     link.classList.add('active');
@@ -856,7 +876,7 @@ class BlogSystem {
     }
 
     redirectToNotFound() {
-        window.location.replace('/404.html');
+        window.location.replace('404.html');
     }
 
     /**

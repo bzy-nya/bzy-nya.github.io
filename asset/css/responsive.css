@@ -75,7 +75,7 @@
     }
 
     .brand-title {
-        font-size: 14px;
+        font-size: 13px;
     }
 }
 
@@ -95,8 +95,8 @@
     }
 
     .brand-title {
-        font-size: 12px;
-        line-height: 1.1;
+        font-size: 11px;
+        line-height: 1.45;
     }
 
     .nav {
@@ -104,7 +104,7 @@
     }
 
     .nav-btn {
-        font-size: 8px;
+        font-size: 9px;
         padding: 6px 10px;
         border-width: 1px;
     }
@@ -123,46 +123,50 @@
     }
 
     .section-title {
-        font-size: clamp(18px, 6vw, 20px);
+        font-size: clamp(17px, 5.5vw, 20px);
+        line-height: 1.55;
         gap: 16px;
         margin-bottom: 16px;
     }
 
     #profile-card .name {
-        font-size: 16px;
+        font-size: 15px;
     }
 
     #profile-card .title {
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .sidebar-card-title {
-        font-size: 10px;
+        font-size: 9px;
     }
 
     .social-btn {
-        font-size: 8px;
+        font-size: 9px;
         padding: 10px 12px;
     }
 
     #home .section-content {
-        font-size: 16px;
-        line-height: 24px;
+        font-size: 15.5px;
+        line-height: 1.75;
     }
 
     #home p {
-        font-size: 14px;
-        line-height: 20px;
+        font-size: 15px;
+        line-height: 1.7;
     }
 
-    #home .sub-title,
+    #home .sub-title {
+        font-size: 11px;
+    }
+
     #home .research-list {
-        font-size: 12px;
+        font-size: 14.5px;
     }
 
     #home .home-item-title {
-        font-size: 8px;
-        line-height: 1.6;
+        font-size: 9px;
+        line-height: 1.7;
         word-break: break-word;
     }
 
@@ -171,13 +175,22 @@
     }
 
     #fun .fun-icon {
-        width: 48px;
-        height: 48px;
-        margin-bottom: 12px;
+        width: 40px;
+        height: 40px;
+    }
+
+    #fun .fun-item,
+    #fun .fun-item-shell {
+        min-height: 178px;
+    }
+
+    #fun .fun-icon-stage {
+        width: 60px;
+        height: 60px;
     }
 
     #fun .fun-title {
-        font-size: 9px;
+        font-size: 10px;
     }
 }
 
@@ -192,7 +205,7 @@
     }
 
     .nav-btn {
-        font-size: 7px;
+        font-size: 9px;
         padding: 4px 8px;
     }
 
@@ -218,23 +231,26 @@
         margin-bottom: 12px;
     }
 
-    #home .sub-title,
-    #home .research-list {
+    #home .sub-title {
         font-size: 10px;
     }
 
-    #home .section-content {
+    #home .research-list {
         font-size: 14px;
-        line-height: 20px;
+    }
+
+    #home .section-content {
+        font-size: 15px;
+        line-height: 1.7;
     }
 
     #home p {
-        font-size: 12px;
-        line-height: 18px;
+        font-size: 14.5px;
+        line-height: 1.65;
     }
 
     #home .home-item-title {
-        font-size: 7px;
+        font-size: 9px;
         line-height: 1.7;
     }
 

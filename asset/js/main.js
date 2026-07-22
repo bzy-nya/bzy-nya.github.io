@@ -1,6 +1,7 @@
 // 组件路由器实例
 let Router = null;
 let catAnimationController = null;
+let surfaceEffectSequence = 0;
 
 // 初始化组件路由系统
 function initRouter() {
@@ -65,12 +66,9 @@ function initRouter() {
             }
         })
 
-        // 未知 hash：保留站点外壳并显示站内兜底页，避免全空白。
+        // 未知 hash 使用站点独立的 404 页面。
         .setFallback({
-            components: ['topbar', 'main-content', 'not-found', 'footer'],
-            afterEnter: async () => {
-                setHeaderNavigation(null);
-            }
+            redirect: '404.html'
         });
     
     window.Router = Router; // 全局暴露路由器实例
@@ -160,6 +158,553 @@ function initAvatarInteraction() {
     });
 }
 
+function pixelEffectHash(seed, step) {
+    const value = Math.sin(seed * 91.317 + step * 47.853) * 43758.5453;
+    return value - Math.floor(value);
+}
+
+function pixelEffectSmoothNoise(time, seed) {
+    const step = Math.floor(time);
+    const fraction = time - step;
+    const eased = fraction * fraction * (3 - 2 * fraction);
+    const start = pixelEffectHash(seed, step);
+    const end = pixelEffectHash(seed, step + 1);
+    return start + (end - start) * eased;
+}
+
+function renderPixelCornerLight(context, canvasSize, timestamp, itemIndex, channels) {
+    const [red = 255, green = 254, blue = 242] = channels;
+    const time = timestamp / 1000 + itemIndex * 0.37;
+    const curvedRatio = 0.65;
+    const curvedRatio2 = 0.55;
+
+    context.clearRect(0, 0, canvasSize, canvasSize);
+    for (let x = 0; x < canvasSize; x += 2) {
+        for (let y = 0; y < canvasSize; y += 2) {
+            const fromRight = (canvasSize - 1 - x) / (canvasSize - 1);
+            const fromBottom = (canvasSize - 1 - y) / (canvasSize - 1);
+            const seed = x * 97 + y * 193 + itemIndex * 389;
+            const edgeNoise = pixelEffectSmoothNoise(time * 0.58, seed + 17);
+            const curvedBoundary = Math.pow(fromRight, curvedRatio) + Math.pow(fromBottom, curvedRatio);
+            const curvedBoundary2 = Math.pow(fromRight, curvedRatio2) + Math.pow(fromBottom, curvedRatio2);
+
+            if (curvedBoundary > 0.97 + edgeNoise * 0.2) {
+                continue;
+            }
+
+            const slowNoise = pixelEffectSmoothNoise(time * 0.72, seed + 41);
+            const fastNoise = pixelEffectSmoothNoise(time * 1.46, seed + 83);
+            let brightness = Math.exp(-Math.pow(Math.abs(curvedBoundary2 - 0.5), 2) * 20 - 2) * 2;
+            brightness *= Math.exp(-Math.pow(Math.abs(fromRight - 0.35), 2) * 4) * 2;
+            brightness *= Math.exp(-Math.pow(Math.abs(fromBottom - 0.35), 2) * 4) * 2;
+
+            if (brightness <= 0.04) {
+                continue;
+            }
+
+            brightness = Math.min(1, brightness + slowNoise * 0.1 - fastNoise * 0.5);
+            const quantizedBrightness = Math.floor(brightness * 20) / 20;
+
+            if (quantizedBrightness <= 0.04) {
+                continue;
+            }
+
+            context.fillStyle = `rgba(${red}, ${green}, ${blue}, ${quantizedBrightness})`;
+            context.fillRect(x, y, 2, 2);
+        }
+    }
+}
+
+function renderPixelBorderShadow(canvas, context, rect, timestamp, effectIndex, channels) {
+    const shadowPixelSize = 4;
+    const shadowInsetCells = 2;
+    const shadowSpreadCells = 3;
+    const cardWidth = Math.max(1, Math.round(rect.width / shadowPixelSize));
+    const cardHeight = Math.max(1, Math.round(rect.height / shadowPixelSize));
+    const targetWidth = cardWidth + shadowInsetCells + shadowSpreadCells;
+    const targetHeight = cardHeight + shadowInsetCells + shadowSpreadCells;
+    const displayWidth = Math.round(rect.width + (shadowInsetCells + shadowSpreadCells) * shadowPixelSize);
+    const displayHeight = Math.round(rect.height + (shadowInsetCells + shadowSpreadCells) * shadowPixelSize);
+
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+    } else {
+        context.clearRect(0, 0, targetWidth, targetHeight);
+    }
+
+    const [red = 100, green = 100, blue = 100] = channels;
+    const time = timestamp / 1000 + effectIndex * 0.43;
+    const cardLeft = shadowInsetCells;
+    const cardTop = shadowInsetCells;
+    const cardRight = cardLeft + cardWidth;
+    const cardBottom = cardTop + cardHeight;
+
+    for (let x = 0; x < targetWidth; x += 2) {
+        for (let y = 0; y < targetHeight; y += 2) {
+            const rightDistance = x - cardRight;
+            const bottomDistance = y - cardBottom;
+            const inRightBand = rightDistance >= 0
+                && rightDistance < shadowSpreadCells
+                && y >= cardTop + 2
+                && y < cardBottom + shadowSpreadCells;
+            const inBottomBand = bottomDistance >= 0
+                && bottomDistance < shadowSpreadCells
+                && x >= cardLeft + 2
+                && x < cardRight + shadowSpreadCells;
+
+            if (!inRightBand && !inBottomBand) {
+                continue;
+            }
+
+            const distance = Math.min(
+                inRightBand ? rightDistance : shadowSpreadCells,
+                inBottomBand ? bottomDistance : shadowSpreadCells
+            );
+            const seed = x * 131 + y * 197 + effectIndex * 433;
+            const slowNoise = pixelEffectSmoothNoise(time * 0.58, seed + 211);
+            const fastNoise = pixelEffectSmoothNoise(time * 1.24, seed + 367);
+            const distanceFalloff = Math.pow(1 - distance / shadowSpreadCells, 1.35);
+            const cornerBoost = inRightBand && inBottomBand ? 1.12 : 1;
+            const brightness = Math.min(
+                0.5,
+                (0.4 + slowNoise * 0.17 - fastNoise * 0.5) * distanceFalloff * cornerBoost
+            );
+
+            if (brightness < 0.08) {
+                continue;
+            }
+
+            const quantizedBrightness = Math.round(brightness / 0.02) * 0.02 / 5.5;
+            context.fillStyle = `rgba(${red}, ${green}, ${blue}, ${quantizedBrightness})`;
+            context.fillRect(x, y, 2, 2);
+        }
+    }
+}
+
+function initFunLightEffects() {
+    const items = document.querySelectorAll('#fun .fun-item');
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const lightCanvasSize = 28;
+
+    items.forEach((item, itemIndex) => {
+        const shell = item.closest('.fun-item-shell');
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const shadowCanvas = document.createElement('canvas');
+        const shadowContext = shadowCanvas.getContext('2d');
+        canvas.className = 'fun-light-canvas';
+        canvas.width = lightCanvasSize;
+        canvas.height = lightCanvasSize;
+        canvas.setAttribute('aria-hidden', 'true');
+        shadowCanvas.className = 'fun-shadow-canvas';
+        shadowCanvas.width = 1;
+        shadowCanvas.height = 1;
+        shadowCanvas.setAttribute('aria-hidden', 'true');
+        shell?.insertBefore(shadowCanvas, item);
+        item.appendChild(canvas);
+
+        let animationFrameId = null;
+        let lastUpdate = 0;
+
+        const clearLight = () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            context.clearRect(0, 0, lightCanvasSize, lightCanvasSize);
+            shadowContext.clearRect(0, 0, shadowCanvas.width, shadowCanvas.height);
+        };
+
+        const getSunlightChannels = () => {
+            const rgb = getComputedStyle(item)
+                .getPropertyValue('--sunlight-rgb')
+                .split(',')
+                .map((channel) => Number.parseInt(channel.trim(), 10));
+            return rgb.length === 3 ? rgb : [255, 254, 242];
+        };
+
+        const getColorChannels = (propertyName, fallback) => {
+            const channels = getComputedStyle(item)
+                .getPropertyValue(propertyName)
+                .match(/\d+(?:\.\d+)?/g)
+                ?.slice(0, 3)
+                .map(Number);
+            return channels?.length === 3 && channels.every(Number.isFinite)
+                ? channels
+                : fallback;
+        };
+
+        const renderLight = (timestamp) => {
+            renderPixelCornerLight(
+                context,
+                lightCanvasSize,
+                timestamp,
+                itemIndex,
+                getSunlightChannels()
+            );
+        };
+
+        const renderShadow = (timestamp) => {
+            renderPixelBorderShadow(
+                shadowCanvas,
+                shadowContext,
+                item.getBoundingClientRect(),
+                timestamp,
+                itemIndex,
+                getColorChannels('--fun-ink-shadow', [100, 100, 100])
+            );
+        };
+
+        const animateLight = (timestamp) => {
+            if (timestamp - lastUpdate >= 50) {
+                renderLight(timestamp);
+                renderShadow(timestamp);
+                lastUpdate = timestamp;
+            }
+            animationFrameId = requestAnimationFrame(animateLight);
+        };
+
+        item.addEventListener('pointerenter', () => {
+            if (animationFrameId) {
+                return;
+            }
+            if (reduceMotion) {
+                renderLight(0);
+                renderShadow(0);
+                return;
+            }
+            animationFrameId = requestAnimationFrame(animateLight);
+        });
+        item.addEventListener('pointerleave', clearLight);
+    });
+}
+
+function initHomeSurfaceEffects(root = document) {
+    const surfaceSelector = '.home-surface:not(.surface-publications):not(.surface-blog-list)';
+    const surfaces = [
+        ...(root?.matches?.(surfaceSelector) ? [root] : []),
+        ...(root?.querySelectorAll?.(surfaceSelector) ?? [])
+    ];
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const lightCanvasSize = 28;
+
+    surfaces.forEach((surface) => {
+        if (surface.querySelector(':scope > .surface-light-canvas')) {
+            return;
+        }
+
+        const surfaceIndex = surfaceEffectSequence++;
+
+        const lightCanvas = document.createElement('canvas');
+        const lightContext = lightCanvas.getContext('2d');
+        const shadowCanvas = document.createElement('canvas');
+        const shadowContext = shadowCanvas.getContext('2d');
+        lightCanvas.className = 'surface-light-canvas';
+        lightCanvas.width = lightCanvasSize;
+        lightCanvas.height = lightCanvasSize;
+        lightCanvas.setAttribute('aria-hidden', 'true');
+        shadowCanvas.className = 'surface-shadow-canvas';
+        shadowCanvas.width = 1;
+        shadowCanvas.height = 1;
+        shadowCanvas.setAttribute('aria-hidden', 'true');
+        surface.prepend(shadowCanvas);
+        surface.appendChild(lightCanvas);
+
+        let animationFrameId = null;
+        let lastUpdate = 0;
+        let pointerInside = false;
+
+        const getChannels = (propertyName, fallback) => {
+            const channels = getComputedStyle(surface)
+                .getPropertyValue(propertyName)
+                .match(/\d+(?:\.\d+)?/g)
+                ?.slice(0, 3)
+                .map(Number);
+            return channels?.length === 3 && channels.every(Number.isFinite)
+                ? channels
+                : fallback;
+        };
+
+        const clearEffects = () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            lightContext.clearRect(0, 0, lightCanvasSize, lightCanvasSize);
+            shadowContext.clearRect(0, 0, shadowCanvas.width, shadowCanvas.height);
+        };
+
+        const renderLight = (timestamp) => {
+            renderPixelCornerLight(
+                lightContext,
+                lightCanvasSize,
+                timestamp,
+                surfaceIndex,
+                getChannels('--sunlight-rgb', [255, 254, 242])
+            );
+        };
+
+        const renderShadow = (timestamp) => {
+            renderPixelBorderShadow(
+                shadowCanvas,
+                shadowContext,
+                surface.getBoundingClientRect(),
+                timestamp,
+                surfaceIndex,
+                getChannels('--surface-shadow-rgb', [184, 230, 211])
+            );
+        };
+
+        const renderEffects = (timestamp) => {
+            renderLight(timestamp);
+            renderShadow(timestamp);
+        };
+
+        const animateEffects = (timestamp) => {
+            if (!surface.isConnected) {
+                clearEffects();
+                return;
+            }
+            if (timestamp - lastUpdate >= 50) {
+                renderEffects(timestamp);
+                lastUpdate = timestamp;
+            }
+            animationFrameId = requestAnimationFrame(animateEffects);
+        };
+
+        const startEffects = () => {
+            if (animationFrameId) {
+                return;
+            }
+            if (reduceMotion) {
+                renderEffects(0);
+                return;
+            }
+            animationFrameId = requestAnimationFrame(animateEffects);
+        };
+
+        const stopEffectsIfInactive = () => {
+            if (!pointerInside && !surface.matches(':focus-within')) {
+                clearEffects();
+            }
+        };
+
+        surface.addEventListener('pointerenter', () => {
+            pointerInside = true;
+            startEffects();
+        });
+        surface.addEventListener('pointerleave', () => {
+            pointerInside = false;
+            stopEffectsIfInactive();
+        });
+        surface.addEventListener('focusin', startEffects);
+        surface.addEventListener('focusout', () => {
+            requestAnimationFrame(stopEffectsIfInactive);
+        });
+    });
+}
+
+function initHomeRevealEffects() {
+    const revealGroups = new Set();
+    const configuredGroups = new WeakSet();
+    let observer = null;
+
+    const configureGroup = (root, items) => {
+        if (!root || configuredGroups.has(root)) {
+            return;
+        }
+
+        configuredGroups.add(root);
+        root.classList.add('stagger-reveal');
+        revealGroups.add(root);
+        [...new Set(items.filter(Boolean))].forEach((item, index) => {
+            const direction = index % 2 === 0 ? -1 : 1;
+            const angle = direction * (0.8 + (index % 3) * 0.35);
+            item.classList.add('surface-reveal-item');
+            item.style.setProperty('--reveal-order', index);
+            item.style.setProperty('--reveal-angle', `${angle}deg`);
+        });
+    };
+
+    const getConnectedGroups = () => {
+        revealGroups.forEach((group) => {
+            if (!group.isConnected) {
+                observer?.unobserve(group);
+                revealGroups.delete(group);
+            }
+        });
+        return [...revealGroups];
+    };
+
+    const registerBlogRevealGroups = (scope = document) => {
+        const selector = [
+            '.surface-blog-list',
+            '.surface-blog-article',
+            '.surface-blog-navigation',
+            '.surface-blog-toc',
+            '.surface-blog-state'
+        ].join(', ');
+        const groups = [
+            ...(scope?.matches?.(selector) ? [scope] : []),
+            ...(scope?.querySelectorAll?.(selector) ?? [])
+        ];
+
+        groups.forEach((group) => {
+            if (group.matches('.surface-blog-list')) {
+                configureGroup(group, [
+                    group.querySelector(':scope > .section-title'),
+                    group.querySelector(':scope > .pixel-divider'),
+                    ...group.querySelectorAll(':scope > .blog-list > .blog-post-item')
+                ]);
+                return;
+            }
+
+            if (group.matches('.surface-blog-article')) {
+                configureGroup(group, [
+                    group.querySelector(':scope > .blog-nav'),
+                    group.querySelector(':scope > .blog-post-header'),
+                    group.querySelector(':scope > .pixel-divider'),
+                    group.querySelector(':scope > .blog-post-content')
+                ]);
+                return;
+            }
+
+            if (group.matches('.surface-blog-navigation')) {
+                configureGroup(group, [
+                    group.querySelector(':scope > .blog-nav-title'),
+                    group.querySelector(':scope > .blog-stats'),
+                    group.querySelector(':scope > .blog-filter-section')
+                ]);
+                return;
+            }
+
+            if (group.matches('.surface-blog-toc')) {
+                configureGroup(group, [
+                    group.querySelector(':scope > .toc-title'),
+                    group.querySelector(':scope > .toc-content')
+                ]);
+                return;
+            }
+
+            configureGroup(group, [
+                group.querySelector(':scope > .loading-container'),
+                group.querySelector(':scope > .error-container')
+            ]);
+        });
+    };
+
+    const profile = document.getElementById('profile-card');
+    configureGroup(profile, [
+        profile?.querySelector('.avatar'),
+        profile?.querySelector('.profile-copy'),
+        profile?.querySelector('.social-links')
+    ]);
+
+    const links = document.getElementById('links-card');
+    configureGroup(links, [
+        links?.querySelector('.sidebar-card-title'),
+        links?.querySelector('.card-links')
+    ]);
+
+    const biography = document.querySelector('.surface-biography');
+    configureGroup(biography, [
+        biography?.querySelector('.section-title'),
+        biography?.querySelector('.section-content > p'),
+        biography?.querySelector('.pixel-divider'),
+        ...(biography?.querySelectorAll('.bio-col') ?? [])
+    ]);
+
+    const publications = document.querySelector('.surface-publications');
+    configureGroup(publications, [
+        publications?.querySelector('.section-title'),
+        publications?.querySelector('.pixel-divider'),
+        ...(publications?.querySelectorAll('.surface-publication') ?? [])
+    ]);
+
+    const funGrid = document.querySelector('#fun .fun-grid');
+    configureGroup(funGrid, [
+        ...(funGrid?.querySelectorAll(':scope > .fun-item-shell') ?? [])
+    ]);
+
+    registerBlogRevealGroups();
+
+    observer = 'IntersectionObserver' in window
+        ? new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                entry.target.classList.add('is-revealed');
+                observer.unobserve(entry.target);
+            });
+        }, {
+            threshold: 0.01,
+            rootMargin: '0px 0px -6% 0px'
+        })
+        : null;
+
+    const replayGroup = (group) => {
+        observer?.unobserve(group);
+        group.classList.remove('is-revealed');
+        void group.offsetHeight;
+
+        if (observer) {
+            observer.observe(group);
+        } else {
+            group.classList.add('is-revealed');
+        }
+    };
+
+    document.addEventListener('componentrouter:shown', (event) => {
+        const component = event.detail?.element;
+        if (!component) {
+            return;
+        }
+
+        initHomeSurfaceEffects(component);
+        registerBlogRevealGroups(component);
+        getConnectedGroups()
+            .filter((group) => (group.closest('.component') ?? group) === component)
+            .forEach((group) => {
+                group.classList.remove('is-internal-route-update');
+                replayGroup(group);
+            });
+    });
+
+    document.addEventListener('blog:visual-update', (event) => {
+        const root = event.detail?.root;
+        if (!root) {
+            return;
+        }
+
+        initHomeSurfaceEffects(root);
+        registerBlogRevealGroups(root);
+        const owner = root.matches?.('.component') ? root : root.closest?.('.component');
+        if (!owner?.classList.contains('active')) {
+            return;
+        }
+
+        getConnectedGroups()
+            .filter((group) => (group.closest('.component') ?? group) === owner)
+            .forEach((group) => {
+                group.classList.add('is-internal-route-update');
+                replayGroup(group);
+            });
+    });
+
+    getConnectedGroups().forEach((group) => {
+        if (observer) {
+            observer.observe(group);
+        } else {
+            group.classList.add('is-revealed');
+        }
+    });
+}
+
 function initTopbarCollapse() {
     const topbar = document.getElementById('topbar');
     if (!topbar) {
@@ -219,7 +764,7 @@ function initThemeSwitcher() {
     function getSystemTheme() {
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    
+
     // Check if it's Christmas season (December 15 - December 31)
     function isChristmasSeason() {
         const now = new Date();
@@ -293,21 +838,33 @@ function initThemeSwitcher() {
             : `Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`;
         
     }
+
+    // Console entry point for previewing seasonal themes during development.
+    window.setSeasonalTheme = function (theme) {
+        const normalizedTheme = String(theme).toLowerCase();
+        if (!['christmas', 'halloween'].includes(normalizedTheme)) {
+            throw new TypeError('setSeasonalTheme(theme) expects "christmas" or "halloween".');
+        }
+
+        currentTheme = normalizedTheme;
+        applyTheme(currentTheme);
+        return currentTheme;
+    };
     
     // Theme switch event listener
-    themeBtn.addEventListener('click', () => {    
+    themeBtn.addEventListener('click', () => {
         currentTheme = currentTheme === 'light' ? 'dark' : 'light';
         applyTheme(currentTheme);
-        
+
         // Add a little sparkle effect
         createSparkleEffect(themeBtn);
     });
-    
+
     // Create pixel particle effect when switching themes
     function createSparkleEffect(element) {
         const rect = element.getBoundingClientRect();
         const particleCount = 8;
-        
+
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.style.position = 'fixed';
@@ -321,9 +878,9 @@ function initThemeSwitcher() {
             particle.style.transition = 'all 1s ease-out';
             particle.style.opacity = '1';
             particle.style.borderRadius = '0'; // Keep it square/pixel-like
-            
+
             document.body.appendChild(particle);
-            
+
             // Animate pixels with different directions
             setTimeout(() => {
                 const angle = (i / particleCount) * 2 * Math.PI;
@@ -333,7 +890,7 @@ function initThemeSwitcher() {
                 particle.style.width = '2px';
                 particle.style.height = '2px';
             }, 10);
-            
+
             // Remove particle
             setTimeout(() => {
                 particle.remove();
@@ -354,6 +911,13 @@ function initPublicationExpand() {
         if (!abstract) {
             return;
         }
+
+        abstract.style.height = item.classList.contains('expanded') ? 'auto' : '0px';
+        abstract.addEventListener('transitionend', (event) => {
+            if (event.propertyName === 'height' && item.classList.contains('expanded')) {
+                abstract.style.height = 'auto';
+            }
+        });
 
         item.addEventListener('click', (e) => {
             if (window.getSelection()?.toString()) return;
@@ -381,47 +945,14 @@ function initPublicationExpand() {
     function expandAbstract(item) {
         const abstract = item.querySelector('.abstract');
         if (!abstract) return;
-        
-        // Clear any inline styles first
-        abstract.style.height = '';
-        abstract.style.maxHeight = '';
-        abstract.style.opacity = '';
-        abstract.style.transform = '';
-        abstract.style.marginTop = '';
-        
-        // Add expanded class to get target values
+
+        const currentHeight = abstract.getBoundingClientRect().height;
+        abstract.style.height = `${currentHeight}px`;
         item.classList.add('expanded');
-        
-        // Measure the natural height and other target values
         const targetHeight = abstract.scrollHeight;
-        
-        // Set initial collapsed state with inline styles
-        abstract.style.height = '0px';
-        abstract.style.maxHeight = 'none';
-        abstract.style.opacity = '0';
-        abstract.style.transform = 'translateY(-8px)';
-        abstract.style.marginTop = '0px';
-        
-        // Force reflow
-        abstract.offsetHeight;
-        
-        // Animate to expanded state
+
         requestAnimationFrame(() => {
-            abstract.style.height = targetHeight + 'px';
-            abstract.style.opacity = '1';
-            abstract.style.transform = 'translateY(0)';
-            abstract.style.marginTop = '12px';
-            
-            // Clean up after animation - let CSS take over
-            setTimeout(() => {
-                if (item.classList.contains('expanded')) {
-                    abstract.style.height = '';
-                    abstract.style.maxHeight = '';
-                    abstract.style.opacity = '';
-                    abstract.style.transform = '';
-                    abstract.style.marginTop = '';
-                }
-            }, 400);
+            abstract.style.height = `${targetHeight}px`;
         });
     }
     
@@ -429,32 +960,12 @@ function initPublicationExpand() {
         const abstract = item.querySelector('.abstract');
         if (!abstract) return;
         
-        // Get current height and set it explicitly
-        const currentHeight = abstract.scrollHeight;
-        abstract.style.height = currentHeight + 'px';
-        abstract.style.maxHeight = 'none';
-        
-        // Force reflow
+        abstract.style.height = `${abstract.getBoundingClientRect().height}px`;
         abstract.offsetHeight;
-        
-        // Start collapse animation - animate height, opacity, and transform together
+        item.classList.remove('expanded');
+
         requestAnimationFrame(() => {
             abstract.style.height = '0px';
-            abstract.style.opacity = '0';
-            abstract.style.transform = 'translateY(-8px)';
-            abstract.style.marginTop = '0px';
-            
-            // Remove expanded class immediately to let CSS transitions handle other properties
-            item.classList.remove('expanded');
-            
-            // Clean up inline styles after animation
-            setTimeout(() => {
-                abstract.style.height = '';
-                abstract.style.maxHeight = '';
-                abstract.style.opacity = '';
-                abstract.style.transform = '';
-                abstract.style.marginTop = '';
-            }, 400);
         });
     }
 }
@@ -483,6 +994,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initNavigation();
     initCatAnimation();
     initAvatarInteraction();
+    initFunLightEffects();
+    initHomeSurfaceEffects();
+    initHomeRevealEffects();
     initTopbarCollapse();
     initPublicationExpand();
     initThemeSwitcher();

@@ -1,3 +1,4 @@
+/* Shared style entrypoint. Keep the cascade order stable. */
 @import url('./base.css');
 @import url('./layout.css');
 @import url('./home.css');
