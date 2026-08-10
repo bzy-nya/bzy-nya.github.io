@@ -1,0 +1,74 @@
+{
+  "publications": [
+    {
+      "id": "counting-lovasz-local-lemma",
+      "title": "A Counting Lovász Local Lemma",
+      "coauthors": [
+        {
+          "name": "Hongyang Liu",
+          "url": "https://lhy-gispzjz.github.io/"
+        },
+        {
+          "name": "Chunyang Wang",
+          "url": "https://wcysai.com/"
+        },
+        {
+          "name": "Yitong Yin",
+          "url": "https://tcs.nju.edu.cn/yinyt/"
+        },
+        {
+          "name": "Yiyao Zhang"
+        }
+      ],
+      "abstract": [
+        "We establish a counting analogue of the Lovász Local Lemma: we give polynomial-time algorithms for approximately counting satisfying assignments of general constraint satisfaction problems (CSPs) in the local lemma regime.",
+        "$$4 \\mathrm{e} \\cdot p \\cdot (D+1)^2 \\leq 1,$$",
+        "Here $p$ is the maximum constraint violation probability and $D$ is the maximum dependency degree. This condition is tight up to constant factors, matching known lower bounds $pD^2 \\gtrsim 1$ for approximate counting in natural subclasses of CSPs. The core of our approach is a novel $2$-tree expansion for constraint marginal probabilities, which captures the decay of correlations in the local lemma regime."
+      ],
+      "metadata": {
+        "type": "arxiv",
+        "venue": "Manuscript.",
+        "links": []
+      }
+    },
+    {
+      "id": "cftp-q-colorings",
+      "title": "Tight Bounds for Sampling q-Colorings via Coupling from the Past",
+      "coauthors": [
+        {
+          "name": "Tianxing Ding"
+        },
+        {
+          "name": "Hongyang Liu",
+          "url": "https://lhy-gispzjz.github.io/"
+        },
+        {
+          "name": "Yitong Yin",
+          "url": "https://tcs.nju.edu.cn/yinyt/"
+        }
+      ],
+      "abstract": [
+        "The Coupling from the Past (CFTP) paradigm is a canonical method for perfect sampling. For uniform sampling of proper $q$-colorings in graphs with maximum degree $\\Delta$, the bounding chains of Huber (STOC 1998) provide a systematic framework for efficiently implementing CFTP algorithms within the classical regime $q \\geq (1 + o(1))\\Delta^2$. This was subsequently improved to $q > 3\\Delta$ by Bhandari and Chakraborty (STOC 2020) and to $q \\geq (8/3 + o(1))\\Delta$ by Jain, Sah, and Sawhney (STOC 2021).",
+        "In this work, we establish the asymptotically tight threshold for bounding-chain-based CFTP algorithms for graph colorings. We prove a lower bound showing that all such algorithms satisfying the standard contraction property require $q \\geq 2.5\\Delta$, and we present an efficient CFTP algorithm that achieves this asymptotically optimal threshold $q \\geq (2.5 + o(1))\\Delta$ via an optimal design of bounding chains."
+      ],
+      "metadata": {
+        "type": "conference",
+        "venue": "ICALP 2026.",
+        "links": [
+          {
+            "label": "arxiv",
+            "url": "https://arxiv.org/abs/2511.04982"
+          },
+          {
+            "label": "pdf",
+            "url": "https://arxiv.org/pdf/2511.04982"
+          },
+          {
+            "label": "slides",
+            "url": "asset/pdf/icalp26.pdf"
+          }
+        ]
+      }
+    }
+  ]
+}

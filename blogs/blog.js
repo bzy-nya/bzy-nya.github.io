@@ -12,6 +12,7 @@ class BlogSystem {
         
         // 初始化 marked.js 配置
         this.initMarked();
+        this.initInlineCodeSelection();
     }
 
     announceVisualUpdate(...roots) {
@@ -59,6 +60,80 @@ class BlogSystem {
                 return `<input class="task-list-item-checkbox" type="checkbox" ${checked ? 'checked' : ''} disabled>`;
             };
 
+            const hiddenText = {
+                name: 'hiddenText',
+                level: 'inline',
+                start(src) {
+                    return src.indexOf('++');
+                },
+                tokenizer(src) {
+                    const match = /^\+\+(?!\+)([^\n]+?)\+\+(?!\+)/.exec(src);
+                    if (!match) {
+                        return;
+                    }
+
+                    return {
+                        type: 'hiddenText',
+                        raw: match[0],
+                        text: match[1],
+                        tokens: this.lexer.inlineTokens(match[1])
+                    };
+                },
+                renderer(token) {
+                    return `<span class="hidden-text" tabindex="0">${this.parser.parseInline(token.tokens)}</span>`;
+                },
+                childTokens: ['tokens']
+            };
+
+            const expandableBlock = {
+                name: 'expandableBlock',
+                level: 'block',
+                start(src) {
+                    return src.indexOf('+++{');
+                },
+                tokenizer(src) {
+                    const match = /^\+\+\+\{([^\n{}]+)\}[ \t]*\n([\s\S]*?)\n[ \t]*\+\+\+[ \t]*(?:\n|$)/.exec(src);
+                    if (!match) {
+                        return;
+                    }
+
+                    const lines = match[2].split('\n');
+                    const indentation = lines.reduce((minimum, line) => {
+                        if (!line.trim()) {
+                            return minimum;
+                        }
+                        const width = line.match(/^[ \t]*/)?.[0].length ?? 0;
+                        return Math.min(minimum, width);
+                    }, Number.POSITIVE_INFINITY);
+                    const dedent = Number.isFinite(indentation) ? indentation : 0;
+                    const content = lines
+                        .map((line) => line.slice(Math.min(dedent, line.length)))
+                        .join('\n')
+                        .trimEnd();
+                    const title = match[1].trim();
+
+                    return {
+                        type: 'expandableBlock',
+                        raw: match[0],
+                        title,
+                        titleTokens: this.lexer.inlineTokens(title),
+                        text: content,
+                        tokens: this.lexer.blockTokens(content)
+                    };
+                },
+                renderer(token) {
+                    const title = this.parser.parseInline(token.titleTokens);
+                    const content = this.parser.parse(token.tokens);
+                    return `<details class="expandable-block">
+                        <summary class="expandable-block-title">${title}</summary>
+                        <div class="expandable-block-content">${content}</div>
+                    </details>`;
+                },
+                childTokens: ['titleTokens', 'tokens']
+            };
+
+            const markedExtensions = [expandableBlock, hiddenText];
+
             if (typeof katex !== 'undefined') {
                 const mathBlock = {
                     name: 'mathBlock',
@@ -95,8 +170,10 @@ class BlogSystem {
                     }
                 };
 
-                marked.use({ extensions: [mathBlock, mathInline] });
+                markedExtensions.push(mathBlock, mathInline);
             }
+
+            marked.use({ extensions: markedExtensions });
 
             marked.setOptions({
                 renderer: renderer,
@@ -438,6 +515,53 @@ class BlogSystem {
     }
 
     /**
+     * 单击行内代码时全选；双击继续使用浏览器原生的单词选择。
+     */
+    initInlineCodeSelection() {
+        const blogContainer = document.getElementById('blog');
+        if (!blogContainer || blogContainer.dataset.inlineCodeSelection === 'true') {
+            return;
+        }
+
+        blogContainer.dataset.inlineCodeSelection = 'true';
+
+        const getInlineCode = (target) => {
+            if (!(target instanceof Element)) {
+                return null;
+            }
+
+            const code = target.closest('.blog-post-content code');
+            return code && !code.closest('pre') ? code : null;
+        };
+
+        blogContainer.addEventListener('mousedown', (event) => {
+            if (event.detail < 2 || !getInlineCode(event.target)) {
+                return;
+            }
+
+            // 在第二次按下时撤销单击产生的全选，让浏览器继续执行原生选词。
+            window.getSelection()?.removeAllRanges();
+        });
+
+        blogContainer.addEventListener('click', (event) => {
+            const code = getInlineCode(event.target);
+            if (!code || event.detail !== 1) {
+                return;
+            }
+
+            const selection = window.getSelection();
+            if (!selection) {
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+    }
+
+    /**
      * 预处理扩展的Markdown语法
      */
     preprocessExtensions(markdown, postId) {
@@ -523,7 +647,7 @@ class BlogSystem {
                 <div class="blog-stats">
                     <div class="stat-item">
                         <span class="stat-number">${totalPosts}</span>
-                        <span class="stat-label">Total Posts</span>
+                        <span class="stat-label">Total</span>
                     </div>
                     ${pinnedPosts > 0 ? `
                     <div class="stat-item">

@@ -7,12 +7,13 @@ Let's start with the basics - text formatting:
 
 ### Basic Text Styles
 
+- Regular text for comparison
 - **Bold text** using `**bold**` or `__bold__`
 - *Italic text* using `*italic*` or `_italic_`
 - ***Bold and italic*** using `***bold italic***`
 - ~~Strikethrough text~~ using `~~strikethrough~~`
-- `Inline code` using backticks
-- Regular text for comparison
+- ++hidden text++(hover to reveal) using `++hidden text++`
+- `Inline code` using `` `Inline code` ``
 
 ### Emphasis and Highlights
 
@@ -310,3 +311,12 @@ This text has a footnote[^1] and another one[^2].
 [^1]: This is the first footnote content. You can write multiple paragraphs here.
 
 [^2]: This is the second footnote. Footnotes are automatically numbered and linked.
+
+### Collapsible Sections
+
++++{Expandable block}
+    This content is hidden until the title is opened.
+
+    - Markdown remains available inside the block.
+    - Use it for optional details or supplementary notes.
++++

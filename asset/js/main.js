@@ -2,6 +2,7 @@
 let Router = null;
 let catAnimationController = null;
 let surfaceEffectSequence = 0;
+let hiddenTextMosaicSequence = 0;
 
 // 初始化组件路由系统
 function initRouter() {
@@ -170,6 +171,117 @@ function pixelEffectSmoothNoise(time, seed) {
     const start = pixelEffectHash(seed, step);
     const end = pixelEffectHash(seed, step + 1);
     return start + (end - start) * eased;
+}
+
+function renderHiddenTextMosaic(canvas, context, element, timestamp, effectIndex) {
+    // Pixel-glass corner lights render 2x2 logical cells on a 4x canvas scale.
+    // Use the same 8px apparent cell size here.
+    const pixelSize = 8;
+    const elementRect = element.getBoundingClientRect();
+    const contentRange = document.createRange();
+    contentRange.selectNodeContents(element);
+    contentRange.setEndBefore(canvas);
+    const contentRect = contentRange.getBoundingClientRect();
+    const displayWidth = Math.max(1, contentRect.width);
+    const displayHeight = Math.max(1, contentRect.height);
+    const targetWidth = Math.max(1, Math.ceil(displayWidth / pixelSize));
+    const targetHeight = Math.max(1, Math.ceil(displayHeight / pixelSize));
+
+    canvas.style.left = `${contentRect.left - elementRect.left}px`;
+    canvas.style.top = `${contentRect.top - elementRect.top}px`;
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        context.imageSmoothingEnabled = false;
+    } else {
+        context.clearRect(0, 0, targetWidth, targetHeight);
+    }
+
+    const readChannels = (propertyName, fallback) => {
+        const channels = getComputedStyle(element)
+            .getPropertyValue(propertyName)
+            .match(/\d+(?:\.\d+)?/g)
+            ?.slice(0, 3)
+            .map(Number);
+        return channels?.length === 3 && channels.every(Number.isFinite)
+            ? channels
+            : fallback;
+    };
+    const sunlightChannels = readChannels('--sunlight-rgb', [255, 254, 242]);
+    const [red, green, blue] = sunlightChannels;
+    const time = timestamp / 1000 + effectIndex * 0.37;
+
+    for (let x = 0; x < targetWidth; x += 1) {
+        for (let y = 0; y < targetHeight; y += 1) {
+            const seed = x * 97 + y * 193 + effectIndex * 389;
+            const slowNoise = pixelEffectSmoothNoise(time * 0.82, seed + 17);
+            const mediumNoise = pixelEffectSmoothNoise(time * 1.47, seed + 41);
+            const fastNoise = pixelEffectSmoothNoise(time * 2.31, seed + 83);
+            const brightness = Math.max(
+                0.04,
+                Math.min(0.58, 0.06 + slowNoise * 0.34 + mediumNoise * 0.24 - fastNoise * 0.12)
+            );
+            const quantizedBrightness = Math.round(brightness * 20) / 20;
+
+            context.fillStyle = `rgba(${red}, ${green}, ${blue}, ${quantizedBrightness})`;
+            context.fillRect(x, y, 1, 1);
+        }
+    }
+}
+
+function initHiddenTextMosaics(root = document) {
+    const selector = '.blog-post-content .hidden-text';
+    const elements = [
+        ...(root?.matches?.(selector) ? [root] : []),
+        ...(root?.querySelectorAll?.(selector) ?? [])
+    ];
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    elements.forEach((element) => {
+        if (element.querySelector(':scope > .hidden-text-mosaic')) {
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) {
+            return;
+        }
+
+        const effectIndex = hiddenTextMosaicSequence++;
+        canvas.className = 'hidden-text-mosaic';
+        canvas.width = 1;
+        canvas.height = 1;
+        canvas.dataset.pixelSize = '8';
+        canvas.setAttribute('aria-hidden', 'true');
+        element.appendChild(canvas);
+
+        let animationFrameId = null;
+        let lastUpdate = 0;
+        const render = (timestamp) => {
+            renderHiddenTextMosaic(canvas, context, element, timestamp, effectIndex);
+        };
+        const animate = (timestamp) => {
+            if (!element.isConnected) {
+                animationFrameId = null;
+                return;
+            }
+            if (timestamp - lastUpdate >= 50) {
+                render(timestamp);
+                lastUpdate = timestamp;
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        if (reduceMotion) {
+            render(0);
+        } else {
+            animationFrameId = requestAnimationFrame(animate);
+        }
+    });
 }
 
 function renderPixelCornerLight(context, canvasSize, timestamp, itemIndex, channels) {
@@ -384,7 +496,7 @@ function initFunLightEffects() {
 }
 
 function initHomeSurfaceEffects(root = document) {
-    const surfaceSelector = '.home-surface:not(.surface-publications):not(.surface-blog-list)';
+    const surfaceSelector = '.home-surface:not(.surface-publications):not(.surface-blog-list):not(.surface-blog-article)';
     const surfaces = [
         ...(root?.matches?.(surfaceSelector) ? [root] : []),
         ...(root?.querySelectorAll?.(surfaceSelector) ?? [])
@@ -666,6 +778,7 @@ function initHomeRevealEffects() {
         }
 
         initHomeSurfaceEffects(component);
+        initHiddenTextMosaics(component);
         registerBlogRevealGroups(component);
         getConnectedGroups()
             .filter((group) => (group.closest('.component') ?? group) === component)
@@ -682,6 +795,7 @@ function initHomeRevealEffects() {
         }
 
         initHomeSurfaceEffects(root);
+        initHiddenTextMosaics(root);
         registerBlogRevealGroups(root);
         const owner = root.matches?.('.component') ? root : root.closest?.('.component');
         if (!owner?.classList.contains('active')) {
@@ -902,9 +1016,159 @@ function initThemeSwitcher() {
     applyTheme(currentTheme);
 }
 
+const publicationsDataUrl = 'asset/data/publications.json';
+
+function createPublicationElement(publication, index) {
+    if (!publication || typeof publication.title !== 'string') {
+        return null;
+    }
+
+    const publicationId = String(publication.id || index + 1)
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `publication-${index + 1}`;
+    const item = document.createElement('div');
+    item.className = 'home-item publication home-surface surface-publication';
+    item.dataset.publication = publicationId;
+
+    const indicator = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    indicator.classList.add('expand-indicator');
+    indicator.setAttribute('aria-hidden', 'true');
+    const indicatorUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    indicatorUse.setAttribute('href', '#px-triangle');
+    indicator.appendChild(indicatorUse);
+
+    const title = document.createElement('div');
+    title.className = 'home-item-title';
+    title.textContent = publication.title;
+    title.setAttribute('role', 'button');
+    title.setAttribute('tabindex', '0');
+    title.setAttribute('aria-expanded', 'false');
+
+    const abstractId = `publication-abstract-${publicationId}`;
+    const abstract = document.createElement('div');
+    abstract.className = 'abstract';
+    abstract.id = abstractId;
+    title.setAttribute('aria-controls', abstractId);
+
+    const coauthors = Array.isArray(publication.coauthors) ? publication.coauthors : [];
+    if (coauthors.length) {
+        const authors = document.createElement('p');
+        authors.className = 'publication-authors';
+        const label = document.createElement('strong');
+        label.textContent = 'Coauthors: ';
+        authors.appendChild(label);
+
+        coauthors.forEach((author, authorIndex) => {
+            if (authorIndex > 0) {
+                authors.appendChild(document.createTextNode(', '));
+            }
+
+            const name = typeof author?.name === 'string' ? author.name : '';
+            if (typeof author?.url === 'string' && author.url) {
+                const link = document.createElement('a');
+                link.href = author.url;
+                link.textContent = name;
+                authors.appendChild(link);
+            } else {
+                authors.appendChild(document.createTextNode(name));
+            }
+        });
+        authors.appendChild(document.createTextNode('.'));
+        abstract.appendChild(authors);
+    }
+
+    const abstractParagraphs = Array.isArray(publication.abstract)
+        ? publication.abstract
+        : [publication.abstract];
+    const abstractBody = document.createElement('div');
+    abstractBody.className = 'publication-abstract';
+    abstractParagraphs
+        .filter((paragraph) => typeof paragraph === 'string' && paragraph.trim())
+        .forEach((paragraph, paragraphIndex) => {
+            const paragraphElement = document.createElement('p');
+            if (paragraphIndex === 0) {
+                const label = document.createElement('strong');
+                label.textContent = 'Abstract: ';
+                paragraphElement.appendChild(label);
+            }
+            paragraphElement.appendChild(document.createTextNode(paragraph));
+            abstractBody.appendChild(paragraphElement);
+        });
+    abstract.appendChild(abstractBody);
+
+    const metadata = publication.metadata && typeof publication.metadata === 'object'
+        ? publication.metadata
+        : {};
+    const meta = document.createElement('div');
+    meta.className = 'home-item-meta';
+    const type = typeof metadata.type === 'string' && /^[a-z0-9-]+$/i.test(metadata.type)
+        ? metadata.type.toLowerCase()
+        : 'submitted';
+    const typeMarker = document.createElement('span');
+    typeMarker.className = `pub-type ${type}`;
+    typeMarker.setAttribute('aria-hidden', 'true');
+    meta.appendChild(typeMarker);
+
+    if (typeof metadata.venue === 'string' && metadata.venue) {
+        const venue = document.createElement('span');
+        venue.textContent = metadata.venue;
+        meta.appendChild(venue);
+    }
+
+    const links = Array.isArray(metadata.links) ? metadata.links : [];
+    links.forEach((linkData) => {
+        if (typeof linkData?.label !== 'string' || typeof linkData?.url !== 'string') {
+            return;
+        }
+        const link = document.createElement('a');
+        link.href = linkData.url;
+        link.textContent = linkData.label;
+        meta.appendChild(link);
+    });
+
+    item.append(indicator, title, abstract, meta);
+    return item;
+}
+
+async function loadPublications() {
+    const publicationList = document.getElementById('publication-list');
+    if (!publicationList) {
+        return;
+    }
+
+    publicationList.setAttribute('aria-busy', 'true');
+    try {
+        const response = await fetch(publicationsDataUrl);
+        if (!response.ok) {
+            throw new Error(`Unable to load publications (${response.status})`);
+        }
+
+        const payload = await response.json();
+        const publications = Array.isArray(payload?.publications) ? payload.publications : [];
+        const elements = publications
+            .map(createPublicationElement)
+            .filter(Boolean);
+        if (!elements.length) {
+            throw new Error('No valid publication metadata was found');
+        }
+
+        publicationList.replaceChildren(...elements);
+        initPublicationExpand(publicationList);
+    } catch (error) {
+        console.error('Failed to render publications:', error);
+        const message = document.createElement('div');
+        message.className = 'home-item publication-load-error';
+        message.textContent = 'Publications are temporarily unavailable.';
+        publicationList.replaceChildren(message);
+    } finally {
+        publicationList.removeAttribute('aria-busy');
+    }
+}
+
 // Publication expand/collapse functionality
-function initPublicationExpand() {
-    const publications = document.querySelectorAll('#home .home-item.publication');
+function initPublicationExpand(root = document) {
+    const publications = root.querySelectorAll('.home-item.publication');
     
     publications.forEach(item => {
         const abstract = item.querySelector('.abstract');
@@ -912,33 +1176,50 @@ function initPublicationExpand() {
             return;
         }
 
+        const title = item.querySelector('.home-item-title');
+        const setExpandedState = (expanded) => {
+            title?.setAttribute('aria-expanded', String(expanded));
+        };
+
         abstract.style.height = item.classList.contains('expanded') ? 'auto' : '0px';
+        setExpandedState(item.classList.contains('expanded'));
         abstract.addEventListener('transitionend', (event) => {
             if (event.propertyName === 'height' && item.classList.contains('expanded')) {
                 abstract.style.height = 'auto';
             }
         });
 
-        item.addEventListener('click', (e) => {
-            if (window.getSelection()?.toString()) return;
-            if (e.target.closest('a, .abstract')) return;
-            if (!e.target.closest('.home-item-title, .expand-indicator')) return;
-
+        const togglePublication = () => {
             const isExpanded = item.classList.contains('expanded');
-            
+
             // Close all other publications
             publications.forEach(pub => {
                 if (pub !== item && pub.classList.contains('expanded')) {
                     collapseAbstract(pub);
                 }
             });
-            
+
             // Toggle current publication
             if (isExpanded) {
                 collapseAbstract(item);
             } else {
                 expandAbstract(item);
             }
+        };
+
+        item.addEventListener('click', (e) => {
+            if (window.getSelection()?.toString()) return;
+            if (e.target.closest('a, .abstract')) return;
+            if (!e.target.closest('.home-item-title, .expand-indicator')) return;
+            togglePublication();
+        });
+
+        title?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            togglePublication();
         });
     });
     
@@ -949,6 +1230,7 @@ function initPublicationExpand() {
         const currentHeight = abstract.getBoundingClientRect().height;
         abstract.style.height = `${currentHeight}px`;
         item.classList.add('expanded');
+        item.querySelector('.home-item-title')?.setAttribute('aria-expanded', 'true');
         const targetHeight = abstract.scrollHeight;
 
         requestAnimationFrame(() => {
@@ -963,6 +1245,7 @@ function initPublicationExpand() {
         abstract.style.height = `${abstract.getBoundingClientRect().height}px`;
         abstract.offsetHeight;
         item.classList.remove('expanded');
+        item.querySelector('.home-item-title')?.setAttribute('aria-expanded', 'false');
 
         requestAnimationFrame(() => {
             abstract.style.height = '0px';
@@ -990,20 +1273,19 @@ function renderMathInHtml() {
 }
 
 // Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initNavigation();
     initCatAnimation();
     initAvatarInteraction();
     initFunLightEffects();
+    initRouter();
+    await loadPublications();
+    initHiddenTextMosaics();
     initHomeSurfaceEffects();
     initHomeRevealEffects();
     initTopbarCollapse();
-    initPublicationExpand();
     initThemeSwitcher();
     
     // Initialize KaTeX math rendering
     renderMathInHtml();
-    
-    // Initialize component router system
-    initRouter();
 });
