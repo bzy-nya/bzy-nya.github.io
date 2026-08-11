@@ -28,7 +28,16 @@
       "metadata": {
         "type": "arxiv",
         "venue": "Manuscript.",
-        "links": []
+        "links": [
+          {
+            "label" :"arxiv",
+            "url": "https://arxiv.org/abs/2608.08616"
+          },
+          {
+            "label" :"pdf",
+            "url": "https://arxiv.org/pdf/2608.08616"
+          }
+        ]
       }
     },
     {
