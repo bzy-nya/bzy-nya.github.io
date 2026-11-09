@@ -1,0 +1,114 @@
+name: Publish website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.source.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve the latest successful NekoCrate website
+        id: source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: 'NekoOS-Group', repo: 'NekoCrate-Launcher',
+              workflow_id: 'pages.yml', branch: 'neko_dev',
+              status: 'success', per_page: 20,
+            });
+            const run = data.workflow_runs.find(run =>
+              run.event !== 'pull_request' &&
+              run.head_repository?.full_name === 'NekoOS-Group/NekoCrate-Launcher'
+            );
+            if (!run) throw new Error('No successful NekoCrate website deployment found');
+            core.setOutput('commit', run.head_sha);
+            core.setOutput('run', String(run.id));
+            let changed = true;
+            if (context.eventName === 'schedule') {
+              try {
+                const response = await fetch(
+                  `https://bzy.moe/NekoCrate-Launcher/deployment.json?check=${Date.now()}`,
+                  { cache: 'no-store', signal: AbortSignal.timeout(10000) }
+                );
+                if (response.ok) {
+                  const current = await response.json();
+                  changed = current.homepageCommit !== context.sha ||
+                    current.launcherWebsiteRun !== String(run.id);
+                }
+              } catch {
+                core.info('Published revision unavailable; rebuilding safely');
+              }
+            }
+            core.setOutput('changed', String(changed));
+            core.info(changed ? `Build NekoCrate at ${run.head_sha}` : 'Website already up to date');
+      - uses: actions/checkout@v4
+        if: steps.source.outputs.changed == 'true'
+        with:
+          repository: NekoOS-Group/NekoCrate-Launcher
+          ref: ${{ steps.source.outputs.commit }}
+          path: .launcher
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        if: steps.source.outputs.changed == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: .launcher/site/package-lock.json
+      - name: Build the launcher website
+        if: steps.source.outputs.changed == 'true'
+        working-directory: .launcher/site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_BASE: /NekoCrate-Launcher/
+        run: |
+          npm ci --no-audit --no-fund
+          npm run sync-release
+          npm test
+          npm run build
+      - name: Assemble the personal site and launcher subdirectory
+        if: steps.source.outputs.changed == 'true'
+        env:
+          LAUNCHER_COMMIT: ${{ steps.source.outputs.commit }}
+          LAUNCHER_WEBSITE_RUN: ${{ steps.source.outputs.run }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/published-site"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/published-site"
+          rm -rf "$RUNNER_TEMP/published-site/.github"
+          mkdir -p "$RUNNER_TEMP/published-site/NekoCrate-Launcher"
+          cp -R .launcher/site/dist/. "$RUNNER_TEMP/published-site/NekoCrate-Launcher/"
+          node .github/scripts/write-deployment.mjs "$RUNNER_TEMP/published-site/NekoCrate-Launcher/deployment.json"
+          touch "$RUNNER_TEMP/published-site/.nojekyll"
+      - uses: actions/upload-pages-artifact@v4
+        if: steps.source.outputs.changed == 'true'
+        with:
+          path: ${{ runner.temp }}/published-site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment
